@@ -15,38 +15,47 @@ interface ParentPortalPageProps {
 }
 
 export async function generateMetadata({ params }: ParentPortalPageProps): Promise<Metadata> {
-  const { token } = params;
-  const supabase = createClient();
+  try {
+    const token = params?.token;
+    if (!token) {
+      return {
+        title: "بوابة متابعة أولياء الأمور - متابع الحفظ",
+      };
+    }
 
-  const rpcFn = supabase.rpc as unknown as (
-    fnName: string,
-    args: Record<string, unknown>
-  ) => Promise<{ data: unknown }>;
+    const supabase = createClient();
+    const rpcFn = supabase.rpc as unknown as (
+      fnName: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: unknown }>;
 
-  const { data } = await rpcFn("get_student_progress_by_token", {
-    p_token: token,
-  });
+    const { data } = await rpcFn("get_student_progress_by_token", {
+      p_token: token,
+    });
 
-  const payload = data as unknown as ParentProgressPayload | null;
+    const payload = data as unknown as ParentProgressPayload | null;
 
-  if (payload && payload.success && payload.student) {
-    const studentName = payload.student.full_name;
-    return {
-      title: `متابعة حفظ القرآن الكريم - ${studentName}`,
-      description: `سجل الحفظ والمراجعة والحضور اليومي للطالب ${studentName} في الحلقة القرآنية`,
-      openGraph: {
+    if (payload && payload.success && payload.student) {
+      const studentName = payload.student.full_name || "الطالب";
+      return {
         title: `متابعة حفظ القرآن الكريم - ${studentName}`,
-        description: `تقرير متابعة حقيقي لمستوى وإنجاز الطالب ${studentName} في حفظ وتسميع القرآن الكريم`,
-        type: "website",
-        locale: "ar_SA",
-        siteName: "متابع الحفظ",
-      },
-      twitter: {
-        card: "summary",
-        title: `متابعة حفظ القرآن الكريم - ${studentName}`,
-        description: `تقرير متابعة حقيقي لمستوى وإنجاز الطالب ${studentName} في حفظ وتسميع القرآن الكريم`,
-      },
-    };
+        description: `سجل الحفظ والمراجعة والحضور اليومي للطالب ${studentName} في الحلقة القرآنية`,
+        openGraph: {
+          title: `متابعة حفظ القرآن الكريم - ${studentName}`,
+          description: `تقرير متابعة حقيقي لمستوى وإنجاز الطالب ${studentName} في حفظ وتسميع القرآن الكريم`,
+          type: "website",
+          locale: "ar_SA",
+          siteName: "متابع الحفظ",
+        },
+        twitter: {
+          card: "summary",
+          title: `متابعة حفظ القرآن الكريم - ${studentName}`,
+          description: `تقرير متابعة حقيقي لمستوى وإنجاز الطالب ${studentName} في حفظ وتسميع القرآن الكريم`,
+        },
+      };
+    }
+  } catch {
+    // Fallback on metadata generation failure
   }
 
   return {
@@ -56,46 +65,48 @@ export async function generateMetadata({ params }: ParentPortalPageProps): Promi
 }
 
 export default async function ParentPortalPage({ params }: ParentPortalPageProps) {
-  const { token } = params;
-  const supabase = createClient();
+  const token = params?.token;
 
-  const rpcFn = supabase.rpc as unknown as (
-    fnName: string,
-    args: Record<string, unknown>
-  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+  if (!token) {
+    return renderErrorCard("الرابط غير صحيح أو مفقود");
+  }
 
-  const { data, error } = await rpcFn("get_student_progress_by_token", {
-    p_token: token,
-  });
+  let payload: ParentProgressPayload | null = null;
 
-  const payload = data as unknown as ParentProgressPayload | null;
+  try {
+    const supabase = createClient();
+    const rpcFn = supabase.rpc as unknown as (
+      fnName: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: unknown; error: { message: string } | null }>;
 
-  if (error || !payload || !payload.success || !payload.student) {
-    return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full text-center p-8 border-rose-200 shadow-xl">
-          <CardContent className="space-y-4 pt-4">
-            <div className="w-16 h-16 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
-              <AlertCircle className="w-8 h-8" />
-            </div>
-            <CardTitle className="text-xl font-bold text-slate-900 dark:text-slate-50">
-              الرابط غير صحيح أو غير موجود
-            </CardTitle>
-            <CardDescription className="text-slate-500">
-              يرجى التأكد من الحصول على رابط المتابعة الصحيح الخاص بابنكم من معلم الحلقة
-            </CardDescription>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    const { data, error } = await rpcFn("get_student_progress_by_token", {
+      p_token: token,
+    });
+
+    if (!error && data) {
+      payload = data as unknown as ParentProgressPayload;
+    }
+  } catch {
+    payload = null;
+  }
+
+  if (!payload || !payload.success || !payload.student) {
+    return renderErrorCard(payload?.error || "الرابط غير صالح أو تم حذف بيانات الطالب");
   }
 
   const { student, logs = [], attendance = [] } = payload;
+  const safeLogs = Array.isArray(logs) ? logs : [];
+  const safeAttendance = Array.isArray(attendance) ? attendance : [];
 
-  const totalLogsCount = logs.length;
-  const presentCount = attendance.filter((a) => a.status === "حاضر" || a.status === "متأخر").length;
+  const totalLogsCount = safeLogs.length;
+  const presentCount = safeAttendance.filter(
+    (a) => a?.status === "حاضر" || a?.status === "متأخر"
+  ).length;
   const attendanceRate =
-    attendance.length > 0 ? Math.round((presentCount / attendance.length) * 100) : 100;
+    safeAttendance.length > 0
+      ? Math.round((presentCount / safeAttendance.length) * 100)
+      : 100;
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 sm:p-6 lg:p-8">
@@ -118,7 +129,7 @@ export default async function ParentPortalPage({ params }: ParentPortalPageProps
 
             <div>
               <CardTitle className="text-2xl sm:text-4xl font-black text-white leading-tight">
-                تقرير إنجاز الطالب: {student.full_name}
+                تقرير إنجاز الطالب: {student?.full_name || "الطالب"}
               </CardTitle>
               <CardDescription className="text-teal-200 mt-2 text-sm leading-relaxed">
                 سجل حي ومُحدث مباشرة لعمليات الحفظ والتسميع والمراجعة والحضور في الحلقة القرآنية
@@ -170,11 +181,11 @@ export default async function ParentPortalPage({ params }: ParentPortalPageProps
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {logs.length > 0 ? (
+            {safeLogs.length > 0 ? (
               <div className="space-y-3">
-                {logs.map((log) => {
-                  const gradeInfo = GRADE_LABELS[log.grade] || { label: log.grade, color: "" };
-                  const typeInfo = LOG_TYPE_LABELS[log.log_type] || { label: log.log_type, color: "" };
+                {safeLogs.map((log) => {
+                  const gradeInfo = (log?.grade && GRADE_LABELS[log.grade]) || { label: log?.grade || "غير محدد", color: "" };
+                  const typeInfo = (log?.log_type && LOG_TYPE_LABELS[log.log_type]) || { label: log?.log_type || "تسميع", color: "" };
 
                   return (
                     <div
@@ -189,16 +200,16 @@ export default async function ParentPortalPage({ params }: ParentPortalPageProps
                           {gradeInfo.label}
                         </span>
                         <span className="text-xs text-slate-400 mr-auto">
-                          {formatArabicDate(log.created_at)}
+                          {log?.created_at ? formatArabicDate(log.created_at) : ""}
                         </span>
                       </div>
 
                       <div className="text-base font-extrabold text-slate-900 dark:text-slate-100">
-                        من سورة <span className="text-teal-700 dark:text-teal-400">{log.surah_start}</span> (آية {log.aya_start}) إلى سورة{" "}
-                        <span className="text-teal-700 dark:text-teal-400">{log.surah_end}</span> (آية {log.aya_end})
+                        من سورة <span className="text-teal-700 dark:text-teal-400">{log?.surah_start || "-"}</span> (آية {log?.aya_start || 1}) إلى سورة{" "}
+                        <span className="text-teal-700 dark:text-teal-400">{log?.surah_end || "-"}</span> (آية {log?.aya_end || 1})
                       </div>
 
-                      {log.notes && (
+                      {log?.notes && (
                         <p className="text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-850 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
                           ملاحظة المعلم: {log.notes}
                         </p>
@@ -223,14 +234,14 @@ export default async function ParentPortalPage({ params }: ParentPortalPageProps
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Calendar className="w-5 h-5 text-teal-600" />
-              <span>سجل الحضور والغياب ({attendance.length})</span>
+              <span>سجل الحضور والغياب ({safeAttendance.length})</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {attendance.length > 0 ? (
+            {safeAttendance.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {attendance.map((att) => {
-                  const statusInfo = ATTENDANCE_LABELS[att.status] || { label: att.status, color: "" };
+                {safeAttendance.map((att) => {
+                  const statusInfo = (att?.status && ATTENDANCE_LABELS[att.status]) || { label: att?.status || "غير محدد", color: "" };
 
                   return (
                     <div
@@ -238,7 +249,7 @@ export default async function ParentPortalPage({ params }: ParentPortalPageProps
                       className="p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between shadow-xs"
                     >
                       <span className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                        {formatArabicDate(att.date)}
+                        {att?.date ? formatArabicDate(att.date) : "-"}
                       </span>
                       <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${statusInfo.color}`}>
                         {statusInfo.label}
@@ -267,6 +278,26 @@ export default async function ParentPortalPage({ params }: ParentPortalPageProps
           <p>© {new Date().getFullYear()} متابع الحفظ - جميع الحقوق محفوظة</p>
         </div>
       </div>
+    </div>
+  );
+}
+
+function renderErrorCard(message: string) {
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4">
+      <Card className="max-w-md w-full text-center p-8 border-rose-200 dark:border-rose-900 shadow-xl">
+        <CardContent className="space-y-4 pt-4">
+          <div className="w-16 h-16 rounded-full bg-rose-50 dark:bg-rose-950 text-rose-600 flex items-center justify-center mx-auto">
+            <AlertCircle className="w-8 h-8" />
+          </div>
+          <CardTitle className="text-xl font-bold text-slate-900 dark:text-slate-50">
+            الرابط غير صالح أو غير موجود
+          </CardTitle>
+          <CardDescription className="text-slate-500">
+            {message || "يرجى التأكد من الحصول على رابط المتابعة الصحيح الخاص بابنكم من معلم الحلقة"}
+          </CardDescription>
+        </CardContent>
+      </Card>
     </div>
   );
 }
