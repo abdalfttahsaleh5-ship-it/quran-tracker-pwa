@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
 import {
   User,
@@ -22,8 +22,7 @@ import { LogEntryDialog } from "./LogEntryDialog";
 import { AttendanceDialog } from "./AttendanceDialog";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-
-import { useRealtimeSync } from "@/lib/hooks/useRealtimeSync";
+import { useRealtimeSync, RealtimePayload } from "@/lib/hooks/useRealtimeSync";
 
 interface StudentDetailClientProps {
   student: StudentRow;
@@ -36,13 +35,53 @@ export function StudentDetailClient({
   initialLogs,
   initialAttendance,
 }: StudentDetailClientProps) {
-  const { notification } = useRealtimeSync({ teacherId: student.teacher_id });
   const [activeTab, setActiveTab] = useState<"logs" | "attendance">("logs");
   const [logs, setLogs] = useState<MemorizationLogRow[]>(initialLogs);
   const [attendance, setAttendance] = useState<AttendanceRecordRow[]>(initialAttendance);
   const [copied, setCopied] = useState(false);
   const [isLogDialogOpen, setIsLogDialogOpen] = useState(false);
   const [isAttendanceDialogOpen, setIsAttendanceDialogOpen] = useState(false);
+
+  // Realtime Payload Handler for Instant Client State Update
+  const handleRealtimePayload = useCallback(
+    (payload: RealtimePayload) => {
+      const { table, eventType, new: newRecord, old: oldRecord } = payload;
+
+      if (table === "memorization_logs") {
+        if (eventType === "INSERT" && newRecord && newRecord.student_id === student.id) {
+          setLogs((prev) => [newRecord as unknown as MemorizationLogRow, ...prev.filter((l) => l.id !== newRecord.id)]);
+        } else if (eventType === "DELETE" && oldRecord && oldRecord.id) {
+          setLogs((prev) => prev.filter((l) => l.id !== oldRecord.id));
+        } else if (eventType === "UPDATE" && newRecord && newRecord.student_id === student.id) {
+          setLogs((prev) =>
+            prev.map((l) => (l.id === newRecord.id ? (newRecord as unknown as MemorizationLogRow) : l))
+          );
+        }
+      }
+
+      if (table === "attendance_records") {
+        if ((eventType === "INSERT" || eventType === "UPDATE") && newRecord && newRecord.student_id === student.id) {
+          setAttendance((prev) => {
+            const exists = prev.some((a) => a.id === newRecord.id || a.date === newRecord.date);
+            if (exists) {
+              return prev.map((a) =>
+                a.id === newRecord.id || a.date === newRecord.date ? (newRecord as unknown as AttendanceRecordRow) : a
+              );
+            }
+            return [newRecord as unknown as AttendanceRecordRow, ...prev];
+          });
+        } else if (eventType === "DELETE" && oldRecord && oldRecord.id) {
+          setAttendance((prev) => prev.filter((a) => a.id !== oldRecord.id));
+        }
+      }
+    },
+    [student.id]
+  );
+
+  const { notification } = useRealtimeSync({
+    tables: ["memorization_logs", "attendance_records"],
+    onPayload: handleRealtimePayload,
+  });
 
   const handleCopyParentLink = async () => {
     const parentUrl = `${window.location.origin}/parent/${student.parent_token}`;
@@ -351,7 +390,7 @@ export function StudentDetailClient({
         onClose={() => setIsLogDialogOpen(false)}
         studentId={student.id}
         studentName={student.full_name}
-        onSuccess={() => window.location.reload()}
+        onSuccess={() => {}}
       />
 
       <AttendanceDialog
@@ -359,7 +398,7 @@ export function StudentDetailClient({
         onClose={() => setIsAttendanceDialogOpen(false)}
         studentId={student.id}
         studentName={student.full_name}
-        onSuccess={() => window.location.reload()}
+        onSuccess={() => {}}
       />
     </div>
   );

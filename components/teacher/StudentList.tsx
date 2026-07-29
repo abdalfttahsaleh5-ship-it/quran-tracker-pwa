@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Search, UserPlus, Users, CalendarCheck } from "lucide-react";
 import { StudentRow } from "@/types";
 import { StudentInput } from "@/lib/validations/student";
@@ -11,14 +11,13 @@ import { DeleteStudentDialog } from "./DeleteStudentDialog";
 import { QuickAttendanceSheet } from "./QuickAttendanceSheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useRealtimeSync } from "@/lib/hooks/useRealtimeSync";
+import { useRealtimeSync, RealtimePayload } from "@/lib/hooks/useRealtimeSync";
 
 interface StudentListProps {
   initialStudents: StudentRow[];
 }
 
 export function StudentList({ initialStudents }: StudentListProps) {
-  const { notification } = useRealtimeSync();
   const [students, setStudents] = useState<StudentRow[]>(initialStudents);
   const [searchQuery, setSearchQuery] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -27,6 +26,27 @@ export function StudentList({ initialStudents }: StudentListProps) {
   const [selectedStudent, setSelectedStudent] = useState<StudentRow | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [alertMessage, setAlertMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // Realtime payload handler for instant student list sync
+  const handleRealtimePayload = useCallback((payload: RealtimePayload) => {
+    const { table, eventType, new: newRecord, old: oldRecord } = payload;
+    if (table === "students") {
+      if (eventType === "INSERT" && newRecord) {
+        setStudents((prev) => [newRecord as unknown as StudentRow, ...prev.filter((s) => s.id !== newRecord.id)]);
+      } else if (eventType === "DELETE" && oldRecord && oldRecord.id) {
+        setStudents((prev) => prev.filter((s) => s.id !== oldRecord.id));
+      } else if (eventType === "UPDATE" && newRecord) {
+        setStudents((prev) =>
+          prev.map((s) => (s.id === newRecord.id ? (newRecord as unknown as StudentRow) : s))
+        );
+      }
+    }
+  }, []);
+
+  const { notification } = useRealtimeSync({
+    tables: ["students"],
+    onPayload: handleRealtimePayload,
+  });
 
   const filteredStudents = students.filter((s) =>
     s.full_name.toLowerCase().includes(searchQuery.trim().toLowerCase())

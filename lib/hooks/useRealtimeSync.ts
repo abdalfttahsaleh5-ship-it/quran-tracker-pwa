@@ -1,35 +1,40 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { RealtimeChannel } from "@supabase/supabase-js";
+import { RealtimeChannel, RealtimePostgresChangesPayload } from "@supabase/supabase-js";
+import { revalidateAllPaths } from "@/lib/actions/revalidate";
+
+export type RealtimePayload = RealtimePostgresChangesPayload<Record<string, unknown>>;
 
 interface RealtimeSyncOptions {
-  teacherId?: string;
   tables?: Array<"students" | "memorization_logs" | "attendance_records">;
-  onUpdate?: () => void;
+  onPayload?: (payload: RealtimePayload) => void;
   enableToast?: boolean;
 }
 
 export function useRealtimeSync(options: RealtimeSyncOptions = {}) {
   const {
-    teacherId,
     tables = ["students", "memorization_logs", "attendance_records"],
-    onUpdate,
+    onPayload,
     enableToast = true,
   } = options;
 
   const router = useRouter();
   const [notification, setNotification] = useState<string | null>(null);
+  const onPayloadRef = useRef(onPayload);
+
+  useEffect(() => {
+    onPayloadRef.current = onPayload;
+  }, [onPayload]);
 
   useEffect(() => {
     const supabase = createClient();
     const channels: RealtimeChannel[] = [];
 
     tables.forEach((table) => {
-      const channelName = `realtime_${table}_${teacherId || "global"}`;
-      const filter = teacherId ? `teacher_id=eq.${teacherId}` : undefined;
+      const channelName = `realtime_sync_${table}_${Math.random().toString(36).substring(2, 9)}`;
 
       const channel = supabase
         .channel(channelName)
@@ -39,19 +44,23 @@ export function useRealtimeSync(options: RealtimeSyncOptions = {}) {
             event: "*",
             schema: "public",
             table: table,
-            filter: filter,
           },
-          () => {
+          async (payload: RealtimePayload) => {
             if (enableToast) {
-              setNotification("🔔 تم تحديث البيانات تلقائياً بفضل الاتصال المباشر");
+              setNotification("🔔 تم تحديث البيانات فوريًا دون الحاجة لإعادة التحميل");
               setTimeout(() => setNotification(null), 3500);
             }
 
-            if (onUpdate) {
-              onUpdate();
-            } else {
-              router.refresh();
+            // 1. Instant client-side state callback if provided
+            if (onPayloadRef.current) {
+              onPayloadRef.current(payload);
             }
+
+            // 2. Bypass Next.js App Router server cache
+            await revalidateAllPaths();
+
+            // 3. Refresh Server Component tree
+            router.refresh();
           }
         )
         .subscribe();
@@ -64,7 +73,7 @@ export function useRealtimeSync(options: RealtimeSyncOptions = {}) {
         supabase.removeChannel(ch);
       });
     };
-  }, [teacherId, tables, onUpdate, enableToast, router]);
+  }, [tables, enableToast, router]);
 
   return { notification };
 }
