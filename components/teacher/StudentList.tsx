@@ -11,12 +11,14 @@ import { DeleteStudentDialog } from "./DeleteStudentDialog";
 import { QuickAttendanceSheet } from "./QuickAttendanceSheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useRealtimeSync } from "@/lib/hooks/useRealtimeSync";
 
 interface StudentListProps {
   initialStudents: StudentRow[];
 }
 
 export function StudentList({ initialStudents }: StudentListProps) {
+  const { notification } = useRealtimeSync();
   const [students, setStudents] = useState<StudentRow[]>(initialStudents);
   const [searchQuery, setSearchQuery] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -91,6 +93,12 @@ export function StudentList({ initialStudents }: StudentListProps) {
 
   return (
     <div className="space-y-6">
+      {notification && (
+        <div className="p-3 bg-teal-800 text-white font-bold text-xs rounded-xl shadow-lg animate-in slide-in-from-top duration-300 flex items-center justify-center gap-2">
+          <span>{notification}</span>
+        </div>
+      )}
+
       {/* Alert Banner */}
       {alertMessage && (
         <div

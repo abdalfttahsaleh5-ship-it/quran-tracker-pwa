@@ -23,6 +23,8 @@ import { AttendanceDialog } from "./AttendanceDialog";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
+import { useRealtimeSync } from "@/lib/hooks/useRealtimeSync";
+
 interface StudentDetailClientProps {
   student: StudentRow;
   initialLogs: MemorizationLogRow[];
@@ -34,6 +36,7 @@ export function StudentDetailClient({
   initialLogs,
   initialAttendance,
 }: StudentDetailClientProps) {
+  const { notification } = useRealtimeSync({ teacherId: student.teacher_id });
   const [activeTab, setActiveTab] = useState<"logs" | "attendance">("logs");
   const [logs, setLogs] = useState<MemorizationLogRow[]>(initialLogs);
   const [attendance, setAttendance] = useState<AttendanceRecordRow[]>(initialAttendance);
@@ -75,6 +78,12 @@ export function StudentDetailClient({
 
   return (
     <div className="space-y-6">
+      {notification && (
+        <div className="p-3 bg-teal-800 text-white font-bold text-xs rounded-xl shadow-lg animate-in slide-in-from-top duration-300 flex items-center justify-center gap-2">
+          <span>{notification}</span>
+        </div>
+      )}
+
       {/* Top Back Navigation */}
       <div>
         <Link

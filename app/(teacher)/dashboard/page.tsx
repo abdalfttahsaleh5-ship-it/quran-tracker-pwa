@@ -3,6 +3,7 @@ import { Users, UserPlus, BookCheck, CalendarCheck, ArrowLeft } from "lucide-rea
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getStudents } from "@/lib/actions/student";
+import { TeacherDashboardClient } from "@/components/teacher/TeacherDashboardClient";
 
 export const revalidate = 0;
 
@@ -13,6 +14,7 @@ export default async function TeacherDashboardPage() {
 
   return (
     <div className="space-y-8">
+      <TeacherDashboardClient />
       {/* Welcome Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-teal-800 to-teal-600 text-white p-6 rounded-2xl shadow-lg">
         <div>
