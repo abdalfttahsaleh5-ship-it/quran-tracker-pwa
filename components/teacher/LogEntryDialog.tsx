@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { BookOpen, X, CheckCircle2, UserCheck, Layers, Hash } from "lucide-react";
+import { BookOpen, X, CheckCircle2, UserCheck, Hash, ChevronDown } from "lucide-react";
 import { memorizationLogSchema, MemorizationLogInput } from "@/lib/validations/log";
 import { createMemorizationLog } from "@/lib/actions/log";
 import { QURAN_SURAHS } from "@/lib/constants/quran";
@@ -29,8 +29,7 @@ export function LogEntryDialog({
 }: LogEntryDialogProps) {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedSurahs, setSelectedSurahs] = useState<string[]>(["الفاتحة"]);
-  const [isMultiSurahOpen, setIsMultiSurahOpen] = useState(false);
+  const [isCrossSurah, setIsCrossSurah] = useState(false);
 
   const {
     register,
@@ -52,7 +51,6 @@ export function LogEntryDialog({
       notes: "",
       assistant_name: "",
       page_count: 1,
-      surahs: ["الفاتحة"],
     },
   });
 
@@ -65,28 +63,25 @@ export function LogEntryDialog({
     }
   }, [isOpen, setValue]);
 
+  const selectedSurahStart = watch("surah_start");
   const selectedLogType = watch("log_type");
   const selectedGrade = watch("grade");
   const currentPageCount = watch("page_count");
 
-  if (!isOpen) return null;
-
-  const toggleSurahSelection = (surahName: string) => {
-    setSelectedSurahs((prev) => {
-      let updated: string[];
-      if (prev.includes(surahName)) {
-        updated = prev.filter((s) => s !== surahName);
-        if (updated.length === 0) updated = [surahName]; // at least one surah
-      } else {
-        updated = [...prev, surahName];
-      }
-
-      setValue("surahs", updated);
-      setValue("surah_start", updated[0]);
-      setValue("surah_end", updated[updated.length - 1]);
-      return updated;
-    });
+  // Auto-fill verse range upon selecting primary surah
+  const handlePrimarySurahChange = (surahName: string) => {
+    setValue("surah_start", surahName);
+    if (!isCrossSurah) {
+      setValue("surah_end", surahName);
+    }
+    const surahObj = QURAN_SURAHS.find((s) => s.name === surahName);
+    if (surahObj) {
+      setValue("aya_start", 1);
+      setValue("aya_end", surahObj.numberOfAyahs);
+    }
   };
+
+  if (!isOpen) return null;
 
   const handleFormSubmit = async (data: MemorizationLogInput) => {
     setIsLoading(true);
@@ -99,9 +94,8 @@ export function LogEntryDialog({
     const payload: MemorizationLogInput = {
       ...data,
       student_id: studentId,
-      surahs: selectedSurahs,
-      surah_start: selectedSurahs[0] || data.surah_start,
-      surah_end: selectedSurahs[selectedSurahs.length - 1] || data.surah_end,
+      surah_end: isCrossSurah ? data.surah_end : data.surah_start,
+      surahs: [data.surah_start, ...(isCrossSurah && data.surah_end !== data.surah_start ? [data.surah_end] : [])],
     };
 
     const res = await createMemorizationLog(payload);
@@ -158,9 +152,9 @@ export function LogEntryDialog({
           </div>
         )}
 
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5" noValidate>
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4" noValidate>
           {/* Assistant Name Input Field */}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="assistant_name" className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-200">
               <UserCheck className="w-4 h-4 text-teal-600" />
               <span>اسم المشرف / المساعد (اختياري)</span>
@@ -173,7 +167,7 @@ export function LogEntryDialog({
           </div>
 
           {/* Log Type Selection */}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label>نوع التسميع</Label>
             <div className="grid grid-cols-3 gap-2">
               {logTypes.map((type) => (
@@ -193,128 +187,84 @@ export function LogEntryDialog({
             </div>
           </div>
 
-          {/* Multi-Surah Selection Section */}
-          <div className="space-y-2 bg-teal-50/60 dark:bg-teal-950/40 p-4 rounded-xl border border-teal-100 dark:border-teal-900">
-            <div className="flex items-center justify-between">
-              <Label className="flex items-center gap-1.5 text-xs font-bold text-teal-900 dark:text-teal-200">
-                <Layers className="w-4 h-4 text-teal-600" />
-                <span>اختيار السور (تحديد متعدد)</span>
+          {/* Unified Primary Surah Selection & Compact Ayah Range */}
+          <div className="space-y-3 bg-slate-50 dark:bg-slate-850 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+            <div className="space-y-1">
+              <Label htmlFor="primary_surah" className="text-xs font-bold text-teal-900 dark:text-teal-300">
+                اختر السورة *
               </Label>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsMultiSurahOpen(!isMultiSurahOpen)}
-                className="text-xs text-teal-700 dark:text-teal-300 font-bold"
+              <select
+                id="primary_surah"
+                value={selectedSurahStart}
+                onChange={(e) => handlePrimarySurahChange(e.target.value)}
+                className="w-full h-11 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm font-bold text-slate-800 dark:text-slate-100"
               >
-                {isMultiSurahOpen ? "إخفاء القائمة ▲" : "تعديل السور المحددة ( " + selectedSurahs.length + " سور ) ▼"}
-              </Button>
+                {QURAN_SURAHS.map((s) => (
+                  <option key={s.number} value={s.name}>
+                    {s.number}. سورة {s.name} ({s.numberOfAyahs} آية)
+                  </option>
+                ))}
+              </select>
             </div>
 
-            {/* Selected Surahs Badges Summary */}
-            <div className="flex flex-wrap gap-1.5 pt-1">
-              {selectedSurahs.map((surah) => (
-                <span
-                  key={surah}
-                  className="px-2.5 py-1 rounded-lg text-xs font-bold bg-teal-800 text-white flex items-center gap-1 shadow-xs"
-                >
-                  <span>سورة {surah}</span>
-                  {selectedSurahs.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => toggleSurahSelection(surah)}
-                      className="hover:text-rose-300 mr-1"
-                    >
-                      ×
-                    </button>
-                  )}
-                </span>
-              ))}
-            </div>
-
-            {/* Expandable Surahs Checklist */}
-            {isMultiSurahOpen && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3 pt-3 border-t border-teal-200/60 dark:border-teal-800 max-h-48 overflow-y-auto p-1">
-                {QURAN_SURAHS.map((s) => {
-                  const isChecked = selectedSurahs.includes(s.name);
-                  return (
-                    <button
-                      key={s.number}
-                      type="button"
-                      onClick={() => toggleSurahSelection(s.name)}
-                      className={`p-2 rounded-lg text-xs font-bold text-right flex items-center justify-between border transition-all ${
-                        isChecked
-                          ? "bg-teal-700 text-white border-teal-700 shadow-xs"
-                          : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-teal-50"
-                      }`}
-                    >
-                      <span>{s.number}. {s.name}</span>
-                      {isChecked && <span className="font-mono text-amber-300">✓</span>}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Surah Verse Range (Start & End) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-850 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
-            <div className="space-y-2">
-              <Label className="text-xs text-slate-500 font-bold">من (البداية)</Label>
-              <div>
-                <Label htmlFor="surah_start" className="text-xs">السورة</Label>
-                <select
-                  id="surah_start"
-                  className="w-full h-10 mt-1 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm"
-                  {...register("surah_start")}
-                >
-                  {QURAN_SURAHS.map((s) => (
-                    <option key={s.number} value={s.name}>
-                      {s.number}. سورة {s.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <Label htmlFor="aya_start" className="text-xs">رقم الآية</Label>
+            {/* Compact Side-by-Side Ayah Range Inputs */}
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <div className="space-y-1">
+                <Label htmlFor="aya_start" className="text-xs font-bold">من آية</Label>
                 <Input
                   id="aya_start"
                   type="number"
                   min={1}
-                  className="mt-1"
+                  className="font-mono text-center font-bold"
                   {...register("aya_start", { valueAsNumber: true })}
                 />
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label className="text-xs text-slate-500 font-bold">إلى (النهاية)</Label>
-              <div>
-                <Label htmlFor="surah_end" className="text-xs">السورة</Label>
-                <select
-                  id="surah_end"
-                  className="w-full h-10 mt-1 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm"
-                  {...register("surah_end")}
-                >
-                  {QURAN_SURAHS.map((s) => (
-                    <option key={s.number} value={s.name}>
-                      {s.number}. سورة {s.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <Label htmlFor="aya_end" className="text-xs">رقم الآية</Label>
+              <div className="space-y-1">
+                <Label htmlFor="aya_end" className="text-xs font-bold">إلى آية</Label>
                 <Input
                   id="aya_end"
                   type="number"
                   min={1}
-                  className="mt-1"
+                  className="font-mono text-center font-bold"
                   {...register("aya_end", { valueAsNumber: true })}
                 />
               </div>
+            </div>
+
+            {/* Optional Cross-Surah Toggle */}
+            <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
+              <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-600 dark:text-slate-400">
+                <input
+                  type="checkbox"
+                  checked={isCrossSurah}
+                  onChange={(e) => {
+                    setIsCrossSurah(e.target.checked);
+                    if (!e.target.checked) {
+                      setValue("surah_end", selectedSurahStart);
+                    }
+                  }}
+                  className="rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                />
+                <span>تسميع ممتد بين سورين مختلفين</span>
+              </label>
+
+              {isCrossSurah && (
+                <div className="space-y-1 mt-2 animate-in fade-in duration-200">
+                  <Label htmlFor="surah_end" className="text-xs font-bold">السورة المنتهية عندها (إلى سورة)</Label>
+                  <select
+                    id="surah_end"
+                    className="w-full h-10 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm font-bold"
+                    {...register("surah_end")}
+                  >
+                    {QURAN_SURAHS.map((s) => (
+                      <option key={s.number} value={s.name}>
+                        {s.number}. سورة {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           </div>
 
@@ -322,7 +272,7 @@ export function LogEntryDialog({
           <div className="space-y-2 bg-slate-50 dark:bg-slate-850 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
             <Label className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200">
               <Hash className="w-4 h-4 text-teal-600" />
-              <span>كمية التسميع (عدد الصفحات أو أجزاء الصفحة)</span>
+              <span>كمية التسميع (عدد الصفحات)</span>
             </Label>
 
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 pt-1">
@@ -352,7 +302,7 @@ export function LogEntryDialog({
                 step="0.1"
                 min="0.1"
                 placeholder="1.0"
-                className="w-32 font-mono"
+                className="w-32 font-mono text-center font-bold"
                 {...register("page_count", { valueAsNumber: true })}
               />
               <span className="text-xs text-slate-500 font-bold">صفحة</span>
@@ -381,7 +331,7 @@ export function LogEntryDialog({
           </div>
 
           {/* Optional Notes */}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="notes">ملاحظات المعلم (اختياري)</Label>
             <Input
               id="notes"

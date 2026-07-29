@@ -20,6 +20,20 @@ export function formatArabicDate(dateString: string): string {
   }
 }
 
+export function formatPageCount(count?: number | null): string {
+  if (count === undefined || count === null || isNaN(count) || count <= 0) {
+    return "صفحة واحدة";
+  }
+
+  if (count === 0.25) return "¼ صفحة";
+  if (count === 0.5) return "½ صفحة";
+  if (count === 0.75) return "¾ صفحة";
+  if (count === 1) return "صفحة واحدة";
+  if (count === 2) return "صفحتان";
+
+  return `${count} صفحة`;
+}
+
 export const GRADE_LABELS: Record<EvaluationGradeEnum, { label: string; color: string }> = {
   ممتاز: { label: "ممتاز", color: "text-emerald-700 bg-emerald-50 border-emerald-200" },
   جيد_جدا: { label: "جيد جداً", color: "text-teal-700 bg-teal-50 border-teal-200" },
