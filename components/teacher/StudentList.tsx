@@ -20,6 +20,7 @@ interface StudentListProps {
 export function StudentList({ initialStudents }: StudentListProps) {
   const [students, setStudents] = useState<StudentRow[]>(initialStudents);
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"name" | "pages">("name");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isQuickAttendanceOpen, setIsQuickAttendanceOpen] = useState(false);
@@ -48,9 +49,14 @@ export function StudentList({ initialStudents }: StudentListProps) {
     onPayload: handleRealtimePayload,
   });
 
-  const filteredStudents = students.filter((s) =>
-    s.full_name.toLowerCase().includes(searchQuery.trim().toLowerCase())
-  );
+  const filteredStudents = students
+    .filter((s) => s.full_name.toLowerCase().includes(searchQuery.trim().toLowerCase()))
+    .sort((a, b) => {
+      if (sortBy === "pages") {
+        return (b.total_pages_count || 0) - (a.total_pages_count || 0);
+      }
+      return a.full_name.localeCompare(b.full_name, "ar");
+    });
 
   const handleOpenAdd = () => {
     setSelectedStudent(null);
@@ -135,17 +141,28 @@ export function StudentList({ initialStudents }: StudentListProps) {
         </div>
       )}
 
-      {/* Top Controls: Search Bar, Quick Attendance & Add Button */}
+      {/* Top Controls: Search Bar, Sort Picker, Quick Attendance & Add Button */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-md">
-          <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <Input
-            type="text"
-            placeholder="بحث باسم الطالب..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pr-9"
-          />
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
+          <div className="relative flex-1 max-w-md">
+            <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Input
+              type="text"
+              placeholder="بحث باسم الطالب..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pr-9"
+            />
+          </div>
+
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as "name" | "pages")}
+            className="h-10 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-xs font-bold text-slate-700 dark:text-slate-200"
+          >
+            <option value="name">الترتيب الأبجدي (حسب الاسم)</option>
+            <option value="pages">الترتيب حسب الأكثر تسميعاً (عدد الصفحات) 🏆</option>
+          </select>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

@@ -65,7 +65,12 @@ export function StudentCard({ student, onEdit, onDelete }: StudentCardProps) {
       </CardHeader>
 
       <CardContent className="p-4 pt-2 text-sm space-y-2">
-        <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+        <div className="flex items-center justify-between gap-2 flex-wrap text-xs font-bold text-teal-800 dark:text-teal-300 bg-teal-50/70 dark:bg-teal-950/40 p-2 rounded-lg border border-teal-100 dark:border-teal-900">
+          <span>📚 مجموع التسميع المنجز:</span>
+          <span className="font-mono text-sm font-black">{student.total_pages_count || 0} صفحة</span>
+        </div>
+
+        <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 pt-1">
           <Phone className="w-4 h-4 text-teal-600 shrink-0" />
           <span>هاتف ولي الأمر: </span>
           <span dir="ltr" className="font-mono text-slate-800 dark:text-slate-200">

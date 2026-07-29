@@ -22,6 +22,8 @@ export const memorizationLogSchema = z.object({
   grade: evaluationGradeEnum,
   notes: z.string().max(500, { message: "الملاحظات يجب أن لا تتجاوز 500 حرف" }).nullable().optional(),
   assistant_name: z.string().max(100, { message: "اسم المسمّع طويل جداً" }).nullable().optional(),
+  page_count: z.number().min(0, { message: "عدد الصفحات يجب أن يكون 0 أو أكثر" }).nullable().optional(),
+  surahs: z.array(z.string()).nullable().optional(),
 });
 
 export const attendanceSchema = z.object({

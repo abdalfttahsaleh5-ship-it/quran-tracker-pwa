@@ -15,6 +15,7 @@ export type StudentRow = Database["public"]["Tables"]["students"]["Row"] & {
   address?: string | null;
   father_job?: string | null;
   avatar_url?: string | null;
+  total_pages_count?: number;
 };
 
 export type StudentInsert = Database["public"]["Tables"]["students"]["Insert"] & {
@@ -35,10 +36,14 @@ export type StudentUpdate = Database["public"]["Tables"]["students"]["Update"] &
 
 export type MemorizationLogRow = Database["public"]["Tables"]["memorization_logs"]["Row"] & {
   assistant_name?: string | null;
+  page_count?: number | null;
+  surahs?: string[] | null;
 };
 
 export type MemorizationLogInsert = Database["public"]["Tables"]["memorization_logs"]["Insert"] & {
   assistant_name?: string | null;
+  page_count?: number | null;
+  surahs?: string[] | null;
 };
 
 export type AttendanceRecordRow = Database["public"]["Tables"]["attendance_records"]["Row"];
@@ -73,6 +78,8 @@ export interface ParentProgressPayload {
     grade: EvaluationGradeEnum;
     notes: string | null;
     assistant_name?: string | null;
+    page_count?: number | null;
+    surahs?: string[] | null;
     created_at: string;
   }>;
   attendance?: Array<{

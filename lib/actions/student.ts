@@ -40,18 +40,32 @@ export async function getStudents(): Promise<ActionResult<StudentRow[]>> {
       };
     }
 
-    // Auto-patch any student missing parent_token
+    // Query memorization logs to calculate total pages per student
+    const { data: logs } = await supabase
+      .from("memorization_logs")
+      .select("student_id, page_count")
+      .eq("teacher_id", user.id);
+
+    const pagesMap: Record<string, number> = {};
+    ((logs || []) as unknown as Array<{ student_id: string; page_count?: number | null }>).forEach((log) => {
+      if (log.student_id) {
+        pagesMap[log.student_id] = Number(((pagesMap[log.student_id] || 0) + (log.page_count || 1)).toFixed(2));
+      }
+    });
+
+    // Auto-patch any student missing parent_token and attach total_pages_count
     const studentList = (students || []) as unknown as StudentRow[];
     const safeStudents = await Promise.all(
       studentList.map(async (student) => {
-        if (!student.parent_token) {
-          const newToken = crypto.randomUUID();
+        const totalPages = pagesMap[student.id] || 0;
+        let token = student.parent_token;
+        if (!token) {
+          token = crypto.randomUUID();
           await (supabase.from("students") as ReturnType<typeof supabase.from>)
-            .update({ parent_token: newToken } as unknown as Database["public"]["Tables"]["students"]["Update"])
+            .update({ parent_token: token } as unknown as Database["public"]["Tables"]["students"]["Update"])
             .eq("id", student.id);
-          return { ...student, parent_token: newToken };
         }
-        return student;
+        return { ...student, parent_token: token, total_pages_count: totalPages };
       })
     );
 
