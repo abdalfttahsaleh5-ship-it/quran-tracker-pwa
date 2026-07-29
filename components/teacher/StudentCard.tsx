@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { User, Phone, Copy, Check, Edit3, Trash2, ExternalLink } from "lucide-react";
+import { User, Phone, Copy, Check, Edit3, Trash2, ExternalLink, BookOpen } from "lucide-react";
 import { StudentRow } from "@/types";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,6 @@ export function StudentCard({ student, onEdit, onDelete }: StudentCardProps) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Fallback if clipboard API is restricted
       const input = document.createElement("input");
       input.value = parentUrl;
       document.body.appendChild(input);
@@ -43,9 +42,11 @@ export function StudentCard({ student, onEdit, onDelete }: StudentCardProps) {
             <User className="w-5 h-5" />
           </div>
           <div>
-            <CardTitle className="text-base font-bold text-slate-900 dark:text-slate-50">
-              {student.full_name}
-            </CardTitle>
+            <Link href={`/students/${student.id}`} className="hover:underline">
+              <CardTitle className="text-base font-bold text-slate-900 dark:text-slate-50">
+                {student.full_name}
+              </CardTitle>
+            </Link>
             <p className="text-xs text-slate-400 mt-0.5">
               تم التسجيل: {new Date(student.created_at).toLocaleDateString("ar-SA")}
             </p>
@@ -64,6 +65,14 @@ export function StudentCard({ student, onEdit, onDelete }: StudentCardProps) {
       </CardContent>
 
       <CardFooter className="p-4 pt-0 flex flex-col gap-2">
+        {/* Main Action: Open Student Detail Profile */}
+        <Link href={`/students/${student.id}`} className="w-full">
+          <Button variant="default" size="sm" className="w-full gap-2 font-bold shadow-sm">
+            <BookOpen className="w-4 h-4" />
+            <span>عرض الملف والتسميع اليومي</span>
+          </Button>
+        </Link>
+
         {/* Copy Parent Link Button */}
         <Button
           variant={copied ? "default" : "outline"}

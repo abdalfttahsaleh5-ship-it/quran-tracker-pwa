@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Search, UserPlus, Users } from "lucide-react";
+import { Search, UserPlus, Users, CalendarCheck } from "lucide-react";
 import { StudentRow } from "@/types";
 import { StudentInput } from "@/lib/validations/student";
 import { createStudent, updateStudent, deleteStudent } from "@/lib/actions/student";
 import { StudentCard } from "./StudentCard";
 import { StudentDialog } from "./StudentDialog";
 import { DeleteStudentDialog } from "./DeleteStudentDialog";
+import { QuickAttendanceSheet } from "./QuickAttendanceSheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -20,6 +21,7 @@ export function StudentList({ initialStudents }: StudentListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isQuickAttendanceOpen, setIsQuickAttendanceOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<StudentRow | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [alertMessage, setAlertMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -48,7 +50,6 @@ export function StudentList({ initialStudents }: StudentListProps) {
     setAlertMessage(null);
 
     if (selectedStudent) {
-      // Update existing student
       const res = await updateStudent(selectedStudent.id, data);
       if (res.success && res.data) {
         setStudents((prev) =>
@@ -59,7 +60,6 @@ export function StudentList({ initialStudents }: StudentListProps) {
         setAlertMessage({ type: "error", text: res.error || "فشل التحديث" });
       }
     } else {
-      // Create new student
       const res = await createStudent(data);
       if (res.success && res.data) {
         setStudents((prev) => [res.data!, ...prev]);
@@ -107,7 +107,7 @@ export function StudentList({ initialStudents }: StudentListProps) {
         </div>
       )}
 
-      {/* Top Controls: Search Bar & Add Button */}
+      {/* Top Controls: Search Bar, Quick Attendance & Add Button */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
         <div className="relative flex-1 max-w-md">
           <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -120,10 +120,21 @@ export function StudentList({ initialStudents }: StudentListProps) {
           />
         </div>
 
-        <Button onClick={handleOpenAdd} className="gap-2 shadow-sm">
-          <UserPlus className="w-4 h-4" />
-          <span>إضافة طالب جديد</span>
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setIsQuickAttendanceOpen(true)}
+            className="gap-2 shadow-sm border-teal-200 text-teal-800 hover:bg-teal-50"
+          >
+            <CalendarCheck className="w-4 h-4 text-teal-600" />
+            <span>تحضير الحلقة اليوم</span>
+          </Button>
+
+          <Button onClick={handleOpenAdd} className="gap-2 shadow-sm">
+            <UserPlus className="w-4 h-4" />
+            <span>إضافة طالب جديد</span>
+          </Button>
+        </div>
       </div>
 
       {/* Student Cards Grid */}
@@ -178,6 +189,13 @@ export function StudentList({ initialStudents }: StudentListProps) {
         onConfirm={handleDeleteConfirm}
         studentName={selectedStudent?.full_name}
         isLoading={isLoading}
+      />
+
+      <QuickAttendanceSheet
+        isOpen={isQuickAttendanceOpen}
+        onClose={() => setIsQuickAttendanceOpen(false)}
+        students={students}
+        onSuccess={() => setAlertMessage({ type: "success", text: "تم تسجيل حضور الحلقة بنجاح!" })}
       />
     </div>
   );

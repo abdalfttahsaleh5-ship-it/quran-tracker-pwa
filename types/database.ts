@@ -198,6 +198,7 @@ export type Database = {
       get_student_progress_by_token: {
         Args: {
           p_token: string;
+          [key: string]: unknown;
         };
         Returns: Json;
       };
