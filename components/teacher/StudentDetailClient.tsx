@@ -390,7 +390,9 @@ export function StudentDetailClient({
         onClose={() => setIsLogDialogOpen(false)}
         studentId={student.id}
         studentName={student.full_name}
-        onSuccess={() => {}}
+        onSuccess={(newLog) => {
+          setLogs((prev) => [newLog, ...prev.filter((l) => l.id !== newLog.id)]);
+        }}
       />
 
       <AttendanceDialog
@@ -398,7 +400,17 @@ export function StudentDetailClient({
         onClose={() => setIsAttendanceDialogOpen(false)}
         studentId={student.id}
         studentName={student.full_name}
-        onSuccess={() => {}}
+        onSuccess={(newRecord) => {
+          setAttendance((prev) => {
+            const exists = prev.some((a) => a.id === newRecord.id || a.date === newRecord.date);
+            if (exists) {
+              return prev.map((a) =>
+                a.id === newRecord.id || a.date === newRecord.date ? newRecord : a
+              );
+            }
+            return [newRecord, ...prev];
+          });
+        }}
       />
     </div>
   );

@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Calendar, X, CheckCircle2 } from "lucide-react";
 import { attendanceSchema, AttendanceInput } from "@/lib/validations/log";
 import { recordAttendance } from "@/lib/actions/attendance";
-import { AttendanceStatusEnum } from "@/types";
+import { AttendanceStatusEnum, AttendanceRecordRow } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,7 +16,7 @@ interface AttendanceDialogProps {
   onClose: () => void;
   studentId: string;
   studentName: string;
-  onSuccess?: () => void;
+  onSuccess?: (record: AttendanceRecordRow) => void;
 }
 
 export function AttendanceDialog({
@@ -60,9 +60,9 @@ export function AttendanceDialog({
       student_id: studentId,
     });
 
-    if (res.success) {
+    if (res.success && res.data) {
       reset();
-      onSuccess?.();
+      onSuccess?.(res.data);
       onClose();
     } else {
       setError(res.error || "فشل تسجيل الحضور");

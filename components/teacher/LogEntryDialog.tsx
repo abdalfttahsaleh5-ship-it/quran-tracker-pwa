@@ -7,7 +7,7 @@ import { BookOpen, X, CheckCircle2 } from "lucide-react";
 import { memorizationLogSchema, MemorizationLogInput } from "@/lib/validations/log";
 import { createMemorizationLog } from "@/lib/actions/log";
 import { QURAN_SURAHS } from "@/lib/constants/quran";
-import { LogTypeEnum, EvaluationGradeEnum } from "@/types";
+import { LogTypeEnum, EvaluationGradeEnum, MemorizationLogRow } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,7 +17,7 @@ interface LogEntryDialogProps {
   onClose: () => void;
   studentId: string;
   studentName: string;
-  onSuccess?: () => void;
+  onSuccess?: (log: MemorizationLogRow) => void;
 }
 
 export function LogEntryDialog({
@@ -65,9 +65,9 @@ export function LogEntryDialog({
       student_id: studentId,
     });
 
-    if (res.success) {
+    if (res.success && res.data) {
       reset();
-      onSuccess?.();
+      onSuccess?.(res.data);
       onClose();
     } else {
       setError(res.error || "فشل حفظ التسميع");
@@ -81,11 +81,11 @@ export function LogEntryDialog({
     { value: "مراجعة_كبرى", label: "مراجعة كبرى" },
   ];
 
-  const grades: Array<{ value: EvaluationGradeEnum; label: string; bg: string }> = [
-    { value: "ممتاز", label: "ممتاز 🌟", bg: "hover:border-emerald-500 peer-checked:bg-emerald-50 peer-checked:border-emerald-600 peer-checked:text-emerald-800" },
-    { value: "جيد_جدا", label: "جيد جداً 👍", bg: "hover:border-teal-500 peer-checked:bg-teal-50 peer-checked:border-teal-600 peer-checked:text-teal-800" },
-    { value: "جيد", label: "جيد 👌", bg: "hover:border-amber-500 peer-checked:bg-amber-50 peer-checked:border-amber-600 peer-checked:text-amber-800" },
-    { value: "يحتاج_تحسين", label: "يحتاج تحسين ⚠️", bg: "hover:border-rose-500 peer-checked:bg-rose-50 peer-checked:border-rose-600 peer-checked:text-rose-800" },
+  const grades: Array<{ value: EvaluationGradeEnum; label: string }> = [
+    { value: "ممتاز", label: "ممتاز 🌟" },
+    { value: "جيد_جدا", label: "جيد جداً 👍" },
+    { value: "جيد", label: "جيد 👌" },
+    { value: "يحتاج_تحسين", label: "يحتاج تحسين ⚠️" },
   ];
 
   return (
