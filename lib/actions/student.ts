@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { studentSchema, StudentInput } from "@/lib/validations/student";
-import { StudentRow, StudentInsert, StudentUpdate } from "@/types";
+import { StudentRow, StudentInsert, StudentUpdate, ParentProgressPayload, MemorizationLogRow, AttendanceRecordRow } from "@/types";
 import { Database } from "@/types/database";
 import { revalidatePath } from "next/cache";
 
@@ -40,9 +40,24 @@ export async function getStudents(): Promise<ActionResult<StudentRow[]>> {
       };
     }
 
+    // Auto-patch any student missing parent_token
+    const studentList = (students || []) as unknown as StudentRow[];
+    const safeStudents = await Promise.all(
+      studentList.map(async (student) => {
+        if (!student.parent_token) {
+          const newToken = crypto.randomUUID();
+          await (supabase.from("students") as ReturnType<typeof supabase.from>)
+            .update({ parent_token: newToken } as unknown as Database["public"]["Tables"]["students"]["Update"])
+            .eq("id", student.id);
+          return { ...student, parent_token: newToken };
+        }
+        return student;
+      })
+    );
+
     return {
       success: true,
-      data: (students || []) as StudentRow[],
+      data: safeStudents,
     };
   } catch (err) {
     return {
@@ -79,6 +94,7 @@ export async function createStudent(data: StudentInput): Promise<ActionResult<St
       teacher_id: user.id,
       full_name: validation.data.full_name,
       parent_phone: validation.data.parent_phone || null,
+      parent_token: crypto.randomUUID(),
     };
 
     const { data: newStudent, error } = await (supabase.from("students") as ReturnType<typeof supabase.from>)
@@ -206,6 +222,70 @@ export async function deleteStudent(id: string): Promise<ActionResult> {
     return {
       success: false,
       error: err instanceof Error ? err.message : "حدث خطأ غير متوقع أثناء حذف الطالب",
+    };
+  }
+}
+
+export async function getStudentProgressByToken(token: string): Promise<ParentProgressPayload> {
+  if (!token) {
+    return { success: false, error: "الرابط غير صحيح أو مفقود" };
+  }
+
+  const supabase = createClient();
+
+  try {
+    // 1. Try RPC function first
+    const rpcFn = supabase.rpc as unknown as (
+      fnName: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: unknown; error: { message: string } | null }>;
+
+    const { data: rpcData, error: rpcError } = await rpcFn("get_student_progress_by_token", {
+      p_token: token,
+    });
+
+    if (!rpcError && rpcData) {
+      const payload = rpcData as unknown as ParentProgressPayload;
+      if (payload.success && payload.student) {
+        return payload;
+      }
+    }
+
+    // 2. Direct fallback query if RPC is unconfigured or blocked by Postgres type validation
+    const { data: student, error: studentError } = await supabase
+      .from("students")
+      .select("*")
+      .eq("parent_token", token)
+      .maybeSingle();
+
+    if (studentError || !student) {
+      return { success: false, error: "الرابط غير صالح أو تم حذف بيانات الطالب" };
+    }
+
+    const studentRow = student as unknown as StudentRow;
+
+    const { data: logs } = await supabase
+      .from("memorization_logs")
+      .select("*")
+      .eq("student_id", studentRow.id)
+      .order("created_at", { ascending: false });
+
+    const { data: attendance } = await supabase
+      .from("attendance_records")
+      .select("*")
+      .eq("student_id", studentRow.id)
+      .order("date", { ascending: false });
+
+    return {
+      success: true,
+      student: studentRow,
+      logs: (logs || []) as unknown as MemorizationLogRow[],
+      attendance: (attendance || []) as unknown as AttendanceRecordRow[],
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "حدث خطأ أثناء تحميل بيانات الطالب",
     };
   }
 }

@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { createClient } from "@/lib/supabase/server";
+import { getStudentProgressByToken } from "@/lib/actions/student";
 import { BookOpen, Calendar, Award, ShieldCheck, HeartHandshake, AlertCircle, Quote } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,17 +23,7 @@ export async function generateMetadata({ params }: ParentPortalPageProps): Promi
       };
     }
 
-    const supabase = createClient();
-    const rpcFn = supabase.rpc as unknown as (
-      fnName: string,
-      args: Record<string, unknown>
-    ) => Promise<{ data: unknown }>;
-
-    const { data } = await rpcFn("get_student_progress_by_token", {
-      p_token: token,
-    });
-
-    const payload = data as unknown as ParentProgressPayload | null;
+    const payload = await getStudentProgressByToken(token);
 
     if (payload && payload.success && payload.student) {
       const studentName = payload.student.full_name || "الطالب";
@@ -55,7 +45,7 @@ export async function generateMetadata({ params }: ParentPortalPageProps): Promi
       };
     }
   } catch {
-    // Fallback on metadata generation failure
+    // Fallback metadata on error
   }
 
   return {
@@ -71,25 +61,7 @@ export default async function ParentPortalPage({ params }: ParentPortalPageProps
     return renderErrorCard("الرابط غير صحيح أو مفقود");
   }
 
-  let payload: ParentProgressPayload | null = null;
-
-  try {
-    const supabase = createClient();
-    const rpcFn = supabase.rpc as unknown as (
-      fnName: string,
-      args: Record<string, unknown>
-    ) => Promise<{ data: unknown; error: { message: string } | null }>;
-
-    const { data, error } = await rpcFn("get_student_progress_by_token", {
-      p_token: token,
-    });
-
-    if (!error && data) {
-      payload = data as unknown as ParentProgressPayload;
-    }
-  } catch {
-    payload = null;
-  }
+  const payload: ParentProgressPayload = await getStudentProgressByToken(token);
 
   if (!payload || !payload.success || !payload.student) {
     return renderErrorCard(payload?.error || "الرابط غير صالح أو تم حذف بيانات الطالب");
