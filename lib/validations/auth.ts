@@ -29,7 +29,7 @@ export const signupSchema = z.object({
     .min(6, { message: "كلمة المرور يجب أن لا تقل عن 6 أحرف" }),
   phone: z
     .string()
-    .regex(/^(05|5|\+9665)[0-9]{8}$/, { message: "رقم الجوال غير صحيح (مثال: 0512345678)" })
+    .regex(/^(\+?|00)[0-9]{8,15}$/, { message: "رقم الجوال غير صحيح (مثال: 0781234567 أو 0512345678)" })
     .or(z.literal(""))
     .nullable()
     .optional(),

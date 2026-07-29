@@ -10,10 +10,11 @@ export const studentSchema = z.object({
     .string()
     .min(3, { message: "اسم ولي الأمر يجب أن يكون 3 أحرف على الأقل" })
     .max(100, { message: "اسم ولي الأمر طويل جداً" })
-    .trim(),
+    .trim()
+    .optional(),
   parent_phone: z
     .string()
-    .regex(/^(05|5|\+9665)[0-9]{8}$/, { message: "رقم الهاتف غير صحيح (مثال: 0512345678)" })
+    .regex(/^(\+?|00)[0-9]{8,15}$/, { message: "رقم الهاتف غير صحيح (مثال: 0781234567 أو 0512345678)" })
     .or(z.literal(""))
     .nullable()
     .optional(),

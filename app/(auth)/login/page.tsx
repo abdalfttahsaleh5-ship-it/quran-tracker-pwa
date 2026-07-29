@@ -220,7 +220,7 @@ export default function LoginPage() {
                 <Input
                   id="signup-phone"
                   type="tel"
-                  placeholder="0512345678"
+                  placeholder="0781234567 أو 0512345678"
                   dir="ltr"
                   className="text-left"
                   {...signupForm.register("phone")}
