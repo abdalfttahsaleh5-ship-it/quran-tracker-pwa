@@ -1,6 +1,6 @@
-import { notFound } from "next/navigation";
+import { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
-import { BookOpen, Calendar, Award, ShieldCheck, CheckCircle2, AlertCircle } from "lucide-react";
+import { BookOpen, Calendar, Award, ShieldCheck, HeartHandshake, AlertCircle, Quote } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ParentProgressPayload } from "@/types";
@@ -14,11 +14,51 @@ interface ParentPortalPageProps {
   };
 }
 
+export async function generateMetadata({ params }: ParentPortalPageProps): Promise<Metadata> {
+  const { token } = params;
+  const supabase = createClient();
+
+  const rpcFn = supabase.rpc as unknown as (
+    fnName: string,
+    args: Record<string, unknown>
+  ) => Promise<{ data: unknown }>;
+
+  const { data } = await rpcFn("get_student_progress_by_token", {
+    p_token: token,
+  });
+
+  const payload = data as unknown as ParentProgressPayload | null;
+
+  if (payload && payload.success && payload.student) {
+    const studentName = payload.student.full_name;
+    return {
+      title: `متابعة حفظ القرآن الكريم - ${studentName}`,
+      description: `سجل الحفظ والمراجعة والحضور اليومي للطالب ${studentName} في الحلقة القرآنية`,
+      openGraph: {
+        title: `متابعة حفظ القرآن الكريم - ${studentName}`,
+        description: `تقرير متابعة حقيقي لمستوى وإنجاز الطالب ${studentName} في حفظ وتسميع القرآن الكريم`,
+        type: "website",
+        locale: "ar_SA",
+        siteName: "متابع الحفظ",
+      },
+      twitter: {
+        card: "summary",
+        title: `متابعة حفظ القرآن الكريم - ${studentName}`,
+        description: `تقرير متابعة حقيقي لمستوى وإنجاز الطالب ${studentName} في حفظ وتسميع القرآن الكريم`,
+      },
+    };
+  }
+
+  return {
+    title: "بوابة متابعة أولياء الأمور - متابع الحفظ",
+    description: "تقرير متابعة حفظ ومراجعة القرآن الكريم والحضور اليومي",
+  };
+}
+
 export default async function ParentPortalPage({ params }: ParentPortalPageProps) {
   const { token } = params;
   const supabase = createClient();
 
-  // Call the SECURITY DEFINER RPC function get_student_progress_by_token
   const rpcFn = supabase.rpc as unknown as (
     fnName: string,
     args: Record<string, unknown>
@@ -33,16 +73,16 @@ export default async function ParentPortalPage({ params }: ParentPortalPageProps
   if (error || !payload || !payload.success || !payload.student) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full text-center p-8 border-rose-200">
+        <Card className="max-w-md w-full text-center p-8 border-rose-200 shadow-xl">
           <CardContent className="space-y-4 pt-4">
             <div className="w-16 h-16 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
               <AlertCircle className="w-8 h-8" />
             </div>
-            <CardTitle className="text-xl font-bold text-slate-900">
+            <CardTitle className="text-xl font-bold text-slate-900 dark:text-slate-50">
               الرابط غير صحيح أو غير موجود
             </CardTitle>
             <CardDescription className="text-slate-500">
-              يرجى التأكد من الحصول على رابط المتابعة الصحيح من معلم الحلقة
+              يرجى التأكد من الحصول على رابط المتابعة الصحيح الخاص بابنكم من معلم الحلقة
             </CardDescription>
           </CardContent>
         </Card>
@@ -60,9 +100,9 @@ export default async function ParentPortalPage({ params }: ParentPortalPageProps
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 sm:p-6 lg:p-8">
       <div className="max-w-4xl mx-auto space-y-6">
-        {/* Top Header Card */}
-        <Card className="border-teal-200 bg-gradient-to-br from-teal-900 via-teal-800 to-teal-950 text-white shadow-xl overflow-hidden">
-          <CardHeader className="space-y-3 p-6 sm:p-8">
+        {/* Top Motivational Header Banner */}
+        <Card className="border-teal-200 bg-gradient-to-br from-teal-950 via-teal-800 to-teal-900 text-white shadow-2xl overflow-hidden relative">
+          <CardHeader className="space-y-4 p-6 sm:p-8">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center">
@@ -70,55 +110,63 @@ export default async function ParentPortalPage({ params }: ParentPortalPageProps
                 </div>
                 <span className="text-sm font-medium text-teal-200">بوابة متابعة أولياء الأمور</span>
               </div>
-              <Badge variant="outline" className="border-teal-400/30 text-teal-200 gap-1 bg-white/5">
+              <Badge variant="outline" className="border-teal-400/40 text-teal-200 gap-1 bg-white/10 backdrop-blur-sm">
                 <ShieldCheck className="w-3.5 h-3.5" />
                 <span>رابط مشفّر وخاص</span>
               </Badge>
             </div>
 
             <div>
-              <CardTitle className="text-2xl sm:text-3xl font-black text-white">
+              <CardTitle className="text-2xl sm:text-4xl font-black text-white leading-tight">
                 تقرير إنجاز الطالب: {student.full_name}
               </CardTitle>
-              <CardDescription className="text-teal-200 mt-1">
-                سجل حي وحقيقي ومُحدث مباشرة لعمليات التسميع والمراجعة والحضور اليومي
+              <CardDescription className="text-teal-200 mt-2 text-sm leading-relaxed">
+                سجل حي ومُحدث مباشرة لعمليات الحفظ والتسميع والمراجعة والحضور في الحلقة القرآنية
               </CardDescription>
+            </div>
+
+            {/* Quranic Hadith Motivation Quote */}
+            <div className="mt-4 pt-4 border-t border-teal-700/60 flex items-start gap-3 bg-white/5 p-4 rounded-xl backdrop-blur-sm">
+              <Quote className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+              <p className="text-xs sm:text-sm text-teal-100 italic leading-relaxed">
+                قال رسول الله ﷺ: <strong className="text-amber-300 font-bold">«خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ»</strong> - هنيئاً لكم هذا الغرس الطيب والمتابعة المباركة لكتاب الله.
+              </p>
             </div>
           </CardHeader>
         </Card>
 
-        {/* Quick Stats Grid */}
+        {/* Overview Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Card>
+          <Card className="hover:border-teal-300 transition-all border-slate-200 dark:border-slate-800">
             <CardHeader className="p-4 pb-2">
-              <CardTitle className="text-xs text-slate-500 font-normal">إجمالي جلسات التسميع</CardTitle>
+              <CardTitle className="text-xs text-slate-500 font-semibold">إجمالي جلسات التسميع والتحفيظ</CardTitle>
             </CardHeader>
             <CardContent className="p-4 pt-0 flex items-center justify-between">
-              <span className="text-3xl font-black text-teal-700">{totalLogsCount}</span>
-              <Award className="w-6 h-6 text-amber-500" />
+              <span className="text-3xl font-black text-teal-700 dark:text-teal-400">{totalLogsCount}</span>
+              <Award className="w-7 h-7 text-amber-500" />
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="hover:border-teal-300 transition-all border-slate-200 dark:border-slate-800">
             <CardHeader className="p-4 pb-2">
-              <CardTitle className="text-xs text-slate-500 font-normal">نسبة الحضور والانضباط</CardTitle>
+              <CardTitle className="text-xs text-slate-500 font-semibold">نسبة الحضور والانضباط</CardTitle>
             </CardHeader>
             <CardContent className="p-4 pt-0 flex items-center justify-between">
-              <span className="text-3xl font-black text-teal-700">{attendanceRate}%</span>
-              <Calendar className="w-6 h-6 text-teal-600" />
+              <span className="text-3xl font-black text-teal-700 dark:text-teal-400">{attendanceRate}%</span>
+              <Calendar className="w-7 h-7 text-teal-600" />
             </CardContent>
           </Card>
         </div>
 
-        {/* Detailed Memorization Logs */}
-        <Card>
+        {/* Detailed Memorization Logs Timeline */}
+        <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <BookOpen className="w-5 h-5 text-teal-600" />
               <span>سجل التسميع والمراجعة اليومي ({totalLogsCount})</span>
             </CardTitle>
             <CardDescription>
-              يتم رخص وتحديث البيانات فور اعتماد معلم الحلقة للتسميع
+              عرض السجلات المعتمدة فور رصدها من معلم الحلقة
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -131,7 +179,7 @@ export default async function ParentPortalPage({ params }: ParentPortalPageProps
                   return (
                     <div
                       key={log.id}
-                      className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 space-y-2"
+                      className="p-4 rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-2 hover:border-teal-200 transition-all"
                     >
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${typeInfo.color}`}>
@@ -140,18 +188,18 @@ export default async function ParentPortalPage({ params }: ParentPortalPageProps
                         <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${gradeInfo.color}`}>
                           {gradeInfo.label}
                         </span>
-                        <span className="text-xs text-slate-400">
+                        <span className="text-xs text-slate-400 mr-auto">
                           {formatArabicDate(log.created_at)}
                         </span>
                       </div>
 
-                      <div className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                        من سورة <span className="text-teal-700">{log.surah_start}</span> (آية {log.aya_start}) إلى سورة{" "}
-                        <span className="text-teal-700">{log.surah_end}</span> (آية {log.aya_end})
+                      <div className="text-base font-extrabold text-slate-900 dark:text-slate-100">
+                        من سورة <span className="text-teal-700 dark:text-teal-400">{log.surah_start}</span> (آية {log.aya_start}) إلى سورة{" "}
+                        <span className="text-teal-700 dark:text-teal-400">{log.surah_end}</span> (آية {log.aya_end})
                       </div>
 
                       {log.notes && (
-                        <p className="text-xs text-slate-500 bg-white dark:bg-slate-800 p-2 rounded-lg">
+                        <p className="text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-850 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
                           ملاحظة المعلم: {log.notes}
                         </p>
                       )}
@@ -160,15 +208,18 @@ export default async function ParentPortalPage({ params }: ParentPortalPageProps
                 })}
               </div>
             ) : (
-              <p className="text-center py-8 text-slate-500 text-sm">
-                لا توجد سجلات تسميع مضافة لهذا الطالب بعد
-              </p>
+              <div className="text-center py-10 space-y-2">
+                <BookOpen className="w-10 h-10 text-slate-300 mx-auto" />
+                <p className="text-slate-500 font-semibold text-sm">
+                  لا توجد سجلات تسميع مضافة لهذا الطالب حتى الآن
+                </p>
+              </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Detailed Attendance Records */}
-        <Card>
+        {/* Attendance Summary */}
+        <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Calendar className="w-5 h-5 text-teal-600" />
@@ -184,7 +235,7 @@ export default async function ParentPortalPage({ params }: ParentPortalPageProps
                   return (
                     <div
                       key={att.id}
-                      className="p-3 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center justify-between"
+                      className="p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between shadow-xs"
                     >
                       <span className="text-sm font-bold text-slate-800 dark:text-slate-200">
                         {formatArabicDate(att.date)}
@@ -197,12 +248,24 @@ export default async function ParentPortalPage({ params }: ParentPortalPageProps
                 })}
               </div>
             ) : (
-              <p className="text-center py-8 text-slate-500 text-sm">
-                لا توجد سجلات حضور مضافة بعد
-              </p>
+              <div className="text-center py-10 space-y-2">
+                <Calendar className="w-10 h-10 text-slate-300 mx-auto" />
+                <p className="text-slate-500 font-semibold text-sm">
+                  لا توجد سجلات حضور مضافة حتى الآن
+                </p>
+              </div>
             )}
           </CardContent>
         </Card>
+
+        {/* Footer Contact Note */}
+        <div className="text-center text-xs text-slate-500 space-y-1 py-4">
+          <p className="flex items-center justify-center gap-1">
+            <HeartHandshake className="w-4 h-4 text-teal-600" />
+            <span>نعتز بتواصلكم ومتابعتكم المستمرة مع معلم الحلقة</span>
+          </p>
+          <p>© {new Date().getFullYear()} متابع الحفظ - جميع الحقوق محفوظة</p>
+        </div>
       </div>
     </div>
   );

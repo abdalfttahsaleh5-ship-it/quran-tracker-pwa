@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Tajawal } from "next/font/google";
+import { OfflineBanner } from "@/components/common/OfflineBanner";
+import { PwaInstallPrompt } from "@/components/common/PwaInstallPrompt";
 import "./globals.css";
 
 const tajawal = Tajawal({
@@ -14,7 +16,7 @@ export const metadata: Metadata = {
     default: "متابع الحفظ - سجل تحفيظ القرآن الكريم",
     template: "%s | متابع الحفظ",
   },
-  description: "تطبيق متكامل لمعلمي القرآن الكريم وأولياء الأمور لمتابعة الحفظ، المراجعة، والحضور اليومي",
+  description: "تطبيق متكامل للمعلمين وأولياء الأمور لمتابعة حفظ القرآن الكريم والمراجعة والحضور اليومي",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -40,8 +42,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl" className={tajawal.variable}>
-      <body className="antialiased selection:bg-teal-100 selection:text-teal-900">
+      <body className="antialiased selection:bg-teal-100 selection:text-teal-900 pt-6 sm:pt-0">
+        <OfflineBanner />
         <main className="min-h-screen flex flex-col">{children}</main>
+        <PwaInstallPrompt />
       </body>
     </html>
   );
