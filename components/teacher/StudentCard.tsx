@@ -38,13 +38,23 @@ export function StudentCard({ student, onEdit, onDelete }: StudentCardProps) {
     <Card className="hover:shadow-md transition-all border-slate-200 dark:border-slate-800">
       <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-200 flex items-center justify-center font-bold">
-            <User className="w-5 h-5" />
+          <div className="w-11 h-11 rounded-full bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-200 flex items-center justify-center font-bold overflow-hidden border border-teal-200 shrink-0">
+            {student.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={student.avatar_url} alt={student.full_name} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-base">{student.full_name.charAt(0)}</span>
+            )}
           </div>
           <div>
             <Link href={`/students/${student.id}`} className="hover:underline">
-              <CardTitle className="text-base font-bold text-slate-900 dark:text-slate-50">
-                {student.full_name}
+              <CardTitle className="text-base font-bold text-slate-900 dark:text-slate-50 flex items-center gap-1.5 flex-wrap">
+                <span>{student.full_name}</span>
+                {student.academic_grade && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 border border-teal-200">
+                    {student.academic_grade}
+                  </span>
+                )}
               </CardTitle>
             </Link>
             <p className="text-xs text-slate-400 mt-0.5">

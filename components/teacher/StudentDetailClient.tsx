@@ -138,19 +138,47 @@ export function StudentDetailClient({
       <Card className="border-teal-200 bg-gradient-to-r from-teal-900 via-teal-800 to-teal-950 text-white shadow-xl">
         <CardContent className="p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md text-white flex items-center justify-center font-bold shadow-inner shrink-0">
-              <User className="w-8 h-8" />
+            <div className="w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-md text-white flex items-center justify-center font-bold text-2xl shadow-inner shrink-0 overflow-hidden border-2 border-white/20">
+              {student.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={student.avatar_url} alt={student.full_name} className="w-full h-full object-cover" />
+              ) : (
+                <span>{student.full_name.charAt(0)}</span>
+              )}
             </div>
-            <div>
+            <div className="space-y-1.5">
               <h2 className="text-2xl sm:text-3xl font-black">{student.full_name}</h2>
-              <div className="flex flex-wrap items-center gap-4 text-xs text-teal-200 mt-2">
-                <span className="flex items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-2.5 text-xs text-teal-200">
+                <span className="flex items-center gap-1">
                   <Phone className="w-3.5 h-3.5" />
-                  <span>هاتف ولي الأمر: </span>
                   <strong dir="ltr" className="font-mono text-white">
                     {student.parent_phone || "غير مسجل"}
                   </strong>
                 </span>
+
+                {student.academic_grade && (
+                  <span className="bg-white/15 px-2.5 py-0.5 rounded-md text-teal-100 font-bold border border-white/10">
+                    🎓 {student.academic_grade}
+                  </span>
+                )}
+
+                {student.school_name && (
+                  <span className="bg-white/15 px-2.5 py-0.5 rounded-md text-teal-100 font-medium border border-white/10">
+                    🏫 {student.school_name}
+                  </span>
+                )}
+
+                {student.address && (
+                  <span className="bg-white/15 px-2.5 py-0.5 rounded-md text-teal-100 font-medium border border-white/10">
+                    🏠 {student.address}
+                  </span>
+                )}
+
+                {student.father_job && (
+                  <span className="bg-white/15 px-2.5 py-0.5 rounded-md text-teal-100 font-medium border border-white/10">
+                    💼 مهنة الوالد: {student.father_job}
+                  </span>
+                )}
               </div>
             </div>
           </div>

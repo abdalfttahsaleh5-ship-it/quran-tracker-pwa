@@ -8,13 +8,35 @@ import {
 export type { Database, LogTypeEnum, EvaluationGradeEnum, AttendanceStatusEnum };
 
 export type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
-export type StudentRow = Database["public"]["Tables"]["students"]["Row"];
-export type StudentInsert = Database["public"]["Tables"]["students"]["Insert"];
-export type StudentUpdate = Database["public"]["Tables"]["students"]["Update"];
+
+export type StudentRow = Database["public"]["Tables"]["students"]["Row"] & {
+  academic_grade?: string | null;
+  school_name?: string | null;
+  address?: string | null;
+  father_job?: string | null;
+  avatar_url?: string | null;
+};
+
+export type StudentInsert = Database["public"]["Tables"]["students"]["Insert"] & {
+  academic_grade?: string | null;
+  school_name?: string | null;
+  address?: string | null;
+  father_job?: string | null;
+  avatar_url?: string | null;
+};
+
+export type StudentUpdate = Database["public"]["Tables"]["students"]["Update"] & {
+  academic_grade?: string | null;
+  school_name?: string | null;
+  address?: string | null;
+  father_job?: string | null;
+  avatar_url?: string | null;
+};
 
 export type MemorizationLogRow = Database["public"]["Tables"]["memorization_logs"]["Row"] & {
   assistant_name?: string | null;
 };
+
 export type MemorizationLogInsert = Database["public"]["Tables"]["memorization_logs"]["Insert"] & {
   assistant_name?: string | null;
 };
@@ -33,6 +55,12 @@ export interface ParentProgressPayload {
   student?: {
     id: string;
     full_name: string;
+    parent_phone?: string | null;
+    academic_grade?: string | null;
+    school_name?: string | null;
+    address?: string | null;
+    father_job?: string | null;
+    avatar_url?: string | null;
     created_at: string;
   };
   logs?: Array<{

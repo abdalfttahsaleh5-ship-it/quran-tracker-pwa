@@ -94,6 +94,11 @@ export async function createStudent(data: StudentInput): Promise<ActionResult<St
       teacher_id: user.id,
       full_name: validation.data.full_name,
       parent_phone: validation.data.parent_phone || null,
+      academic_grade: validation.data.academic_grade || null,
+      school_name: validation.data.school_name || null,
+      address: validation.data.address || null,
+      father_job: validation.data.father_job || null,
+      avatar_url: validation.data.avatar_url || null,
       parent_token: crypto.randomUUID(),
     };
 
@@ -153,6 +158,11 @@ export async function updateStudent(id: string, data: StudentInput): Promise<Act
     const updatePayload: StudentUpdate = {
       full_name: validation.data.full_name,
       parent_phone: validation.data.parent_phone || null,
+      academic_grade: validation.data.academic_grade || null,
+      school_name: validation.data.school_name || null,
+      address: validation.data.address || null,
+      father_job: validation.data.father_job || null,
+      avatar_url: validation.data.avatar_url || null,
     };
 
     const { data: updatedStudent, error } = await (supabase.from("students") as ReturnType<typeof supabase.from>)

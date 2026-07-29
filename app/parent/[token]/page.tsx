@@ -99,13 +99,37 @@ export default async function ParentPortalPage({ params }: ParentPortalPageProps
               </Badge>
             </div>
 
-            <div>
-              <CardTitle className="text-2xl sm:text-4xl font-black text-white leading-tight">
-                تقرير إنجاز الطالب: {student?.full_name || "الطالب"}
-              </CardTitle>
-              <CardDescription className="text-teal-200 mt-2 text-sm leading-relaxed">
-                سجل حي ومُحدث مباشرة لعمليات الحفظ والتسميع والمراجعة والحضور في الحلقة القرآنية
-              </CardDescription>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md text-white flex items-center justify-center font-bold text-2xl shadow-inner shrink-0 overflow-hidden border-2 border-white/20">
+                {student?.avatar_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={student.avatar_url} alt={student.full_name} className="w-full h-full object-cover" />
+                ) : (
+                  <span>{student?.full_name ? student.full_name.charAt(0) : "📖"}</span>
+                )}
+              </div>
+              <div className="space-y-1">
+                <CardTitle className="text-2xl sm:text-4xl font-black text-white leading-tight">
+                  تقرير إنجاز الطالب: {student?.full_name || "الطالب"}
+                </CardTitle>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-teal-200 pt-1">
+                  {student?.academic_grade && (
+                    <span className="bg-white/15 px-2.5 py-0.5 rounded-md text-teal-100 font-bold border border-white/10">
+                      🎓 {student.academic_grade}
+                    </span>
+                  )}
+                  {student?.school_name && (
+                    <span className="bg-white/15 px-2.5 py-0.5 rounded-md text-teal-100 font-medium border border-white/10">
+                      🏫 {student.school_name}
+                    </span>
+                  )}
+                  {student?.address && (
+                    <span className="bg-white/15 px-2.5 py-0.5 rounded-md text-teal-100 font-medium border border-white/10">
+                      🏠 {student.address}
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Quranic Hadith Motivation Quote */}
