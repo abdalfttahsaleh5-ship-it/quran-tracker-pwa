@@ -1,0 +1,122 @@
+"use client";
+
+import { useState } from "react";
+import { User, Phone, Copy, Check, Edit3, Trash2, ExternalLink } from "lucide-react";
+import { StudentRow } from "@/types";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+
+interface StudentCardProps {
+  student: StudentRow;
+  onEdit: (student: StudentRow) => void;
+  onDelete: (student: StudentRow) => void;
+}
+
+export function StudentCard({ student, onEdit, onDelete }: StudentCardProps) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyParentLink = async () => {
+    const parentUrl = `${window.location.origin}/parent/${student.parent_token}`;
+    try {
+      await navigator.clipboard.writeText(parentUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback if clipboard API is restricted
+      const input = document.createElement("input");
+      input.value = parentUrl;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand("copy");
+      document.body.removeChild(input);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  return (
+    <Card className="hover:shadow-md transition-all border-slate-200 dark:border-slate-800">
+      <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-200 flex items-center justify-center font-bold">
+            <User className="w-5 h-5" />
+          </div>
+          <div>
+            <CardTitle className="text-base font-bold text-slate-900 dark:text-slate-50">
+              {student.full_name}
+            </CardTitle>
+            <p className="text-xs text-slate-400 mt-0.5">
+              تم التسجيل: {new Date(student.created_at).toLocaleDateString("ar-SA")}
+            </p>
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardContent className="p-4 pt-2 text-sm space-y-2">
+        <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+          <Phone className="w-4 h-4 text-teal-600 shrink-0" />
+          <span>هاتف ولي الأمر: </span>
+          <span dir="ltr" className="font-mono text-slate-800 dark:text-slate-200">
+            {student.parent_phone || "غير مسجل"}
+          </span>
+        </div>
+      </CardContent>
+
+      <CardFooter className="p-4 pt-0 flex flex-col gap-2">
+        {/* Copy Parent Link Button */}
+        <Button
+          variant={copied ? "default" : "outline"}
+          size="sm"
+          onClick={handleCopyParentLink}
+          className={`w-full gap-2 transition-all ${
+            copied ? "bg-emerald-600 text-white hover:bg-emerald-700" : ""
+          }`}
+        >
+          {copied ? (
+            <>
+              <Check className="w-4 h-4" />
+              <span>تم نسخ رابط ولي الأمر!</span>
+            </>
+          ) : (
+            <>
+              <Copy className="w-4 h-4 text-teal-600" />
+              <span>نسخ رابط متابعة ولي الأمر</span>
+            </>
+          )}
+        </Button>
+
+        {/* Action Row */}
+        <div className="flex items-center justify-between w-full pt-1">
+          <Link href={`/parent/${student.parent_token}`} target="_blank">
+            <Button variant="ghost" size="sm" className="gap-1 text-xs text-teal-700 hover:text-teal-800">
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span>معاينة البوابة</span>
+            </Button>
+          </Link>
+
+          <div className="flex gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onEdit(student)}
+              title="تعديل البيانات"
+              className="h-8 w-8 text-slate-600 hover:text-teal-700"
+            >
+              <Edit3 className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onDelete(student)}
+              title="حذف الطالب"
+              className="h-8 w-8 text-slate-600 hover:text-rose-600"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      </CardFooter>
+    </Card>
+  );
+}

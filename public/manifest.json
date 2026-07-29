@@ -1,0 +1,23 @@
+{
+  "name": "متابع الحفظ - تطبيق متابعة تحفيظ القرآن الكريم",
+  "short_name": "متابع الحفظ",
+  "description": "تطبيق متكامل للمعلمين وأولياء الأمور لمتابعة حفظ ومراجعة القرآن الكريم والحضور اليومي",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F8FAFC",
+  "theme_color": "#0F766E",
+  "dir": "rtl",
+  "lang": "ar",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
