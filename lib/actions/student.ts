@@ -274,3 +274,54 @@ export async function getStudentProgressByToken(token: string): Promise<ParentPr
     };
   }
 }
+
+export interface ParentSearchResult {
+  success: boolean;
+  token?: string;
+  students?: Array<{ id: string; full_name: string; parent_token: string }>;
+  error?: string;
+}
+
+export async function findStudentByPhoneOrCode(input: string): Promise<ParentSearchResult> {
+  if (!input || typeof input !== "string" || input.trim() === "") {
+    return { success: false, error: "يرجى إدخال رقم الهاتف المسجل" };
+  }
+
+  const cleanInput = input.trim().replace(/[\s\-\(\)]/g, "");
+
+  try {
+    const supabase = createClient();
+
+    // Query students by parent_phone
+    const { data: students, error } = await supabase
+      .from("students")
+      .select("id, full_name, parent_token, parent_phone")
+      .or(`parent_phone.eq.${cleanInput},parent_phone.eq.${input.trim()}`);
+
+    if (error || !students || students.length === 0) {
+      return {
+        success: false,
+        error: "رقم الهاتف غير مسجل في كشوفات الحلقة، يرجى التواصل مع المعلم",
+      };
+    }
+
+    const matches = students as unknown as Array<{ id: string; full_name: string; parent_token: string }>;
+
+    if (matches.length === 1) {
+      return {
+        success: true,
+        token: matches[0].parent_token,
+      };
+    }
+
+    return {
+      success: true,
+      students: matches,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "حدث خطأ غير متوقع أثناء البحث",
+    };
+  }
+}
