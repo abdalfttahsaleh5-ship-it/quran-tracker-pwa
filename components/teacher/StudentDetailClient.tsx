@@ -284,6 +284,11 @@ export function StudentDetailClient({
                           <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${gradeInfo.color}`}>
                             {gradeInfo.label}
                           </span>
+                          {log.assistant_name && (
+                            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                              👤 المسمّع: {log.assistant_name}
+                            </span>
+                          )}
                           <span className="text-xs text-slate-400">
                             {formatArabicDate(log.created_at)}
                           </span>

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { BookOpen, X, CheckCircle2 } from "lucide-react";
+import { BookOpen, X, CheckCircle2, UserCheck } from "lucide-react";
 import { memorizationLogSchema, MemorizationLogInput } from "@/lib/validations/log";
 import { createMemorizationLog } from "@/lib/actions/log";
 import { QURAN_SURAHS } from "@/lib/constants/quran";
@@ -48,8 +48,18 @@ export function LogEntryDialog({
       aya_end: 7,
       grade: "ممتاز",
       notes: "",
+      assistant_name: "",
     },
   });
+
+  useEffect(() => {
+    if (isOpen && typeof window !== "undefined") {
+      const savedAssistant = localStorage.getItem("quran_tracker_last_assistant_name");
+      if (savedAssistant) {
+        setValue("assistant_name", savedAssistant);
+      }
+    }
+  }, [isOpen, setValue]);
 
   const selectedLogType = watch("log_type");
   const selectedGrade = watch("grade");
@@ -59,6 +69,11 @@ export function LogEntryDialog({
   const handleFormSubmit = async (data: MemorizationLogInput) => {
     setIsLoading(true);
     setError(null);
+
+    // Save assistant name to localStorage for quick auto-fill
+    if (data.assistant_name && typeof window !== "undefined") {
+      localStorage.setItem("quran_tracker_last_assistant_name", data.assistant_name.trim());
+    }
 
     const res = await createMemorizationLog({
       ...data,
@@ -109,6 +124,22 @@ export function LogEntryDialog({
         )}
 
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5" noValidate>
+          {/* Assistant Name Input Field */}
+          <div className="space-y-2">
+            <Label htmlFor="assistant_name" className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-200">
+              <UserCheck className="w-4 h-4 text-teal-600" />
+              <span>اسم المشرف / المساعد (اختياري)</span>
+            </Label>
+            <Input
+              id="assistant_name"
+              placeholder="مثال: أستاذ أحمد المحمود"
+              {...register("assistant_name")}
+            />
+            {errors.assistant_name && (
+              <p className="text-xs text-rose-600">{errors.assistant_name.message}</p>
+            )}
+          </div>
+
           {/* Log Type Selection */}
           <div className="space-y-2">
             <Label>نوع التسميع</Label>

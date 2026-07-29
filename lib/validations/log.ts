@@ -21,6 +21,7 @@ export const memorizationLogSchema = z.object({
   aya_end: z.number().min(1, { message: "آية النهاية يجب أن تكون 1 أو أكثر" }),
   grade: evaluationGradeEnum,
   notes: z.string().max(500, { message: "الملاحظات يجب أن لا تتجاوز 500 حرف" }).nullable().optional(),
+  assistant_name: z.string().max(100, { message: "اسم المسمّع طويل جداً" }).nullable().optional(),
 });
 
 export const attendanceSchema = z.object({

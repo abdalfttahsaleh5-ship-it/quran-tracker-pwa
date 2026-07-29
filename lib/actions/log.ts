@@ -35,7 +35,7 @@ export async function createMemorizationLog(data: MemorizationLogInput): Promise
       };
     }
 
-    const insertPayload: Database["public"]["Tables"]["memorization_logs"]["Insert"] = {
+    const insertPayload: Database["public"]["Tables"]["memorization_logs"]["Insert"] & { assistant_name?: string | null } = {
       student_id: validation.data.student_id,
       teacher_id: user.id,
       log_type: validation.data.log_type,
@@ -45,6 +45,7 @@ export async function createMemorizationLog(data: MemorizationLogInput): Promise
       aya_end: validation.data.aya_end,
       grade: validation.data.grade,
       notes: validation.data.notes || null,
+      assistant_name: validation.data.assistant_name || null,
     };
 
     const { data: newLog, error } = await (supabase.from("memorization_logs") as ReturnType<typeof supabase.from>)
