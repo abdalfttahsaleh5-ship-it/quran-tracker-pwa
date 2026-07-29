@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import Link from "next/link";
 import {
   User,
@@ -230,7 +230,7 @@ export function StudentDetailClient({
       {/* Navigation Tabs */}
       <div className="flex border-b border-slate-200 dark:border-slate-800">
         <button
-          onClick={() => setActiveTab("logs")}
+          onClick={() => React.startTransition(() => setActiveTab("logs"))}
           className={`py-3 px-6 text-sm font-bold border-b-2 transition-all flex items-center gap-2 ${
             activeTab === "logs"
               ? "border-teal-700 text-teal-800 dark:text-teal-300"
@@ -242,7 +242,7 @@ export function StudentDetailClient({
         </button>
 
         <button
-          onClick={() => setActiveTab("attendance")}
+          onClick={() => React.startTransition(() => setActiveTab("attendance"))}
           className={`py-3 px-6 text-sm font-bold border-b-2 transition-all flex items-center gap-2 ${
             activeTab === "attendance"
               ? "border-teal-700 text-teal-800 dark:text-teal-300"

@@ -14,7 +14,7 @@ export default function TeacherLayout({
       <header className="sticky top-0 z-40 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-6">
-            <Link href="/dashboard" className="flex items-center gap-3">
+            <Link href="/dashboard" prefetch={true} className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-teal-700 text-white flex items-center justify-center font-bold">
                 <BookOpen className="w-5 h-5" />
               </div>
@@ -26,6 +26,7 @@ export default function TeacherLayout({
             <nav className="flex items-center gap-1">
               <Link
                 href="/dashboard"
+                prefetch={true}
                 className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
               >
                 <LayoutDashboard className="w-4 h-4 text-teal-600" />
@@ -34,6 +35,7 @@ export default function TeacherLayout({
 
               <Link
                 href="/students"
+                prefetch={true}
                 className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
               >
                 <Users className="w-4 h-4 text-teal-600" />
