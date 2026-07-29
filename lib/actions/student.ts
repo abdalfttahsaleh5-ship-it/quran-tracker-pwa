@@ -227,35 +227,20 @@ export async function deleteStudent(id: string): Promise<ActionResult> {
 }
 
 export async function getStudentProgressByToken(token: string): Promise<ParentProgressPayload> {
-  if (!token) {
+  if (!token || typeof token !== "string" || token.trim() === "") {
     return { success: false, error: "الرابط غير صحيح أو مفقود" };
   }
 
-  const supabase = createClient();
+  const cleanToken = token.trim();
 
   try {
-    // 1. Try RPC function first
-    const rpcFn = supabase.rpc as unknown as (
-      fnName: string,
-      args: Record<string, unknown>
-    ) => Promise<{ data: unknown; error: { message: string } | null }>;
+    const supabase = createClient();
 
-    const { data: rpcData, error: rpcError } = await rpcFn("get_student_progress_by_token", {
-      p_token: token,
-    });
-
-    if (!rpcError && rpcData) {
-      const payload = rpcData as unknown as ParentProgressPayload;
-      if (payload.success && payload.student) {
-        return payload;
-      }
-    }
-
-    // 2. Direct fallback query if RPC is unconfigured or blocked by Postgres type validation
+    // Direct RLS-safe query on students table by parent_token
     const { data: student, error: studentError } = await supabase
       .from("students")
       .select("*")
-      .eq("parent_token", token)
+      .eq("parent_token", cleanToken)
       .maybeSingle();
 
     if (studentError || !student) {
