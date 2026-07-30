@@ -4,17 +4,18 @@ import React, { useState, useCallback } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import {
-  User,
   Phone,
   Copy,
   Check,
   BookOpen,
   Calendar,
-  Award,
   Plus,
   ArrowRight,
   Trash2,
   ExternalLink,
+  Award,
+  BookCheck,
+  Sparkles,
 } from "lucide-react";
 import { StudentRow, MemorizationLogRow, AttendanceRecordRow } from "@/types";
 import { GRADE_LABELS, ATTENDANCE_LABELS, LOG_TYPE_LABELS, formatArabicDate, formatPageCount } from "@/lib/utils";
@@ -118,9 +119,9 @@ export function StudentDetailClient({
     attendance.length > 0 ? Math.round((presentCount / attendance.length) * 100) : 100;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-300">
       {notification && (
-        <div className="p-3 bg-teal-800 text-white font-bold text-xs rounded-xl shadow-lg animate-in slide-in-from-top duration-300 flex items-center justify-center gap-2">
+        <div className="p-3 bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-lg animate-in slide-in-from-top duration-300 flex items-center justify-center gap-2">
           <span>{notification}</span>
         </div>
       )}
@@ -129,18 +130,25 @@ export function StudentDetailClient({
       <div>
         <Link
           href="/students"
-          className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-teal-700 font-medium transition-colors"
+          className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-emerald-700 transition-colors"
         >
           <ArrowRight className="w-4 h-4" />
           <span>العودة إلى قائمة الطلاب</span>
         </Link>
       </div>
 
-      {/* Student Profile Header Card */}
-      <Card className="border-teal-200 bg-gradient-to-r from-teal-900 via-teal-800 to-teal-950 text-white shadow-xl">
-        <CardContent className="p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+      {/* Redesigned Student Profile Hero Header */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-950 text-white p-6 sm:p-8 rounded-3xl shadow-xl border border-emerald-800/40">
+        {/* Decorative Pattern Background Overlay */}
+        <div className="absolute inset-0 bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:16px_16px] opacity-10 pointer-events-none" />
+
+        {/* Radial Glow Overlay */}
+        <div className="absolute -top-24 -left-24 w-64 h-64 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-emerald-400/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
-            <div className="w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-md text-white flex items-center justify-center font-bold text-2xl shadow-inner shrink-0 overflow-hidden border-2 border-white/20">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white/10 backdrop-blur-md text-amber-300 flex items-center justify-center font-black text-2xl shadow-inner shrink-0 overflow-hidden border-2 border-white/20">
               {student.avatar_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={student.avatar_url} alt={student.full_name} className="w-full h-full object-cover" />
@@ -148,36 +156,38 @@ export function StudentDetailClient({
                 <span>{student.full_name.charAt(0)}</span>
               )}
             </div>
+
             <div className="space-y-1.5">
-              <h2 className="text-2xl sm:text-3xl font-black">{student.full_name}</h2>
-              <div className="flex flex-wrap items-center gap-2.5 text-xs text-teal-200">
-                <span className="flex items-center gap-1">
-                  <Phone className="w-3.5 h-3.5" />
-                  <strong dir="ltr" className="font-mono text-white">
-                    {student.parent_phone || "غير مسجل"}
-                  </strong>
-                </span>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-800/60 border border-emerald-700/60 text-amber-300 text-xs font-bold">
+                <Sparkles className="w-3 h-3" />
+                <span>ملف الطالب</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight">{student.full_name}</h2>
+
+              <div className="flex flex-wrap items-center gap-2 text-xs text-emerald-200/90 font-medium">
+                {student.parent_phone && (
+                  <span className="flex items-center gap-1 bg-white/10 px-2.5 py-1 rounded-xl border border-white/10">
+                    <Phone className="w-3 h-3 text-amber-300" />
+                    <strong dir="ltr" className="font-mono text-white">
+                      {student.parent_phone}
+                    </strong>
+                  </span>
+                )}
 
                 {student.academic_grade && (
-                  <span className="bg-white/15 px-2.5 py-0.5 rounded-md text-teal-100 font-bold border border-white/10">
+                  <span className="bg-white/10 px-2.5 py-1 rounded-xl font-bold border border-white/10">
                     🎓 {student.academic_grade}
                   </span>
                 )}
 
                 {student.school_name && (
-                  <span className="bg-white/15 px-2.5 py-0.5 rounded-md text-teal-100 font-medium border border-white/10">
+                  <span className="bg-white/10 px-2.5 py-1 rounded-xl font-medium border border-white/10">
                     🏫 {student.school_name}
                   </span>
                 )}
 
-                {student.address && (
-                  <span className="bg-white/15 px-2.5 py-0.5 rounded-md text-teal-100 font-medium border border-white/10">
-                    🏠 {student.address}
-                  </span>
-                )}
-
                 {student.father_job && (
-                  <span className="bg-white/15 px-2.5 py-0.5 rounded-md text-teal-100 font-medium border border-white/10">
+                  <span className="bg-white/10 px-2.5 py-1 rounded-xl font-medium border border-white/10">
                     💼 مهنة الوالد: {student.father_job}
                   </span>
                 )}
@@ -185,115 +195,160 @@ export function StudentDetailClient({
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-stretch gap-2 w-full sm:w-auto">
+          {/* Profile Action Buttons */}
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 shrink-0">
             <Button
-              variant={copied ? "default" : "secondary"}
+              size="lg"
+              onClick={() => setIsLogDialogOpen(true)}
+              className="w-full sm:w-auto bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-2xl gap-2 shadow-lg shadow-amber-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Plus className="w-5 h-5 text-slate-950" />
+              <span>تسجيل تسميع جديد 📖</span>
+            </Button>
+
+            <Button
+              size="lg"
+              variant="outline"
               onClick={handleCopyParentLink}
-              className="gap-2 shadow-md"
+              className="w-full sm:w-auto bg-emerald-900/60 border-emerald-700/70 text-emerald-100 hover:bg-emerald-800/80 font-bold rounded-2xl gap-2"
             >
               {copied ? (
                 <>
-                  <Check className="w-4 h-4" />
+                  <Check className="w-4 h-4 text-amber-300" />
                   <span>تم النسخ!</span>
                 </>
               ) : (
                 <>
-                  <Copy className="w-4 h-4" />
-                  <span>نسخ رابط ولي الأمر</span>
+                  <Copy className="w-4 h-4 text-amber-300" />
+                  <span>نسخ رابط ولي الأمر 🔗</span>
                 </>
               )}
             </Button>
 
-            <Link href={`/parent/${student.parent_token}`} target="_blank">
-              <Button variant="outline" className="w-full gap-2 border-teal-300/40 text-white hover:bg-white/10">
-                <ExternalLink className="w-4 h-4" />
-                <span>معاينة البوابة</span>
+            <Link href={`/parent/${student.parent_token}`} target="_blank" className="w-full sm:w-auto">
+              <Button
+                size="lg"
+                variant="outline"
+                className="w-full sm:w-auto bg-emerald-900/60 border-emerald-700/70 text-emerald-100 hover:bg-emerald-800/80 font-bold rounded-2xl gap-2"
+              >
+                <ExternalLink className="w-4 h-4 text-amber-300" />
+                <span>معاينة البوابة 🌐</span>
               </Button>
             </Link>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-xs text-slate-500 font-normal">إجمالي عمليات التسميع</CardTitle>
+      {/* Unified Single-Row 3-Column KPI Stats Grid */}
+      <div className="stats-grid no-print print:hidden grid grid-cols-3 gap-2 sm:gap-4">
+        {/* Metric 1: Total Recitations */}
+        <Card className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
+          <CardHeader className="p-3 sm:p-4 pb-1 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-[11px] sm:text-xs font-bold text-slate-500 dark:text-slate-400">
+              إجمالي التسميعات
+            </CardTitle>
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-bold shrink-0">
+              <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            </div>
           </CardHeader>
-          <CardContent className="p-4 pt-0 flex items-center justify-between">
-            <span className="text-3xl font-black text-teal-700">{totalLogsCount}</span>
-            <BookOpen className="w-6 h-6 text-teal-600" />
+          <CardContent className="p-3 sm:p-4 pt-0">
+            <div className="text-lg sm:text-2xl font-black text-slate-900 dark:text-slate-50 tracking-tight">
+              {totalLogsCount}
+            </div>
+            <CardDescription className="text-[10px] sm:text-[11px] text-slate-400 font-medium truncate">
+              عملية موثقة
+            </CardDescription>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-xs text-slate-500 font-normal">نسبة انضباط الحضور</CardTitle>
+        {/* Metric 2: Attendance Rate */}
+        <Card className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
+          <CardHeader className="p-3 sm:p-4 pb-1 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-[11px] sm:text-xs font-bold text-slate-500 dark:text-slate-400">
+              نسبة الحضور
+            </CardTitle>
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 flex items-center justify-center font-bold shrink-0">
+              <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            </div>
           </CardHeader>
-          <CardContent className="p-4 pt-0 flex items-center justify-between">
-            <span className="text-3xl font-black text-teal-700">{attendancePercentage}%</span>
-            <Calendar className="w-6 h-6 text-teal-600" />
+          <CardContent className="p-3 sm:p-4 pt-0">
+            <div className="text-lg sm:text-2xl font-black text-slate-900 dark:text-slate-50 tracking-tight">
+              {attendancePercentage}%
+            </div>
+            <CardDescription className="text-[10px] sm:text-[11px] text-slate-400 font-medium truncate">
+              انضباط بالحضور
+            </CardDescription>
           </CardContent>
         </Card>
 
-        <Card className="sm:col-span-2 lg:col-span-1">
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-xs text-slate-500 font-normal">آخر تسميع مضاف</CardTitle>
+        {/* Metric 3: Latest Recitation */}
+        <Card className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
+          <CardHeader className="p-3 sm:p-4 pb-1 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-[11px] sm:text-xs font-bold text-slate-500 dark:text-slate-400">
+              آخر تسميع
+            </CardTitle>
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300 flex items-center justify-center font-bold shrink-0">
+              <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            </div>
           </CardHeader>
-          <CardContent className="p-4 pt-0">
+          <CardContent className="p-3 sm:p-4 pt-0">
             {logs.length > 0 ? (
-              <div>
-                <span className="text-sm font-bold text-slate-800">
-                  {logs[0].log_type}: {logs[0].surah_start} ({logs[0].aya_start}) - {logs[0].surah_end} ({logs[0].aya_end})
-                </span>
-                <p className="text-xs text-slate-400 mt-0.5">
+              <div className="truncate">
+                <div className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 truncate">
+                  {logs[0].surah_start} ({logs[0].aya_start})
+                </div>
+                <CardDescription className="text-[10px] sm:text-[11px] text-slate-400 font-medium truncate">
                   {formatArabicDate(logs[0].created_at)}
-                </p>
+                </CardDescription>
               </div>
             ) : (
-              <span className="text-xs text-slate-400">لا توجد سجلات بعد</span>
+              <div className="text-xs text-slate-400 font-bold mt-1">—</div>
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Navigation Tabs */}
+      {/* Navigation Tabs Header */}
       <div className="flex border-b border-slate-200 dark:border-slate-800">
         <button
           onClick={() => React.startTransition(() => setActiveTab("logs"))}
-          className={`py-3 px-6 text-sm font-bold border-b-2 transition-all flex items-center gap-2 ${
+          className={`py-3 px-5 text-xs sm:text-sm font-extrabold border-b-2 transition-all flex items-center gap-2 ${
             activeTab === "logs"
-              ? "border-teal-700 text-teal-800 dark:text-teal-300"
+              ? "border-emerald-700 text-emerald-800 dark:text-emerald-300"
               : "border-transparent text-slate-500 hover:text-slate-800"
           }`}
         >
-          <BookOpen className="w-4 h-4" />
+          <BookOpen className="w-4 h-4 text-emerald-600" />
           <span>سجل الحفظ والمراجعة ({totalLogsCount})</span>
         </button>
 
         <button
           onClick={() => React.startTransition(() => setActiveTab("attendance"))}
-          className={`py-3 px-6 text-sm font-bold border-b-2 transition-all flex items-center gap-2 ${
+          className={`py-3 px-5 text-xs sm:text-sm font-extrabold border-b-2 transition-all flex items-center gap-2 ${
             activeTab === "attendance"
-              ? "border-teal-700 text-teal-800 dark:text-teal-300"
+              ? "border-emerald-700 text-emerald-800 dark:text-emerald-300"
               : "border-transparent text-slate-500 hover:text-slate-800"
           }`}
         >
-          <Calendar className="w-4 h-4" />
+          <Calendar className="w-4 h-4 text-teal-600" />
           <span>سجل الحضور والغياب ({attendance.length})</span>
         </button>
       </div>
 
-      {/* Tab 1: Memorization Logs List */}
+      {/* Tab 1: Memorization Logs List / Timeline */}
       {activeTab === "logs" && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-50">
-              سجل الحفظ والمراجعة اليومي
+            <h3 className="text-base font-black text-slate-900 dark:text-slate-50">
+              سجل التسميعات اليومية 📜
             </h3>
-            <Button onClick={() => setIsLogDialogOpen(true)} className="gap-2">
+            <Button
+              onClick={() => setIsLogDialogOpen(true)}
+              size="sm"
+              className="gap-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl"
+            >
               <Plus className="w-4 h-4" />
-              <span>إضافة تسميع جديد</span>
+              <span>إضافة تسميع</span>
             </Button>
           </div>
 
@@ -304,36 +359,36 @@ export function StudentDetailClient({
                 const typeInfo = LOG_TYPE_LABELS[log.log_type] || { label: log.log_type, color: "" };
 
                 return (
-                  <Card key={log.id} className="hover:shadow-sm transition-all border-slate-200 dark:border-slate-800">
-                    <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                      <div className="space-y-1.5">
+                  <Card key={log.id} className="hover:shadow-md transition-all border-slate-200 dark:border-slate-800 rounded-2xl">
+                    <CardContent className="p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div className="space-y-2">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${typeInfo.color}`}>
+                          <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-extrabold ${typeInfo.color}`}>
                             {typeInfo.label}
                           </span>
-                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${gradeInfo.color}`}>
+                          <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-extrabold border ${gradeInfo.color}`}>
                             {gradeInfo.label}
                           </span>
-                          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-200">
+                          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-200">
                             📖 {formatPageCount(log.page_count)}
                           </span>
                           {log.assistant_name && (
-                            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                               👤 المسمّع: {log.assistant_name}
                             </span>
                           )}
-                          <span className="text-xs text-slate-400">
+                          <span className="text-[11px] text-slate-400 font-bold">
                             {formatArabicDate(log.created_at)}
                           </span>
                         </div>
 
-                        <div className="text-base font-bold text-slate-900 dark:text-slate-100">
-                          من سورة <span className="text-teal-700">{log.surah_start}</span> (آية {log.aya_start}) إلى سورة{" "}
-                          <span className="text-teal-700">{log.surah_end}</span> (آية {log.aya_end})
+                        <div className="text-sm sm:text-base font-black text-slate-900 dark:text-slate-100">
+                          من سورة <span className="text-emerald-700 dark:text-emerald-400">{log.surah_start}</span> (آية {log.aya_start}) إلى سورة{" "}
+                          <span className="text-emerald-700 dark:text-emerald-400">{log.surah_end}</span> (آية {log.aya_end})
                         </div>
 
                         {log.notes && (
-                          <p className="text-xs text-slate-500 bg-slate-50 dark:bg-slate-850 p-2 rounded-lg mt-1">
+                          <p className="text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700 mt-1">
                             ملاحظة المعلم: {log.notes}
                           </p>
                         )}
@@ -343,7 +398,7 @@ export function StudentDetailClient({
                         variant="ghost"
                         size="icon"
                         onClick={() => handleDeleteLog(log.id)}
-                        className="text-slate-400 hover:text-rose-600 shrink-0"
+                        className="text-slate-400 hover:text-rose-600 shrink-0 rounded-xl"
                         title="حذف التسميع"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -354,12 +409,12 @@ export function StudentDetailClient({
               })}
             </div>
           ) : (
-            <Card className="p-8 text-center border-dashed">
+            <Card className="p-8 text-center border-dashed rounded-3xl">
               <CardContent className="space-y-3">
-                <BookOpen className="w-10 h-10 text-slate-400 mx-auto" />
-                <p className="text-slate-600 font-bold">لا يوجد تسميع مسجل لهذا الطالب بعد</p>
-                <Button variant="outline" onClick={() => setIsLogDialogOpen(true)} className="gap-2">
-                  <Plus className="w-4 h-4" />
+                <BookOpen className="w-10 h-10 text-slate-300 mx-auto" />
+                <p className="text-slate-600 font-bold text-sm">لا يوجد تسميع مسجل لهذا الطالب بعد</p>
+                <Button variant="outline" onClick={() => setIsLogDialogOpen(true)} className="gap-2 rounded-xl">
+                  <Plus className="w-4 h-4 text-emerald-600" />
                   <span>سجل أول تسميع الآن</span>
                 </Button>
               </CardContent>
@@ -372,12 +427,16 @@ export function StudentDetailClient({
       {activeTab === "attendance" && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-50">
-              سجل الحضور والغياب
+            <h3 className="text-base font-black text-slate-900 dark:text-slate-50">
+              سجل الحضور والغياب 📅
             </h3>
-            <Button onClick={() => setIsAttendanceDialogOpen(true)} className="gap-2">
+            <Button
+              onClick={() => setIsAttendanceDialogOpen(true)}
+              size="sm"
+              className="gap-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl"
+            >
               <Calendar className="w-4 h-4" />
-              <span>تسجيل حضور اليوم</span>
+              <span>تسجيل حضور</span>
             </Button>
           </div>
 
@@ -387,14 +446,14 @@ export function StudentDetailClient({
                 const statusInfo = ATTENDANCE_LABELS[att.status] || { label: att.status, color: "" };
 
                 return (
-                  <Card key={att.id} className="hover:shadow-sm transition-all border-slate-200 dark:border-slate-800">
+                  <Card key={att.id} className="hover:shadow-sm transition-all border-slate-200 dark:border-slate-800 rounded-2xl">
                     <CardContent className="p-4 flex items-center justify-between">
                       <div className="space-y-1">
                         <div className="flex items-center gap-3">
-                          <span className={`px-3 py-1 rounded-full text-xs font-bold border ${statusInfo.color}`}>
+                          <span className={`px-3 py-1 rounded-full text-xs font-black border ${statusInfo.color}`}>
                             {statusInfo.label}
                           </span>
-                          <span className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                          <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200">
                             {formatArabicDate(att.date)}
                           </span>
                         </div>
@@ -408,12 +467,12 @@ export function StudentDetailClient({
               })}
             </div>
           ) : (
-            <Card className="p-8 text-center border-dashed">
+            <Card className="p-8 text-center border-dashed rounded-3xl">
               <CardContent className="space-y-3">
-                <Calendar className="w-10 h-10 text-slate-400 mx-auto" />
-                <p className="text-slate-600 font-bold">لا يوجد سجل حضور مسجل بعد</p>
-                <Button variant="outline" onClick={() => setIsAttendanceDialogOpen(true)} className="gap-2">
-                  <Calendar className="w-4 h-4" />
+                <Calendar className="w-10 h-10 text-slate-300 mx-auto" />
+                <p className="text-slate-600 font-bold text-sm">لا يوجد سجل حضور مسجل بعد</p>
+                <Button variant="outline" onClick={() => setIsAttendanceDialogOpen(true)} className="gap-2 rounded-xl">
+                  <Calendar className="w-4 h-4 text-emerald-600" />
                   <span>سجل حضور اليوم</span>
                 </Button>
               </CardContent>
