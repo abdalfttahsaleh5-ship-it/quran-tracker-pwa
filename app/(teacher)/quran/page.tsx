@@ -95,11 +95,11 @@ export default function QuranReaderPage() {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) {
         return;
       }
-      if (e.key === "ArrowLeft") {
-        // In Arabic RTL, left arrow goes to next page
+      if (e.key === "ArrowRight") {
+        // Right arrow -> Next Page (page + 1)
         goToNextPage();
-      } else if (e.key === "ArrowRight") {
-        // Right arrow goes to prev page
+      } else if (e.key === "ArrowLeft") {
+        // Left arrow -> Previous Page (page - 1)
         goToPrevPage();
       }
     };
@@ -108,7 +108,7 @@ export default function QuranReaderPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [viewMode, goToNextPage, goToPrevPage]);
 
-  // Touch Swipe Handlers for Mobile Gesture Navigation
+  // Touch Swipe & Drag Gesture Handlers
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.targetTouches[0].clientX;
   };
@@ -118,18 +118,15 @@ export default function QuranReaderPage() {
   };
 
   const handleTouchEnd = () => {
-    if (!touchStartX.current || !touchEndX.current) return;
-    const distance = touchStartX.current - touchEndX.current;
-    const isMinSwipe = Math.abs(distance) > 40;
+    if (touchStartX.current === null || touchEndX.current === null) return;
+    const deltaX = touchEndX.current - touchStartX.current;
 
-    if (isMinSwipe) {
-      if (distance > 0) {
-        // Swiped Left (finger moved right to left) -> Next Page
-        goToNextPage();
-      } else {
-        // Swiped Right (finger moved left to right) -> Previous Page
-        goToPrevPage();
-      }
+    if (deltaX > 40) {
+      // Swiping / Dragging to the RIGHT (➡️, deltaX > 40) -> NEXT PAGE (page + 1)
+      goToNextPage();
+    } else if (deltaX < -40) {
+      // Swiping / Dragging to the LEFT (⬅️, deltaX < -40) -> PREVIOUS PAGE (page - 1)
+      goToPrevPage();
     }
 
     touchStartX.current = null;
@@ -425,22 +422,24 @@ export default function QuranReaderPage() {
             }`}
           >
             {/* Overlay Navigation Arrow Buttons */}
+            {/* Right Arrow Button: Next Page (page + 1) */}
             <button
               onClick={goToNextPage}
               disabled={currentPage >= 604}
-              className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-teal-900/80 hover:bg-teal-900 text-white backdrop-blur-md flex items-center justify-center shadow-2xl transition-all disabled:opacity-30 disabled:pointer-events-none group"
-              title="الصفحة التالية (التنقل لليسار)"
+              className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-teal-900/80 hover:bg-teal-900 text-white backdrop-blur-md flex items-center justify-center shadow-2xl transition-all disabled:opacity-30 disabled:pointer-events-none group"
+              title="الصفحة التالية (الصفحة + 1)"
             >
-              <ChevronLeft className="w-7 h-7 group-hover:-translate-x-0.5 transition-transform" />
+              <ChevronRight className="w-7 h-7 group-hover:translate-x-0.5 transition-transform" />
             </button>
 
+            {/* Left Arrow Button: Previous Page (page - 1) */}
             <button
               onClick={goToPrevPage}
               disabled={currentPage <= 1}
-              className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-teal-900/80 hover:bg-teal-900 text-white backdrop-blur-md flex items-center justify-center shadow-2xl transition-all disabled:opacity-30 disabled:pointer-events-none group"
-              title="الصفحة السابقة (التنقل لليمين)"
+              className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-teal-900/80 hover:bg-teal-900 text-white backdrop-blur-md flex items-center justify-center shadow-2xl transition-all disabled:opacity-30 disabled:pointer-events-none group"
+              title="الصفحة السابقة (الصفحة - 1)"
             >
-              <ChevronRight className="w-7 h-7 group-hover:translate-x-0.5 transition-transform" />
+              <ChevronLeft className="w-7 h-7 group-hover:-translate-x-0.5 transition-transform" />
             </button>
 
             {/* High-Definition Madani Quran Page Image */}
@@ -462,11 +461,11 @@ export default function QuranReaderPage() {
             {/* Bottom Floating Navigation Indicator */}
             <div className="mt-3 flex items-center justify-between w-full max-w-2xl px-2 text-xs font-bold text-slate-500">
               <button
-                onClick={goToNextPage}
-                disabled={currentPage >= 604}
-                className="hover:text-teal-700 disabled:opacity-30"
+                onClick={goToPrevPage}
+                disabled={currentPage <= 1}
+                className="hover:text-teal-700 disabled:opacity-30 flex items-center gap-1"
               >
-                ← الصفحة التالية ({currentPage < 604 ? currentPage + 1 : 604})
+                ← الصفحة السابقة ({currentPage > 1 ? currentPage - 1 : 1})
               </button>
 
               <span className="font-mono text-slate-700 dark:text-slate-300">
@@ -474,11 +473,11 @@ export default function QuranReaderPage() {
               </span>
 
               <button
-                onClick={goToPrevPage}
-                disabled={currentPage <= 1}
-                className="hover:text-teal-700 disabled:opacity-30"
+                onClick={goToNextPage}
+                disabled={currentPage >= 604}
+                className="hover:text-teal-700 disabled:opacity-30 flex items-center gap-1"
               >
-                الصفحة السابقة ({currentPage > 1 ? currentPage - 1 : 1}) →
+                الصفحة التالية ({currentPage < 604 ? currentPage + 1 : 604}) →
               </button>
             </div>
           </div>
