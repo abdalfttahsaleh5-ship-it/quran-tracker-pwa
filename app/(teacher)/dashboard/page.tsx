@@ -2,18 +2,22 @@ import Link from "next/link";
 import { Users, UserPlus, BookOpen, Award, ArrowLeft, Sparkles, CheckCircle2, BookCheck } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getStudents } from "@/lib/actions/student";
+import { getTeacherReportData } from "@/lib/actions/student";
 import { TeacherDashboardClient } from "@/components/teacher/TeacherDashboardClient";
+import { SummaryReportTable } from "@/components/dashboard/SummaryReportTable";
 
 export const revalidate = 0;
 
 export default async function TeacherDashboardPage() {
-  const res = await getStudents();
-  const students = res.success && res.data ? res.data : [];
-  const totalStudents = students.length;
+  const reportRes = await getTeacherReportData();
 
-  const totalPagesSum = students.reduce((sum, s) => sum + (s.total_pages_count || 0), 0);
-  const activeStudentsCount = students.filter((s) => (s.total_pages_count || 0) > 0).length;
+  const students = reportRes.success && reportRes.students ? reportRes.students : [];
+  const logs = reportRes.success && reportRes.logs ? reportRes.logs : [];
+  const attendance = reportRes.success && reportRes.attendance ? reportRes.attendance : [];
+
+  const totalStudents = students.length;
+  const totalPagesSum = logs.reduce((sum, l) => sum + (l.page_count || 1), 0);
+  const activeStudentsCount = students.filter((s) => logs.some((l) => l.student_id === s.id)).length;
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-300">
@@ -130,6 +134,9 @@ export default async function TeacherDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Summary Report Table with Daily/Weekly/Monthly Filter and A4 Print Export */}
+      <SummaryReportTable students={students} logs={logs} attendance={attendance} />
 
       {/* Quick Action Navigation Grid */}
       <Card className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">

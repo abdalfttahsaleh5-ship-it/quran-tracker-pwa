@@ -353,3 +353,45 @@ export async function findStudentByPhoneOrCode(input: string): Promise<ParentSea
 
 export const getStudentsCached = cache(getStudents);
 export const getStudentProgressByTokenCached = cache(getStudentProgressByToken);
+
+export interface TeacherReportDataResult {
+  success: boolean;
+  students?: StudentRow[];
+  logs?: MemorizationLogRow[];
+  attendance?: AttendanceRecordRow[];
+  error?: string;
+}
+
+export async function getTeacherReportData(): Promise<TeacherReportDataResult> {
+  try {
+    const supabase = createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return { success: false, error: "غير مصرح لك للوصول، يرجى تسجيل الدخول أولاً" };
+    }
+
+    const [studentsRes, logsRes, attendanceRes] = await Promise.all([
+      supabase.from("students").select("*").eq("teacher_id", user.id).order("full_name", { ascending: true }),
+      supabase.from("memorization_logs").select("*").eq("teacher_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("attendance_records").select("*").eq("teacher_id", user.id).order("date", { ascending: false }),
+    ]);
+
+    return {
+      success: true,
+      students: (studentsRes.data || []) as unknown as StudentRow[],
+      logs: (logsRes.data || []) as unknown as MemorizationLogRow[],
+      attendance: (attendanceRes.data || []) as unknown as AttendanceRecordRow[],
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "حدث خطأ أثناء جلب بيانات التقرير",
+    };
+  }
+}
+
+export const getTeacherReportDataCached = cache(getTeacherReportData);
