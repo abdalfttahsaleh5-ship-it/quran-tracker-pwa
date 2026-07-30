@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import { StudentRow, MemorizationLogRow, AttendanceRecordRow } from "@/types";
-import { Search, Printer, Calendar, BookOpen, Users, Phone, ExternalLink } from "lucide-react";
+import { Search, Printer, Calendar } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -124,71 +124,73 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
 
       {/* Screen Interactive Dashboard Card */}
       <Card className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm print:hidden">
-        <CardHeader className="p-6 pb-4 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <CardHeader className="p-5 sm:p-6 pb-4 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between gap-4">
           <div>
-            <CardTitle className="text-lg font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <CardTitle className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <Calendar className="w-5 h-5 text-emerald-600" />
               <span>تقرير متابعة طلاب الحلقة 📊</span>
             </CardTitle>
-            <CardDescription className="text-xs text-slate-500 mt-1">
-              تجميع إحصائيات الحضور وعدد صفحات الحفظ والمراجعة حسب الفترة الزمانية
+            <CardDescription className="text-xs text-slate-500 mt-0.5">
+              إحصائيات الحضور والصفحات حسب الفترة الزمانية
             </CardDescription>
           </div>
 
           <Button
             onClick={handlePrint}
-            size="lg"
-            className="gap-2 bg-gradient-to-r from-emerald-800 to-teal-700 hover:from-emerald-700 hover:to-teal-600 text-white font-bold rounded-2xl shadow-md shrink-0"
+            variant="outline"
+            size="sm"
+            className="gap-2 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 font-bold rounded-xl shrink-0"
           >
-            <Printer className="w-5 h-5 text-amber-300" />
-            <span>تصدير تقرير الإدارة (PDF / طباعة) 🖨️</span>
+            <Printer className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <span className="hidden sm:inline">تصدير تقرير الإدارة (PDF / طباعة) 🖨️</span>
+            <span className="sm:hidden">طباعة 🖨️</span>
           </Button>
         </CardHeader>
 
-        <CardContent className="p-6 space-y-5">
-          {/* Period Selection Tabs & Search Bar */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-            {/* Period Tabs */}
-            <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700">
+        <CardContent className="p-4 sm:p-6 space-y-4">
+          {/* Period Selection Segmented Controls & Search Bar */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            {/* Segmented Control Pill */}
+            <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700">
               <button
                 type="button"
                 onClick={() => setPeriod("daily")}
-                className={`px-4 py-2 text-xs font-extrabold rounded-xl transition-all ${
+                className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-extrabold rounded-lg transition-all ${
                   period === "daily"
                     ? "bg-emerald-700 text-white shadow-sm"
                     : "text-slate-600 dark:text-slate-300 hover:text-slate-900"
                 }`}
               >
-                اليومي (اليوم)
+                اليومي
               </button>
 
               <button
                 type="button"
                 onClick={() => setPeriod("weekly")}
-                className={`px-4 py-2 text-xs font-extrabold rounded-xl transition-all ${
+                className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-extrabold rounded-lg transition-all ${
                   period === "weekly"
                     ? "bg-emerald-700 text-white shadow-sm"
                     : "text-slate-600 dark:text-slate-300 hover:text-slate-900"
                 }`}
               >
-                الأسبوعي (هذا الأسبوع)
+                الأسبوعي
               </button>
 
               <button
                 type="button"
                 onClick={() => setPeriod("monthly")}
-                className={`px-4 py-2 text-xs font-extrabold rounded-xl transition-all ${
+                className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-extrabold rounded-lg transition-all ${
                   period === "monthly"
                     ? "bg-emerald-700 text-white shadow-sm"
                     : "text-slate-600 dark:text-slate-300 hover:text-slate-900"
                 }`}
               >
-                الشهري (هذا الشهر)
+                الشهري
               </button>
             </div>
 
             {/* Instant Search Bar */}
-            <div className="relative w-full sm:w-72">
+            <div className="relative w-full sm:w-64">
               <Search className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
               <Input
                 type="text"
@@ -200,14 +202,14 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
             </div>
           </div>
 
-          {/* Table Container */}
+          {/* Responsive Table Container */}
           <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
             <table className="w-full text-right text-xs">
               <thead className="bg-slate-50 dark:bg-slate-850 text-slate-700 dark:text-slate-300 font-extrabold border-b border-slate-200 dark:border-slate-800">
                 <tr>
-                  <th className="p-3 text-center w-12">#</th>
+                  <th className="p-3 text-center w-10">#</th>
                   <th className="p-3">اسم الطالب</th>
-                  <th className="p-3">الصف / المرحلة</th>
+                  <th className="p-3">الصف الدراسي</th>
                   <th className="p-3 text-center">سجل الحضور</th>
                   <th className="p-3 text-center">إجمالي الصفحات</th>
                   <th className="p-3 text-center">ولي الأمر</th>

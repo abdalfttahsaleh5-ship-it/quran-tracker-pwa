@@ -1,7 +1,5 @@
-import Link from "next/link";
-import { Users, UserPlus, BookOpen, Award, ArrowLeft, Sparkles, CheckCircle2, BookCheck } from "lucide-react";
+import { Users, BookCheck, Award, Sparkles } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { getTeacherReportData } from "@/lib/actions/student";
 import { TeacherDashboardClient } from "@/components/teacher/TeacherDashboardClient";
 import { SummaryReportTable } from "@/components/dashboard/SummaryReportTable";
@@ -20,116 +18,89 @@ export default async function TeacherDashboardPage() {
   const activeStudentsCount = students.filter((s) => logs.some((l) => l.student_id === s.id)).length;
 
   return (
-    <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-300">
+    <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-300">
       <TeacherDashboardClient />
 
-      {/* Hero Banner with Deep Emerald Gradient & Gold Accents */}
-      <div className="hero-banner no-print print:hidden relative overflow-hidden bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-950 text-white p-6 sm:p-8 rounded-3xl shadow-xl shadow-emerald-950/20 border border-emerald-800/40">
+      {/* Compact Sleek Greeting Banner */}
+      <div className="hero-banner no-print print:hidden relative overflow-hidden bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-950 text-white p-5 sm:p-6 rounded-2xl shadow-md border border-emerald-800/40">
         {/* Decorative Pattern Background Overlay */}
         <div className="absolute inset-0 bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:16px_16px] opacity-10 pointer-events-none" />
-        
-        {/* Radial Glow */}
-        <div className="absolute -top-24 -left-24 w-64 h-64 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-emerald-400/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-800/60 border border-emerald-700/60 text-amber-300 text-xs font-bold shadow-sm">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>مساعد معلم القرآن الرقمي</span>
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-800/60 border border-emerald-700/60 text-amber-300 text-[11px] font-bold">
+              <Sparkles className="w-3 h-3" />
+              <span>مساعد معلم القرآن الكريم</span>
             </div>
-            <h1 className="text-2xl sm:text-4xl font-black tracking-tight leading-tight text-white">
+            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
               أهلاً بك، معلم الحلقة 📜
             </h1>
-            <p className="text-emerald-200/90 text-sm leading-relaxed font-medium">
-              تابع إنجاز طلابك في الحفظ والمراجعة واحتسب الأجر في تعليم كتاب الله تعالى.
-            </p>
           </div>
-
-          <div className="flex flex-wrap sm:flex-nowrap gap-3 shrink-0">
-            <Link href="/students" prefetch={true} className="w-full sm:w-auto">
-              <Button
-                size="lg"
-                className="w-full sm:w-auto bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-2xl gap-2 shadow-lg shadow-amber-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
-              >
-                <UserPlus className="w-5 h-5 text-slate-950" />
-                <span>إدارة قائمة الطلاب</span>
-              </Button>
-            </Link>
-
-            <Link href="/quran" prefetch={true} className="w-full sm:w-auto">
-              <Button
-                size="lg"
-                variant="outline"
-                className="w-full sm:w-auto bg-emerald-900/60 border-emerald-700/70 text-emerald-100 hover:bg-emerald-800/80 font-bold rounded-2xl gap-2"
-              >
-                <BookOpen className="w-5 h-5 text-amber-300" />
-                <span>فتح المصحف</span>
-              </Button>
-            </Link>
-          </div>
+          <p className="text-emerald-200/80 text-xs font-medium">
+            متابعة دقيقة للحفظ والمراجعة والحضور اليومي
+          </p>
         </div>
       </div>
 
-      {/* KPI Quick Stat Cards in 2-Column Responsive Grid */}
-      <div className="stats-grid no-print print:hidden grid grid-cols-2 gap-3 md:grid-cols-3 sm:gap-6">
-        {/* Card 1: Registered Students */}
-        <Card className="rounded-2xl border border-emerald-100/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-all duration-200">
-          <CardHeader className="p-4 sm:p-6 pb-2 flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-400">
+      {/* Unified Single-Row 3-Column KPI Stats */}
+      <div className="stats-grid no-print print:hidden grid grid-cols-3 gap-2 sm:gap-4">
+        {/* Metric 1: Registered Students */}
+        <Card className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
+          <CardHeader className="p-3 sm:p-4 pb-1 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-[11px] sm:text-xs font-bold text-slate-500 dark:text-slate-400">
               إجمالي الطلاب
             </CardTitle>
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-bold shrink-0">
-              <Users className="w-4 h-4 sm:w-5 sm:h-5" />
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-bold shrink-0">
+              <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </CardHeader>
-          <CardContent className="p-4 sm:p-6 pt-0">
-            <div className="text-2xl sm:text-4xl font-black text-slate-900 dark:text-slate-50 tracking-tight">
+          <CardContent className="p-3 sm:p-4 pt-0">
+            <div className="text-lg sm:text-2xl font-black text-slate-900 dark:text-slate-50 tracking-tight">
               {totalStudents}
             </div>
-            <CardDescription className="text-[11px] sm:text-xs mt-1 text-slate-500 font-medium">
-              طالب مسجّل في الحلقة
+            <CardDescription className="text-[10px] sm:text-[11px] text-slate-400 font-medium truncate">
+              مسجل بالحلقة
             </CardDescription>
           </CardContent>
         </Card>
 
-        {/* Card 2: Total Pages Recited */}
-        <Card className="rounded-2xl border border-emerald-100/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-all duration-200">
-          <CardHeader className="p-4 sm:p-6 pb-2 flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-400">
+        {/* Metric 2: Total Recitation Pages */}
+        <Card className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
+          <CardHeader className="p-3 sm:p-4 pb-1 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-[11px] sm:text-xs font-bold text-slate-500 dark:text-slate-400">
               إجمالي الصفحات
             </CardTitle>
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 flex items-center justify-center font-bold shrink-0">
-              <BookCheck className="w-4 h-4 sm:w-5 sm:h-5" />
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 flex items-center justify-center font-bold shrink-0">
+              <BookCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </CardHeader>
-          <CardContent className="p-4 sm:p-6 pt-0">
-            <div className="text-2xl sm:text-4xl font-black text-slate-900 dark:text-slate-50 tracking-tight">
+          <CardContent className="p-3 sm:p-4 pt-0">
+            <div className="text-lg sm:text-2xl font-black text-slate-900 dark:text-slate-50 tracking-tight">
               {Number(totalPagesSum.toFixed(1))}
             </div>
-            <CardDescription className="text-[11px] sm:text-xs mt-1 text-slate-500 font-medium">
-              صفحة موثقة للطلاب
+            <CardDescription className="text-[10px] sm:text-[11px] text-slate-400 font-medium truncate">
+              صفحة موثقة
             </CardDescription>
           </CardContent>
         </Card>
 
-        {/* Card 3: Active Students with Progress */}
-        <Card className="col-span-2 md:col-span-1 rounded-2xl border border-emerald-100/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-all duration-200">
-          <CardHeader className="p-4 sm:p-6 pb-2 flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-400">
+        {/* Metric 3: Active Students */}
+        <Card className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
+          <CardHeader className="p-3 sm:p-4 pb-1 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-[11px] sm:text-xs font-bold text-slate-500 dark:text-slate-400">
               الطلاب الفاعلون
             </CardTitle>
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300 flex items-center justify-center font-bold shrink-0">
-              <Award className="w-4 h-4 sm:w-5 sm:h-5" />
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300 flex items-center justify-center font-bold shrink-0">
+              <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </CardHeader>
-          <CardContent className="p-4 sm:p-6 pt-0">
-            <div className="text-2xl sm:text-4xl font-black text-slate-900 dark:text-slate-50 tracking-tight flex items-baseline gap-1">
+          <CardContent className="p-3 sm:p-4 pt-0">
+            <div className="text-lg sm:text-2xl font-black text-slate-900 dark:text-slate-50 tracking-tight flex items-baseline gap-1">
               <span>{activeStudentsCount}</span>
-              <span className="text-sm font-bold text-slate-400">/ {totalStudents}</span>
+              <span className="text-xs text-slate-400 font-bold">/{totalStudents}</span>
             </div>
-            <CardDescription className="text-[11px] sm:text-xs mt-1 text-slate-500 font-medium">
-              لهم تسميعات مسجلة
+            <CardDescription className="text-[10px] sm:text-[11px] text-slate-400 font-medium truncate">
+              لهم تسميعات
             </CardDescription>
           </CardContent>
         </Card>
@@ -137,42 +108,6 @@ export default async function TeacherDashboardPage() {
 
       {/* Summary Report Table with Daily/Weekly/Monthly Filter and A4 Print Export */}
       <SummaryReportTable students={students} logs={logs} attendance={attendance} />
-
-      {/* Quick Action Navigation Grid */}
-      <Card className="quick-actions no-print print:hidden rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
-        <CardHeader className="p-6 pb-4 border-b border-slate-100 dark:border-slate-800">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-            <CardTitle className="text-base font-extrabold text-slate-900 dark:text-slate-100">
-              الإجراءات والروابط السريعة
-            </CardTitle>
-          </div>
-          <CardDescription className="text-xs text-slate-500 mt-1">
-            وصول مباشر لإدارة الطلاب والروابط الخاصة بأولياء الأمور
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-6 flex flex-col sm:flex-row gap-3">
-          <Link href="/students" prefetch={true} className="flex-1">
-            <Button size="lg" className="w-full justify-between gap-2 font-bold rounded-2xl">
-              <div className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-emerald-300" />
-                <span>عرض كشوفات جميع الطلاب ({totalStudents})</span>
-              </div>
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-          </Link>
-
-          <Link href="/quran" prefetch={true} className="flex-1">
-            <Button size="lg" variant="outline" className="w-full justify-between gap-2 font-bold rounded-2xl border-slate-200 dark:border-slate-700">
-              <div className="flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-teal-600" />
-                <span>المصحف الشريف 📖</span>
-              </div>
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-          </Link>
-        </CardContent>
-      </Card>
     </div>
   );
 }
