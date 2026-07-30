@@ -1,5 +1,6 @@
 "use server";
 
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { memorizationLogSchema, MemorizationLogInput } from "@/lib/validations/log";
 import { MemorizationLogRow } from "@/types";
@@ -171,3 +172,5 @@ export async function deleteMemorizationLog(id: string, studentId: string): Prom
     };
   }
 }
+
+export const getStudentLogsCached = cache(getStudentLogs);

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen, LayoutDashboard, Users, LogOut } from "lucide-react";
+import { BookOpen, LayoutDashboard, Users, LogOut, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { logoutTeacher } from "@/lib/actions/auth";
 
@@ -49,6 +49,15 @@ export default function TeacherLayout({
               >
                 <BookOpen className="w-4 h-4 text-teal-700" />
                 <span>المصحف الشريف 📖</span>
+              </Link>
+
+              <Link
+                href="/trash"
+                prefetch={true}
+                className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+              >
+                <Trash2 className="w-4 h-4 text-rose-500" />
+                <span>الأرشيف</span>
               </Link>
             </nav>
           </div>

@@ -1,17 +1,19 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { Search, UserPlus, Users, CalendarCheck } from "lucide-react";
 import { StudentRow } from "@/types";
 import { StudentInput } from "@/lib/validations/student";
 import { createStudent, updateStudent, deleteStudent } from "@/lib/actions/student";
 import { StudentCard } from "./StudentCard";
-import { StudentDialog } from "./StudentDialog";
-import { DeleteStudentDialog } from "./DeleteStudentDialog";
-import { QuickAttendanceSheet } from "./QuickAttendanceSheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRealtimeSync, RealtimePayload } from "@/lib/hooks/useRealtimeSync";
+
+const StudentDialog = dynamic(() => import("./StudentDialog").then((mod) => mod.StudentDialog), { ssr: false });
+const DeleteStudentDialog = dynamic(() => import("./DeleteStudentDialog").then((mod) => mod.DeleteStudentDialog), { ssr: false });
+const QuickAttendanceSheet = dynamic(() => import("./QuickAttendanceSheet").then((mod) => mod.QuickAttendanceSheet), { ssr: false });
 
 interface StudentListProps {
   initialStudents: StudentRow[];

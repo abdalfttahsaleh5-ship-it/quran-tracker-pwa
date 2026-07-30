@@ -1,5 +1,6 @@
 "use server";
 
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { studentSchema, StudentInput } from "@/lib/validations/student";
 import { StudentRow, StudentInsert, StudentUpdate, ParentProgressPayload, MemorizationLogRow, AttendanceRecordRow } from "@/types";
@@ -349,3 +350,6 @@ export async function findStudentByPhoneOrCode(input: string): Promise<ParentSea
     };
   }
 }
+
+export const getStudentsCached = cache(getStudents);
+export const getStudentProgressByTokenCached = cache(getStudentProgressByToken);
