@@ -64,9 +64,60 @@ export function LogEntryDialog({
   }, [isOpen, setValue]);
 
   const selectedSurahStart = watch("surah_start");
+  const selectedSurahEnd = watch("surah_end");
+  const selectedAyaStart = watch("aya_start");
+  const selectedAyaEnd = watch("aya_end");
   const selectedLogType = watch("log_type");
   const selectedGrade = watch("grade");
   const currentPageCount = watch("page_count");
+
+  // Automatically update page_count when surah, ayah, or cross-surah state changes
+  useEffect(() => {
+    if (!selectedSurahStart) return;
+
+    const fromSurah = QURAN_SURAHS.find((s) => s.name === selectedSurahStart);
+    const targetSurahName = isCrossSurah ? (selectedSurahEnd || selectedSurahStart) : selectedSurahStart;
+    const toSurah = QURAN_SURAHS.find((s) => s.name === targetSurahName);
+
+    if (!fromSurah || !toSurah) return;
+
+    const fromAyah = Number(selectedAyaStart) || 1;
+    const toAyah = Number(selectedAyaEnd) || 1;
+
+    let calculatedPages = 1;
+
+    if (fromSurah.id === toSurah.id) {
+      const totalSurahPages = fromSurah.endPage - fromSurah.startPage + 1;
+      const validFrom = Math.max(1, Math.min(fromAyah, fromSurah.numberOfAyahs));
+      const validTo = Math.max(1, Math.min(toAyah, fromSurah.numberOfAyahs));
+      const ayahsCount = Math.max(1, validTo - validFrom + 1);
+      const rawPages = (ayahsCount / fromSurah.numberOfAyahs) * totalSurahPages;
+
+      if (rawPages >= 1) {
+        calculatedPages = Math.max(1, Math.round(rawPages));
+      } else {
+        const roundedFraction = Math.round(rawPages * 4) / 4;
+        calculatedPages = Math.max(0.25, roundedFraction);
+      }
+    } else {
+      // Cross-surah page calculation using QURAN_SURAHS startPage & ayah offsets:
+      // Start Page = fromSurah.startPage + fractional offset based on from_ayah
+      // End Page = toSurah.startPage + fractional offset based on to_ayah
+      const validFrom = Math.max(1, Math.min(fromAyah, fromSurah.numberOfAyahs));
+      const validTo = Math.max(1, Math.min(toAyah, toSurah.numberOfAyahs));
+
+      const fromOffset = (validFrom - 1) / fromSurah.numberOfAyahs;
+      const startPage = fromSurah.startPage + fromOffset;
+
+      const toOffset = validTo / toSurah.numberOfAyahs;
+      const endPage = toSurah.startPage + toOffset;
+
+      const diff = Math.abs(endPage - startPage);
+      calculatedPages = Math.max(0.25, Math.round(diff));
+    }
+
+    setValue("page_count", calculatedPages);
+  }, [selectedSurahStart, selectedSurahEnd, selectedAyaStart, selectedAyaEnd, isCrossSurah, setValue]);
 
   // Auto-fill verse range upon selecting primary surah
   const handlePrimarySurahChange = (surahName: string) => {
@@ -239,9 +290,14 @@ export function LogEntryDialog({
                   type="checkbox"
                   checked={isCrossSurah}
                   onChange={(e) => {
-                    setIsCrossSurah(e.target.checked);
-                    if (!e.target.checked) {
+                    const checked = e.target.checked;
+                    setIsCrossSurah(checked);
+                    if (!checked) {
                       setValue("surah_end", selectedSurahStart);
+                      const surahObj = QURAN_SURAHS.find((s) => s.name === selectedSurahStart);
+                      if (surahObj) {
+                        setValue("aya_end", surahObj.numberOfAyahs);
+                      }
                     }
                   }}
                   className="rounded border-slate-300 text-teal-600 focus:ring-teal-500"
@@ -255,7 +311,15 @@ export function LogEntryDialog({
                   <select
                     id="surah_end"
                     className="w-full h-10 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm font-bold"
-                    {...register("surah_end")}
+                    {...register("surah_end", {
+                      onChange: (e) => {
+                        const endName = e.target.value;
+                        const endSurahObj = QURAN_SURAHS.find((s) => s.name === endName);
+                        if (endSurahObj) {
+                          setValue("aya_end", endSurahObj.numberOfAyahs);
+                        }
+                      },
+                    })}
                   >
                     {QURAN_SURAHS.map((s) => (
                       <option key={s.number} value={s.name}>
