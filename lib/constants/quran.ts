@@ -142,3 +142,57 @@ export function getSurahByNumber(number: number): Surah | undefined {
 export function getSurahByName(name: string): Surah | undefined {
   return SURAHS.find((s) => s.name === name);
 }
+
+export function getSurahByPage(page: number): Surah {
+  const surah = SURAHS.find((s) => page >= s.startPage && page <= s.endPage);
+  return surah || SURAHS[0];
+}
+
+export interface Juz {
+  number: number;
+  name: string;
+  startPage: number;
+}
+
+export const QURAN_AJZAA: Juz[] = [
+  { number: 1, name: "الجزء الأول (آلم - الفاتحة/البقرة)", startPage: 1 },
+  { number: 2, name: "الجزء الثاني (سيقول السفهاء)", startPage: 22 },
+  { number: 3, name: "الجزء الثالث (تلك الرسل)", startPage: 42 },
+  { number: 4, name: "الجزء الرابع (لن تنالوا البر)", startPage: 62 },
+  { number: 5, name: "الجزء الخامس (والمحصنات)", startPage: 82 },
+  { number: 6, name: "الجزء السادس (لا يحب الله)", startPage: 102 },
+  { number: 7, name: "الجزء السابع (وإذا سمعوا)", startPage: 122 },
+  { number: 8, name: "الجزء الثامن (ولو أننا نزلنا)", startPage: 142 },
+  { number: 9, name: "الجزء التاسع (قال الملأ)", startPage: 162 },
+  { number: 10, name: "الجزء العاشر (واعلموا أنما)", startPage: 182 },
+  { number: 11, name: "الجزء الحادي عشر (يعتذرون إليكم)", startPage: 202 },
+  { number: 12, name: "الجزء الثاني عشر (وما من دابة)", startPage: 222 },
+  { number: 13, name: "الجزء الثالث عشر (وما أبرئ نفسي)", startPage: 242 },
+  { number: 14, name: "الجزء الرابع عشر (ربما يود)", startPage: 262 },
+  { number: 15, name: "الجزء الخامس عشر (سبحان الذي)", startPage: 282 },
+  { number: 16, name: "الجزء السادس عشر (قال ألم أقل لك)", startPage: 302 },
+  { number: 17, name: "الجزء السابع عشر (اقترب للناس)", startPage: 322 },
+  { number: 18, name: "الجزء الثامن عشر (قد أفلح المؤمنون)", startPage: 342 },
+  { number: 19, name: "الجزء التاسع عشر (وقال الذين لا يرجون)", startPage: 362 },
+  { number: 20, name: "الجزء العشرون (فما كان جواب قومه)", startPage: 382 },
+  { number: 21, name: "الجزء الحادي والعشرون (ولا تجادلوا)", startPage: 402 },
+  { number: 22, name: "الجزء الثاني والعشرون (ومن يقنت)", startPage: 422 },
+  { number: 23, name: "الجزء الثالث والعشرون (وما أنزلنا)", startPage: 442 },
+  { number: 24, name: "الجزء الرابع والعشرون (فمن أظلم)", startPage: 462 },
+  { number: 25, name: "الجزء الخامس والعشرون (إليه يرد)", startPage: 482 },
+  { number: 26, name: "الجزء السادس والعشرون (حـم - الأحقاف)", startPage: 502 },
+  { number: 27, name: "الجزء السابع والعشرون (قال فما خطبكم)", startPage: 522 },
+  { number: 28, name: "الجزء الثامن والعشرون (قد سمع الله)", startPage: 542 },
+  { number: 29, name: "الجزء التاسع والعشرون (تبارك الذي)", startPage: 562 },
+  { number: 30, name: "الجزء الثلاثون (عمّ يتساءلون)", startPage: 582 },
+];
+
+export function getJuzByPage(page: number): Juz {
+  for (let i = QURAN_AJZAA.length - 1; i >= 0; i--) {
+    if (page >= QURAN_AJZAA[i].startPage) {
+      return QURAN_AJZAA[i];
+    }
+  }
+  return QURAN_AJZAA[0];
+}
+

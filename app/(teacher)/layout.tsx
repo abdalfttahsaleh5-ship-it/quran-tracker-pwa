@@ -43,11 +43,12 @@ export default function TeacherLayout({
               </Link>
 
               <Link
-                href="/parent"
+                href="/quran"
                 prefetch={true}
-                className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-teal-800 bg-teal-50 dark:bg-teal-950/60 dark:text-teal-300 hover:bg-teal-100"
+                className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-teal-800 bg-teal-50 dark:bg-teal-950/60 dark:text-teal-300 hover:bg-teal-100 transition-colors"
               >
-                <span>دخول أولياء الأمور 🔍</span>
+                <BookOpen className="w-4 h-4 text-teal-700" />
+                <span>المصحف الشريف 📖</span>
               </Link>
             </nav>
           </div>
