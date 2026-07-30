@@ -58,7 +58,7 @@ export function StudentCard({ student, onEdit, onDelete }: StudentCardProps) {
               </CardTitle>
             </Link>
             <p className="text-xs text-slate-400 mt-0.5">
-              تم التسجيل: {new Date(student.created_at).toLocaleDateString("ar-SA")}
+              تم التسجيل: {new Date(student.created_at).toLocaleDateString("ar-JO")}
             </p>
           </div>
         </div>

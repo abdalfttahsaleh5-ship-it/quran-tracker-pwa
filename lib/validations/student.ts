@@ -33,7 +33,7 @@ export const studentSchema = z.object({
     .optional(),
   parent_phone: z
     .string()
-    .regex(/^(\+?|00)[0-9]{8,15}$/, { message: "رقم الهاتف غير صحيح (مثال: 0781234567 أو 0512345678)" })
+    .regex(/^(\+?|00)[0-9]{8,15}$/, { message: "رقم الهاتف غير صحيح (مثال: 0791234567)" })
     .or(z.literal(""))
     .nullable()
     .optional(),

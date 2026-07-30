@@ -9,7 +9,7 @@ export function cn(...inputs: ClassValue[]) {
 export function formatArabicDate(dateString: string): string {
   try {
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat("ar-SA", {
+    return new Intl.DateTimeFormat("ar-JO", {
       year: "numeric",
       month: "long",
       day: "numeric",

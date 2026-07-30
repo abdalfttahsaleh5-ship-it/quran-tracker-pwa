@@ -183,7 +183,7 @@ export function StudentDialog({
               <Input
                 id="parent_phone"
                 type="tel"
-                placeholder="0781234567 أو 0512345678"
+                placeholder="0791234567"
                 dir="ltr"
                 className="text-left"
                 {...register("parent_phone")}

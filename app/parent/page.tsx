@@ -91,7 +91,7 @@ export default function ParentSearchGatewayPage() {
                     <Input
                       id="parent-phone"
                       type="tel"
-                      placeholder="0781234567 أو 0512345678"
+                      placeholder="0791234567"
                       value={phoneInput}
                       onChange={(e) => setPhoneInput(e.target.value)}
                       dir="ltr"
