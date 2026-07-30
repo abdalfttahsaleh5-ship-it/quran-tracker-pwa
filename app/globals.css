@@ -63,3 +63,62 @@ body {
     background: #334155;
   }
 }
+
+/* Strict A4 PDF & Print Isolation Rules */
+@media print {
+  /* Hide all app shell elements, headers, banners, cards, and navigation */
+  header,
+  nav,
+  footer,
+  .bottom-nav,
+  .hero-banner,
+  .stats-grid,
+  .quick-actions,
+  .no-print,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* Reset container body margins & layout for 100% clean A4 print */
+  body,
+  main {
+    background: white !important;
+    color: black !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: auto !important;
+    box-shadow: none !important;
+  }
+
+  /* Ensure only the Printable Report section is visible */
+  .printable-report-only {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 10mm 10mm 12mm 10mm;
+  }
+
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  thead {
+    display: table-header-group !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+  }
+
+  th,
+  td {
+    padding: 4px 6px !important;
+    border: 1px solid #cbd5e1 !important;
+  }
+}

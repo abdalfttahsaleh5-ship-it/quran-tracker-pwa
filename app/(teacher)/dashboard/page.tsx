@@ -24,7 +24,7 @@ export default async function TeacherDashboardPage() {
       <TeacherDashboardClient />
 
       {/* Hero Banner with Deep Emerald Gradient & Gold Accents */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-950 text-white p-6 sm:p-8 rounded-3xl shadow-xl shadow-emerald-950/20 border border-emerald-800/40">
+      <div className="hero-banner no-print print:hidden relative overflow-hidden bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-950 text-white p-6 sm:p-8 rounded-3xl shadow-xl shadow-emerald-950/20 border border-emerald-800/40">
         {/* Decorative Pattern Background Overlay */}
         <div className="absolute inset-0 bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:16px_16px] opacity-10 pointer-events-none" />
         
@@ -72,7 +72,7 @@ export default async function TeacherDashboardPage() {
       </div>
 
       {/* KPI Quick Stat Cards in 2-Column Responsive Grid */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 sm:gap-6">
+      <div className="stats-grid no-print print:hidden grid grid-cols-2 gap-3 md:grid-cols-3 sm:gap-6">
         {/* Card 1: Registered Students */}
         <Card className="rounded-2xl border border-emerald-100/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-all duration-200">
           <CardHeader className="p-4 sm:p-6 pb-2 flex flex-row items-center justify-between space-y-0">
@@ -139,7 +139,7 @@ export default async function TeacherDashboardPage() {
       <SummaryReportTable students={students} logs={logs} attendance={attendance} />
 
       {/* Quick Action Navigation Grid */}
-      <Card className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+      <Card className="quick-actions no-print print:hidden rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
         <CardHeader className="p-6 pb-4 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-5 h-5 text-emerald-600" />

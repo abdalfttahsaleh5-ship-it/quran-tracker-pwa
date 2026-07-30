@@ -23,7 +23,7 @@ export function PrintReportView({ reportItems, periodLabel }: PrintReportViewPro
   });
 
   return (
-    <div className="hidden print:block text-slate-900 bg-white p-4 font-sans text-xs dir-rtl">
+    <div className="printable-report-only hidden print:block text-slate-900 bg-white p-4 font-sans text-xs dir-rtl">
       <style jsx global>{`
         @media print {
           @page {
