@@ -127,7 +127,7 @@ export function StudentDialog({
         </div>
 
         {/* Form Container */}
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="flex flex-col flex-1 overflow-hidden" noValidate>
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="flex flex-col flex-1 overflow-hidden" autoComplete="off" noValidate>
           {/* Scrollable Form Body */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {error && (
@@ -174,6 +174,10 @@ export function StudentDialog({
                   id="full_name"
                   type="text"
                   placeholder="مثال: عبد الله محمد الأحمد"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
                   {...register("full_name")}
                 />
                 {errors.full_name && (
@@ -189,6 +193,10 @@ export function StudentDialog({
                   placeholder="0791234567"
                   dir="ltr"
                   className="text-left"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
                   {...register("parent_phone")}
                 />
                 {errors.parent_phone && (
@@ -227,6 +235,9 @@ export function StudentDialog({
                 <Input
                   id="school_name"
                   placeholder="مثال: مدرسة الفاروق الثانوية"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
                   {...register("school_name")}
                 />
               </div>
@@ -239,6 +250,9 @@ export function StudentDialog({
                 <Input
                   id="father_job"
                   placeholder="مثال: مهندس / معلم / تاجر"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
                   {...register("father_job")}
                 />
               </div>
@@ -252,6 +266,9 @@ export function StudentDialog({
               <Input
                 id="address"
                 placeholder="مثال: عمان - حي الجامعة"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
                 {...register("address")}
               />
             </div>

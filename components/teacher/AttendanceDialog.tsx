@@ -97,13 +97,14 @@ export function AttendanceDialog({
           </div>
         )}
 
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4" noValidate>
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4" autoComplete="off" noValidate>
           {/* Date Picker */}
           <div className="space-y-2">
             <Label htmlFor="attendance-date">التاريخ</Label>
             <Input
               id="attendance-date"
               type="date"
+              autoComplete="off"
               {...register("date")}
             />
             {errors.date && (
@@ -141,6 +142,9 @@ export function AttendanceDialog({
             <Input
               id="attendance-notes"
               placeholder="مثال: تأخر 15 دقيقة بسبب ظروف السير"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
               {...register("notes")}
             />
           </div>

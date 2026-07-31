@@ -209,7 +209,7 @@ export function LogEntryDialog({
         </div>
 
         {/* Form Container wrapping body & footer */}
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="flex flex-col flex-1 overflow-hidden" noValidate>
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="flex flex-col flex-1 overflow-hidden" autoComplete="off" noValidate>
           {/* Optimized Compact Scrollable Body */}
           <div className="flex-1 overflow-y-auto p-3.5 space-y-3">
             {error && (
@@ -228,6 +228,10 @@ export function LogEntryDialog({
                 id="assistant_name"
                 placeholder="مثال: أستاذ أحمد المحمود"
                 className="h-9 rounded-xl bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-xs"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="none"
+                spellCheck={false}
                 {...register("assistant_name")}
               />
             </div>
@@ -284,6 +288,7 @@ export function LogEntryDialog({
                     type="number"
                     min={1}
                     className="h-9 font-mono text-center font-bold text-xs rounded-xl bg-white dark:bg-slate-900"
+                    autoComplete="off"
                     {...register("aya_start", { valueAsNumber: true })}
                   />
                 </div>
@@ -297,6 +302,7 @@ export function LogEntryDialog({
                     type="number"
                     min={1}
                     className="h-9 font-mono text-center font-bold text-xs rounded-xl bg-white dark:bg-slate-900"
+                    autoComplete="off"
                     {...register("aya_end", { valueAsNumber: true })}
                   />
                 </div>
@@ -390,6 +396,7 @@ export function LogEntryDialog({
                   min="0.1"
                   placeholder="1.0"
                   className="h-8 w-24 font-mono text-center font-bold text-xs rounded-xl bg-white dark:bg-slate-900"
+                  autoComplete="off"
                   {...register("page_count", { valueAsNumber: true })}
                 />
                 <span className="text-xs text-slate-500 font-bold">صفحة</span>
@@ -426,6 +433,9 @@ export function LogEntryDialog({
                 id="notes"
                 placeholder="مثال: إتقان أحكام النون الساكنة والتنوين"
                 className="h-9 rounded-xl bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-xs"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
                 {...register("notes")}
               />
             </div>
