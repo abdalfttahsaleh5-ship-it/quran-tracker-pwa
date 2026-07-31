@@ -184,235 +184,270 @@ export function LogEntryDialog({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-          <div className="flex items-center gap-2 text-teal-800 dark:text-teal-300 font-bold text-lg">
-            <BookOpen className="w-5 h-5" />
-            <span>تسجيل تسميع جديد للطالب: {studentName}</span>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 pb-20 md:pb-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="w-full max-w-lg max-h-[88vh] flex flex-col rounded-3xl bg-white dark:bg-slate-900 shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-800">
+        {/* Dedicated Header Section */}
+        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 z-10 shrink-0">
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2 text-teal-800 dark:text-teal-300 font-bold text-base sm:text-lg">
+              <BookOpen className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+              <span>تسجيل تسميع جديد 📖</span>
+            </div>
+            {studentName && (
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
+                الطالب: <span className="font-bold text-slate-700 dark:text-slate-300">{studentName}</span>
+              </span>
+            )}
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {error && (
-          <div className="p-3 bg-rose-50 text-rose-700 text-sm rounded-lg border border-rose-200">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4" noValidate>
-          {/* Assistant Name Input Field */}
-          <div className="space-y-1.5">
-            <Label htmlFor="assistant_name" className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-200">
-              <UserCheck className="w-4 h-4 text-teal-600" />
-              <span>اسم المشرف / المساعد (اختياري)</span>
-            </Label>
-            <Input
-              id="assistant_name"
-              placeholder="مثال: أستاذ أحمد المحمود"
-              {...register("assistant_name")}
-            />
-          </div>
-
-          {/* Log Type Selection */}
-          <div className="space-y-1.5">
-            <Label>نوع التسميع</Label>
-            <div className="grid grid-cols-3 gap-2">
-              {logTypes.map((type) => (
-                <button
-                  key={type.value}
-                  type="button"
-                  onClick={() => setValue("log_type", type.value)}
-                  className={`py-2 px-3 text-sm font-bold rounded-xl border transition-all text-center ${
-                    selectedLogType === type.value
-                      ? "bg-teal-700 text-white border-teal-700 shadow-sm"
-                      : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100"
-                  }`}
-                >
-                  {type.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Unified Primary Surah Selection & Compact Ayah Range */}
-          <div className="space-y-3 bg-slate-50 dark:bg-slate-850 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
-            <div className="space-y-1">
-              <Label htmlFor="primary_surah" className="text-xs font-bold text-teal-900 dark:text-teal-300">
-                اختر السورة *
-              </Label>
-              <select
-                id="primary_surah"
-                value={selectedSurahStart}
-                onChange={(e) => handlePrimarySurahChange(e.target.value)}
-                className="w-full h-11 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm font-bold text-slate-800 dark:text-slate-100"
-              >
-                {QURAN_SURAHS.map((s) => (
-                  <option key={s.number} value={s.name}>
-                    {s.number}. سورة {s.name} ({s.numberOfAyahs} آية)
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Compact Side-by-Side Ayah Range Inputs */}
-            <div className="grid grid-cols-2 gap-3 pt-1">
-              <div className="space-y-1">
-                <Label htmlFor="aya_start" className="text-xs font-bold">من آية</Label>
-                <Input
-                  id="aya_start"
-                  type="number"
-                  min={1}
-                  className="font-mono text-center font-bold"
-                  {...register("aya_start", { valueAsNumber: true })}
-                />
+        {/* Form Container wrapping body & footer */}
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="flex flex-col flex-1 overflow-hidden" noValidate>
+          {/* Optimized Compact Scrollable Body */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {error && (
+              <div className="p-3 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 text-xs sm:text-sm rounded-2xl border border-rose-200 dark:border-rose-900">
+                {error}
               </div>
+            )}
 
-              <div className="space-y-1">
-                <Label htmlFor="aya_end" className="text-xs font-bold">إلى آية</Label>
-                <Input
-                  id="aya_end"
-                  type="number"
-                  min={1}
-                  className="font-mono text-center font-bold"
-                  {...register("aya_end", { valueAsNumber: true })}
-                />
-              </div>
-            </div>
-
-            {/* Optional Cross-Surah Toggle */}
-            <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
-              <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-600 dark:text-slate-400">
-                <input
-                  type="checkbox"
-                  checked={isCrossSurah}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setIsCrossSurah(checked);
-                    if (!checked) {
-                      setValue("surah_end", selectedSurahStart);
-                      const surahObj = QURAN_SURAHS.find((s) => s.name === selectedSurahStart);
-                      if (surahObj) {
-                        setValue("aya_end", surahObj.numberOfAyahs);
-                      }
-                    }
-                  }}
-                  className="rounded border-slate-300 text-teal-600 focus:ring-teal-500"
-                />
-                <span>تسميع ممتد بين سورين مختلفين</span>
-              </label>
-
-              {isCrossSurah && (
-                <div className="space-y-1 mt-2 animate-in fade-in duration-200">
-                  <Label htmlFor="surah_end" className="text-xs font-bold">السورة المنتهية عندها (إلى سورة)</Label>
-                  <select
-                    id="surah_end"
-                    className="w-full h-10 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm font-bold"
-                    {...register("surah_end", {
-                      onChange: (e) => {
-                        const endName = e.target.value;
-                        const endSurahObj = QURAN_SURAHS.find((s) => s.name === endName);
-                        if (endSurahObj) {
-                          setValue("aya_end", endSurahObj.numberOfAyahs);
-                        }
-                      },
-                    })}
-                  >
-                    {QURAN_SURAHS.map((s) => (
-                      <option key={s.number} value={s.name}>
-                        {s.number}. سورة {s.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Page Quantity / Fraction Buttons Section */}
-          <div className="space-y-2 bg-slate-50 dark:bg-slate-850 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
-            <Label className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200">
-              <Hash className="w-4 h-4 text-teal-600" />
-              <span>كمية التسميع (عدد الصفحات)</span>
-            </Label>
-
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 pt-1">
-              {pagePresets.map((preset) => (
-                <button
-                  key={preset.value}
-                  type="button"
-                  onClick={() => setValue("page_count", preset.value)}
-                  className={`py-2 px-1 text-xs font-bold rounded-lg border transition-all text-center ${
-                    currentPageCount === preset.value
-                      ? "bg-teal-800 text-white border-teal-800 shadow-sm"
-                      : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-100"
-                  }`}
-                >
-                  {preset.label}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex items-center gap-3 pt-2">
-              <Label htmlFor="page_count" className="text-xs shrink-0 font-bold">
-                أدخل كسر/عدد الصفحات بدقة:
+            {/* Assistant / Supervisor Name Input */}
+            <div className="space-y-1.5">
+              <Label htmlFor="assistant_name" className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-200">
+                <UserCheck className="w-4 h-4 text-teal-600" />
+                <span>اسم المشرف / المساعد (اختياري)</span>
               </Label>
               <Input
-                id="page_count"
-                type="number"
-                step="0.1"
-                min="0.1"
-                placeholder="1.0"
-                className="w-32 font-mono text-center font-bold"
-                {...register("page_count", { valueAsNumber: true })}
+                id="assistant_name"
+                placeholder="مثال: أستاذ أحمد المحمود"
+                className="h-10 rounded-xl bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-xs sm:text-sm"
+                {...register("assistant_name")}
               />
-              <span className="text-xs text-slate-500 font-bold">صفحة</span>
             </div>
-          </div>
 
-          {/* Grade Selection */}
-          <div className="space-y-2">
-            <Label>التقييم والدرجة</Label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {grades.map((g) => (
-                <button
-                  key={g.value}
-                  type="button"
-                  onClick={() => setValue("grade", g.value)}
-                  className={`py-2.5 px-2 text-xs font-bold rounded-xl border transition-all text-center ${
-                    selectedGrade === g.value
-                      ? "bg-teal-800 text-white border-teal-800 shadow-md"
-                      : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200"
-                  }`}
+            {/* Log Type Selection */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-700 dark:text-slate-200">نوع التسميع</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {logTypes.map((type) => (
+                  <button
+                    key={type.value}
+                    type="button"
+                    onClick={() => setValue("log_type", type.value)}
+                    className={`py-2.5 px-2 text-xs font-bold rounded-xl border transition-all text-center ${
+                      selectedLogType === type.value
+                        ? "bg-teal-700 text-white border-teal-700 shadow-sm scale-[1.01]"
+                        : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    {type.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Surah & Ayah Selection */}
+            <div className="space-y-3 bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800">
+              <div className="space-y-1">
+                <Label htmlFor="primary_surah" className="text-xs font-bold text-teal-900 dark:text-teal-300">
+                  اختر السورة *
+                </Label>
+                <select
+                  id="primary_surah"
+                  value={selectedSurahStart}
+                  onChange={(e) => handlePrimarySurahChange(e.target.value)}
+                  className="w-full h-10 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-teal-500 outline-none transition-all"
                 >
-                  {g.label}
-                </button>
-              ))}
+                  {QURAN_SURAHS.map((s) => (
+                    <option key={s.number} value={s.name}>
+                      {s.number}. سورة {s.name} ({s.numberOfAyahs} آية)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Streamlined inline layout for من آية and إلى آية */}
+              <div className="grid grid-cols-2 gap-3 pt-0.5">
+                <div className="space-y-1">
+                  <Label htmlFor="aya_start" className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                    من آية
+                  </Label>
+                  <Input
+                    id="aya_start"
+                    type="number"
+                    min={1}
+                    className="h-10 font-mono text-center font-bold text-xs sm:text-sm rounded-xl bg-white dark:bg-slate-900"
+                    {...register("aya_start", { valueAsNumber: true })}
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="aya_end" className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                    إلى آية
+                  </Label>
+                  <Input
+                    id="aya_end"
+                    type="number"
+                    min={1}
+                    className="h-10 font-mono text-center font-bold text-xs sm:text-sm rounded-xl bg-white dark:bg-slate-900"
+                    {...register("aya_end", { valueAsNumber: true })}
+                  />
+                </div>
+              </div>
+
+              {/* Optional Cross-Surah Toggle */}
+              <div className="pt-2 border-t border-slate-200/80 dark:border-slate-800">
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={isCrossSurah}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setIsCrossSurah(checked);
+                      if (!checked) {
+                        setValue("surah_end", selectedSurahStart);
+                        const surahObj = QURAN_SURAHS.find((s) => s.name === selectedSurahStart);
+                        if (surahObj) {
+                          setValue("aya_end", surahObj.numberOfAyahs);
+                        }
+                      }
+                    }}
+                    className="rounded border-slate-300 text-teal-600 focus:ring-teal-500 w-4 h-4"
+                  />
+                  <span>تسميع ممتد بين سورين مختلفين</span>
+                </label>
+
+                {isCrossSurah && (
+                  <div className="space-y-1 mt-2 animate-in fade-in duration-200">
+                    <Label htmlFor="surah_end" className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                      السورة المنتهية عندها (إلى سورة)
+                    </Label>
+                    <select
+                      id="surah_end"
+                      className="w-full h-10 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-xs sm:text-sm font-bold"
+                      {...register("surah_end", {
+                        onChange: (e) => {
+                          const endName = e.target.value;
+                          const endSurahObj = QURAN_SURAHS.find((s) => s.name === endName);
+                          if (endSurahObj) {
+                            setValue("aya_end", endSurahObj.numberOfAyahs);
+                          }
+                        },
+                      })}
+                    >
+                      {QURAN_SURAHS.map((s) => (
+                        <option key={s.number} value={s.name}>
+                          {s.number}. سورة {s.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Page Count Presets & Precise Input */}
+            <div className="space-y-2.5 bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800">
+              <Label className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200">
+                <Hash className="w-4 h-4 text-teal-600" />
+                <span>كمية التسميع (عدد الصفحات)</span>
+              </Label>
+
+              {/* Compact Fractional Page Presets */}
+              <div className="grid grid-cols-6 gap-1.5">
+                {pagePresets.map((preset) => (
+                  <button
+                    key={preset.value}
+                    type="button"
+                    onClick={() => setValue("page_count", preset.value)}
+                    className={`py-2 px-1 text-xs font-bold rounded-xl border transition-all text-center ${
+                      currentPageCount === preset.value
+                        ? "bg-teal-800 text-white border-teal-800 shadow-sm scale-105"
+                        : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700"
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Integrated Precise Input Box */}
+              <div className="flex items-center gap-2 pt-1">
+                <Label htmlFor="page_count" className="text-xs shrink-0 font-bold text-slate-600 dark:text-slate-300">
+                  إدخال دقيق للصفحات:
+                </Label>
+                <Input
+                  id="page_count"
+                  type="number"
+                  step="0.1"
+                  min="0.1"
+                  placeholder="1.0"
+                  className="h-9 w-28 font-mono text-center font-bold text-xs sm:text-sm rounded-xl bg-white dark:bg-slate-900"
+                  {...register("page_count", { valueAsNumber: true })}
+                />
+                <span className="text-xs text-slate-500 font-bold">صفحة</span>
+              </div>
+            </div>
+
+            {/* Grade Badges (Balanced 2x2 Grid) */}
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-slate-700 dark:text-slate-200">التقييم والدرجة</Label>
+              <div className="grid grid-cols-2 gap-2.5">
+                {grades.map((g) => (
+                  <button
+                    key={g.value}
+                    type="button"
+                    onClick={() => setValue("grade", g.value)}
+                    className={`py-3 px-3 text-xs sm:text-sm font-bold rounded-2xl border transition-all flex items-center justify-center gap-1.5 ${
+                      selectedGrade === g.value
+                        ? "bg-teal-800 text-white border-teal-800 shadow-md scale-[1.02]"
+                        : "bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    <span>{g.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Teacher Notes */}
+            <div className="space-y-1.5">
+              <Label htmlFor="notes" className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                ملاحظات المعلم (اختياري)
+              </Label>
+              <Input
+                id="notes"
+                placeholder="مثال: إتقان أحكام النون الساكنة والتنوين"
+                className="h-10 rounded-xl bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-xs sm:text-sm"
+                {...register("notes")}
+              />
             </div>
           </div>
 
-          {/* Optional Notes */}
-          <div className="space-y-1.5">
-            <Label htmlFor="notes">ملاحظات المعلم (اختياري)</Label>
-            <Input
-              id="notes"
-              placeholder="مثال: إتقان أحكام النون الساكنة والتنوين"
-              {...register("notes")}
-            />
-          </div>
-
-          {/* Submit Row */}
-          <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-            <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
+          {/* Permanent Sticky Action Footer */}
+          <div className="sticky bottom-0 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 p-4 flex items-center gap-3 z-30">
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="flex-1 bg-emerald-700 hover:bg-emerald-800 active:scale-[0.98] text-white font-bold py-3.5 px-6 rounded-2xl shadow-md transition-all text-sm sm:text-base flex items-center justify-center gap-2"
+            >
+              <span>{isLoading ? "جاري الحفظ..." : "حفظ التسميع 💾"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isLoading}
+              className="px-5 py-3.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 active:scale-[0.98] text-slate-600 font-semibold rounded-2xl transition-all text-sm sm:text-base"
+            >
               إلغاء
-            </Button>
-            <Button type="submit" disabled={isLoading} className="gap-2">
-              <CheckCircle2 className="w-4 h-4" />
-              <span>{isLoading ? "جاري الحفظ..." : "حفظ التسميع"}</span>
-            </Button>
+            </button>
           </div>
         </form>
       </div>
