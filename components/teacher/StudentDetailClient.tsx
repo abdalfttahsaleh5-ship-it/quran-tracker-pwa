@@ -5,8 +5,6 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import {
   Phone,
-  Copy,
-  Check,
   BookOpen,
   Calendar,
   Plus,
@@ -41,7 +39,6 @@ export function StudentDetailClient({
   const [activeTab, setActiveTab] = useState<"logs" | "attendance">("logs");
   const [logs, setLogs] = useState<MemorizationLogRow[]>(initialLogs);
   const [attendance, setAttendance] = useState<AttendanceRecordRow[]>(initialAttendance);
-  const [copied, setCopied] = useState(false);
   const [isLogDialogOpen, setIsLogDialogOpen] = useState(false);
   const [isAttendanceDialogOpen, setIsAttendanceDialogOpen] = useState(false);
 
@@ -86,24 +83,6 @@ export function StudentDetailClient({
     onPayload: handleRealtimePayload,
   });
 
-  const handleCopyParentLink = async () => {
-    const parentUrl = `${window.location.origin}/parent/${student.parent_token}`;
-    try {
-      await navigator.clipboard.writeText(parentUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      const input = document.createElement("input");
-      input.value = parentUrl;
-      document.body.appendChild(input);
-      input.select();
-      document.execCommand("copy");
-      document.body.removeChild(input);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
   const handleDeleteLog = async (logId: string) => {
     if (!confirm("هل أنت تأكد من رغبتك في حذف هذا التسميع؟")) return;
     const res = await deleteMemorizationLog(logId, student.id);
@@ -147,8 +126,9 @@ export function StudentDetailClient({
         <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-emerald-400/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white/10 backdrop-blur-md text-amber-300 flex items-center justify-center font-black text-2xl shadow-inner shrink-0 overflow-hidden border-2 border-white/20">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start md:items-center gap-4 sm:gap-6 text-center sm:text-right">
+            {/* Significantly Enlarged Student Profile Picture */}
+            <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl bg-white/10 backdrop-blur-md text-amber-300 flex items-center justify-center font-black text-3xl sm:text-4xl shadow-lg shrink-0 overflow-hidden border-2 border-white/20">
               {student.avatar_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={student.avatar_url} alt={student.full_name} className="w-full h-full object-cover" />
@@ -164,7 +144,7 @@ export function StudentDetailClient({
               </div>
               <h2 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight">{student.full_name}</h2>
 
-              <div className="flex flex-wrap items-center gap-2 text-xs text-emerald-200/90 font-medium">
+              <div className="flex flex-wrap justify-center sm:justify-start items-center gap-2 text-xs text-emerald-200/90 font-medium">
                 {student.parent_phone && (
                   <span className="flex items-center gap-1 bg-white/10 px-2.5 py-1 rounded-xl border border-white/10">
                     <Phone className="w-3 h-3 text-amber-300" />
@@ -196,7 +176,7 @@ export function StudentDetailClient({
           </div>
 
           {/* Profile Action Buttons */}
-          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 shrink-0">
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 shrink-0 w-full md:w-auto">
             <Button
               size="lg"
               onClick={() => setIsLogDialogOpen(true)}
@@ -204,25 +184,6 @@ export function StudentDetailClient({
             >
               <Plus className="w-5 h-5 text-slate-950" />
               <span>تسجيل تسميع جديد 📖</span>
-            </Button>
-
-            <Button
-              size="lg"
-              variant="outline"
-              onClick={handleCopyParentLink}
-              className="w-full sm:w-auto bg-emerald-900/60 border-emerald-700/70 text-emerald-100 hover:bg-emerald-800/80 font-bold rounded-2xl gap-2"
-            >
-              {copied ? (
-                <>
-                  <Check className="w-4 h-4 text-amber-300" />
-                  <span>تم النسخ!</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-4 h-4 text-amber-300" />
-                  <span>نسخ رابط ولي الأمر 🔗</span>
-                </>
-              )}
             </Button>
 
             <Link href={`/parent/${student.parent_token}`} target="_blank" className="w-full sm:w-auto">
