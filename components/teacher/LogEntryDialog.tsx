@@ -184,13 +184,13 @@ export function LogEntryDialog({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 pb-20 md:pb-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-lg max-h-[88vh] flex flex-col rounded-3xl bg-white dark:bg-slate-900 shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-800">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="w-full max-w-md max-h-[80vh] flex flex-col rounded-3xl bg-white dark:bg-slate-900 shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-800 my-auto">
         {/* Dedicated Header Section */}
-        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 z-10 shrink-0">
+        <div className="p-3.5 sm:p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 z-10 shrink-0">
           <div className="flex flex-col">
-            <div className="flex items-center gap-2 text-teal-800 dark:text-teal-300 font-bold text-base sm:text-lg">
-              <BookOpen className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+            <div className="flex items-center gap-2 text-teal-800 dark:text-teal-300 font-bold text-base">
+              <BookOpen className="w-4 h-4 text-teal-600 dark:text-teal-400" />
               <span>تسجيل تسميع جديد 📖</span>
             </div>
             {studentName && (
@@ -202,7 +202,7 @@ export function LogEntryDialog({
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -211,39 +211,39 @@ export function LogEntryDialog({
         {/* Form Container wrapping body & footer */}
         <form onSubmit={handleSubmit(handleFormSubmit)} className="flex flex-col flex-1 overflow-hidden" noValidate>
           {/* Optimized Compact Scrollable Body */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex-1 overflow-y-auto p-3.5 space-y-3">
             {error && (
-              <div className="p-3 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 text-xs sm:text-sm rounded-2xl border border-rose-200 dark:border-rose-900">
+              <div className="p-2.5 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 text-xs rounded-xl border border-rose-200 dark:border-rose-900">
                 {error}
               </div>
             )}
 
             {/* Assistant / Supervisor Name Input */}
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <Label htmlFor="assistant_name" className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-200">
-                <UserCheck className="w-4 h-4 text-teal-600" />
+                <UserCheck className="w-3.5 h-3.5 text-teal-600" />
                 <span>اسم المشرف / المساعد (اختياري)</span>
               </Label>
               <Input
                 id="assistant_name"
                 placeholder="مثال: أستاذ أحمد المحمود"
-                className="h-10 rounded-xl bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-xs sm:text-sm"
+                className="h-9 rounded-xl bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-xs"
                 {...register("assistant_name")}
               />
             </div>
 
             {/* Log Type Selection */}
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700 dark:text-slate-200">نوع التسميع</Label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-1.5">
                 {logTypes.map((type) => (
                   <button
                     key={type.value}
                     type="button"
                     onClick={() => setValue("log_type", type.value)}
-                    className={`py-2.5 px-2 text-xs font-bold rounded-xl border transition-all text-center ${
+                    className={`py-2 px-1.5 text-xs font-bold rounded-xl border transition-all text-center ${
                       selectedLogType === type.value
-                        ? "bg-teal-700 text-white border-teal-700 shadow-sm scale-[1.01]"
+                        ? "bg-teal-700 text-white border-teal-700 shadow-sm"
                         : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
                     }`}
                   >
@@ -254,7 +254,7 @@ export function LogEntryDialog({
             </div>
 
             {/* Surah & Ayah Selection */}
-            <div className="space-y-3 bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800">
+            <div className="space-y-2.5 bg-slate-50 dark:bg-slate-800/40 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800">
               <div className="space-y-1">
                 <Label htmlFor="primary_surah" className="text-xs font-bold text-teal-900 dark:text-teal-300">
                   اختر السورة *
@@ -263,7 +263,7 @@ export function LogEntryDialog({
                   id="primary_surah"
                   value={selectedSurahStart}
                   onChange={(e) => handlePrimarySurahChange(e.target.value)}
-                  className="w-full h-10 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-teal-500 outline-none transition-all"
+                  className="w-full h-9 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 text-xs font-bold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-teal-500 outline-none transition-all"
                 >
                   {QURAN_SURAHS.map((s) => (
                     <option key={s.number} value={s.name}>
@@ -274,7 +274,7 @@ export function LogEntryDialog({
               </div>
 
               {/* Streamlined inline layout for من آية and إلى آية */}
-              <div className="grid grid-cols-2 gap-3 pt-0.5">
+              <div className="grid grid-cols-2 gap-2.5">
                 <div className="space-y-1">
                   <Label htmlFor="aya_start" className="text-xs font-bold text-slate-600 dark:text-slate-300">
                     من آية
@@ -283,7 +283,7 @@ export function LogEntryDialog({
                     id="aya_start"
                     type="number"
                     min={1}
-                    className="h-10 font-mono text-center font-bold text-xs sm:text-sm rounded-xl bg-white dark:bg-slate-900"
+                    className="h-9 font-mono text-center font-bold text-xs rounded-xl bg-white dark:bg-slate-900"
                     {...register("aya_start", { valueAsNumber: true })}
                   />
                 </div>
@@ -296,14 +296,14 @@ export function LogEntryDialog({
                     id="aya_end"
                     type="number"
                     min={1}
-                    className="h-10 font-mono text-center font-bold text-xs sm:text-sm rounded-xl bg-white dark:bg-slate-900"
+                    className="h-9 font-mono text-center font-bold text-xs rounded-xl bg-white dark:bg-slate-900"
                     {...register("aya_end", { valueAsNumber: true })}
                   />
                 </div>
               </div>
 
               {/* Optional Cross-Surah Toggle */}
-              <div className="pt-2 border-t border-slate-200/80 dark:border-slate-800">
+              <div className="pt-1.5 border-t border-slate-200/80 dark:border-slate-800">
                 <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors">
                   <input
                     type="checkbox"
@@ -319,19 +319,19 @@ export function LogEntryDialog({
                         }
                       }
                     }}
-                    className="rounded border-slate-300 text-teal-600 focus:ring-teal-500 w-4 h-4"
+                    className="rounded border-slate-300 text-teal-600 focus:ring-teal-500 w-3.5 h-3.5"
                   />
                   <span>تسميع ممتد بين سورين مختلفين</span>
                 </label>
 
                 {isCrossSurah && (
-                  <div className="space-y-1 mt-2 animate-in fade-in duration-200">
+                  <div className="space-y-1 mt-1.5 animate-in fade-in duration-200">
                     <Label htmlFor="surah_end" className="text-xs font-bold text-slate-600 dark:text-slate-300">
                       السورة المنتهية عندها (إلى سورة)
                     </Label>
                     <select
                       id="surah_end"
-                      className="w-full h-10 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-xs sm:text-sm font-bold"
+                      className="w-full h-9 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 text-xs font-bold"
                       {...register("surah_end", {
                         onChange: (e) => {
                           const endName = e.target.value;
@@ -354,22 +354,22 @@ export function LogEntryDialog({
             </div>
 
             {/* Page Count Presets & Precise Input */}
-            <div className="space-y-2.5 bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800">
+            <div className="space-y-2 bg-slate-50 dark:bg-slate-800/40 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800">
               <Label className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200">
-                <Hash className="w-4 h-4 text-teal-600" />
+                <Hash className="w-3.5 h-3.5 text-teal-600" />
                 <span>كمية التسميع (عدد الصفحات)</span>
               </Label>
 
               {/* Compact Fractional Page Presets */}
-              <div className="grid grid-cols-6 gap-1.5">
+              <div className="grid grid-cols-6 gap-1">
                 {pagePresets.map((preset) => (
                   <button
                     key={preset.value}
                     type="button"
                     onClick={() => setValue("page_count", preset.value)}
-                    className={`py-2 px-1 text-xs font-bold rounded-xl border transition-all text-center ${
+                    className={`py-1.5 px-1 text-xs font-bold rounded-xl border transition-all text-center ${
                       currentPageCount === preset.value
-                        ? "bg-teal-800 text-white border-teal-800 shadow-sm scale-105"
+                        ? "bg-teal-800 text-white border-teal-800 shadow-sm"
                         : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700"
                     }`}
                   >
@@ -379,7 +379,7 @@ export function LogEntryDialog({
               </div>
 
               {/* Integrated Precise Input Box */}
-              <div className="flex items-center gap-2 pt-1">
+              <div className="flex items-center gap-2 pt-0.5">
                 <Label htmlFor="page_count" className="text-xs shrink-0 font-bold text-slate-600 dark:text-slate-300">
                   إدخال دقيق للصفحات:
                 </Label>
@@ -389,7 +389,7 @@ export function LogEntryDialog({
                   step="0.1"
                   min="0.1"
                   placeholder="1.0"
-                  className="h-9 w-28 font-mono text-center font-bold text-xs sm:text-sm rounded-xl bg-white dark:bg-slate-900"
+                  className="h-8 w-24 font-mono text-center font-bold text-xs rounded-xl bg-white dark:bg-slate-900"
                   {...register("page_count", { valueAsNumber: true })}
                 />
                 <span className="text-xs text-slate-500 font-bold">صفحة</span>
@@ -397,17 +397,17 @@ export function LogEntryDialog({
             </div>
 
             {/* Grade Badges (Balanced 2x2 Grid) */}
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label className="text-xs font-bold text-slate-700 dark:text-slate-200">التقييم والدرجة</Label>
-              <div className="grid grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-2 gap-2">
                 {grades.map((g) => (
                   <button
                     key={g.value}
                     type="button"
                     onClick={() => setValue("grade", g.value)}
-                    className={`py-3 px-3 text-xs sm:text-sm font-bold rounded-2xl border transition-all flex items-center justify-center gap-1.5 ${
+                    className={`py-2.5 px-2 text-xs font-bold rounded-2xl border transition-all flex items-center justify-center gap-1.5 ${
                       selectedGrade === g.value
-                        ? "bg-teal-800 text-white border-teal-800 shadow-md scale-[1.02]"
+                        ? "bg-teal-800 text-white border-teal-800 shadow-md"
                         : "bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
                     }`}
                   >
@@ -418,25 +418,25 @@ export function LogEntryDialog({
             </div>
 
             {/* Teacher Notes */}
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <Label htmlFor="notes" className="text-xs font-bold text-slate-700 dark:text-slate-200">
                 ملاحظات المعلم (اختياري)
               </Label>
               <Input
                 id="notes"
                 placeholder="مثال: إتقان أحكام النون الساكنة والتنوين"
-                className="h-10 rounded-xl bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-xs sm:text-sm"
+                className="h-9 rounded-xl bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-xs"
                 {...register("notes")}
               />
             </div>
           </div>
 
-          {/* Permanent Sticky Action Footer */}
-          <div className="sticky bottom-0 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 p-4 flex items-center gap-3 z-30">
+          {/* Guaranteed Fixed Footer */}
+          <div className="shrink-0 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 p-3 flex items-center gap-2.5 z-20">
             <button
               type="submit"
               disabled={isLoading}
-              className="flex-1 bg-emerald-700 hover:bg-emerald-800 active:scale-[0.98] text-white font-bold py-3.5 px-6 rounded-2xl shadow-md transition-all text-sm sm:text-base flex items-center justify-center gap-2"
+              className="flex-1 bg-emerald-700 hover:bg-emerald-800 active:scale-[0.98] text-white font-bold py-3 px-5 rounded-2xl shadow-md transition-all text-sm flex items-center justify-center gap-2"
             >
               <span>{isLoading ? "جاري الحفظ..." : "حفظ التسميع 💾"}</span>
             </button>
@@ -444,7 +444,7 @@ export function LogEntryDialog({
               type="button"
               onClick={onClose}
               disabled={isLoading}
-              className="px-5 py-3.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 active:scale-[0.98] text-slate-600 font-semibold rounded-2xl transition-all text-sm sm:text-base"
+              className="px-4 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 active:scale-[0.98] text-slate-600 font-semibold rounded-2xl transition-all text-sm"
             >
               إلغاء
             </button>
