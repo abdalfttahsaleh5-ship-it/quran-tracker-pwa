@@ -14,7 +14,8 @@ interface AttendanceAlertsCardProps {
 }
 
 export function AttendanceAlertsCard({ students, attendance }: AttendanceAlertsCardProps) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  // Collapsed by default upon entering dashboard
+  const [isCollapsed, setIsCollapsed] = useState(true);
 
   // Compute active alerts
   const alerts: AttendanceAlert[] = useMemo(() => {
@@ -25,8 +26,11 @@ export function AttendanceAlertsCard({ students, attendance }: AttendanceAlertsC
 
   return (
     <Card className="rounded-3xl border border-amber-200 dark:border-amber-900/60 bg-gradient-to-br from-amber-50/70 via-white to-orange-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-amber-950/20 shadow-sm overflow-hidden transition-all print:hidden">
-      {/* Header Section */}
-      <CardHeader className="p-4 sm:p-5 flex flex-row items-center justify-between gap-3 border-b border-amber-100 dark:border-amber-900/40">
+      {/* Header Section (Clickable Accordion Trigger) */}
+      <CardHeader
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className="p-4 sm:p-5 flex flex-row items-center justify-between gap-3 border-b border-amber-100 dark:border-amber-900/40 cursor-pointer select-none hover:bg-amber-100/30 dark:hover:bg-slate-800/40 transition-colors"
+      >
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-amber-500/15 border border-amber-400/30 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold shrink-0">
             <ShieldAlert className="w-5 h-5 animate-pulse" />
@@ -50,8 +54,11 @@ export function AttendanceAlertsCard({ students, attendance }: AttendanceAlertsC
           type="button"
           variant="ghost"
           size="sm"
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 p-2"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsCollapsed(!isCollapsed);
+          }}
+          className="rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 p-2 shrink-0"
         >
           {isCollapsed ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
         </Button>
