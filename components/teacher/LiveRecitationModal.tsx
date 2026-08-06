@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { X, Mic, CheckCircle2, ChevronRight, ChevronLeft, SkipForward, BookOpen, Award, Sparkles, RefreshCw, AlertCircle } from "lucide-react";
 import { StudentRow, MemorizationLogRow, LogTypeEnum, EvaluationGradeEnum } from "@/types";
 import { createMemorizationLog } from "@/lib/actions/log";
@@ -22,6 +23,25 @@ export function LiveRecitationModal({
   logs = [],
 }: LiveRecitationModalProps) {
   const router = useRouter();
+
+  // Mount state for Next.js SSR / Portal rendering
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Lock body scrolling when modal is active
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
 
   // Navigation & Session State
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -128,7 +148,7 @@ export function LiveRecitationModal({
   }, [lastStudentLog]);
 
   // Handle Early Return AFTER all hooks are unconditionally declared
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const safeStudentsLength = students ? students.length : 0;
   const isFinished = currentIndex >= safeStudentsLength || safeStudentsLength === 0 || !currentStudent;
@@ -202,8 +222,8 @@ export function LiveRecitationModal({
     onClose();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col h-[100dvh] w-screen bg-slate-900 overflow-hidden text-slate-100 font-sans dir-rtl animate-in fade-in duration-200">
+  const modalContent = (
+    <div className="fixed inset-0 z-[9999] flex flex-col h-[100dvh] w-screen bg-slate-900 overflow-hidden text-slate-100 font-sans dir-rtl animate-in fade-in duration-200">
       {/* Top Header Controls */}
       <div className="sticky top-0 bg-slate-900/90 border-b border-slate-800 z-10 p-3 sm:p-4 shrink-0 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
@@ -511,7 +531,7 @@ export function LiveRecitationModal({
 
       {/* Permanently Fixed Bottom Action Footer */}
       {!isFinished && currentStudent && (
-        <div className="fixed bottom-0 left-0 right-0 z-[100] bg-slate-900/98 backdrop-blur border-t border-slate-800 p-3 pb-6 flex items-center gap-2 shadow-2xl">
+        <div className="fixed bottom-0 inset-x-0 z-[10000] bg-slate-900 border-t border-slate-800 p-3 pb-8 shadow-2xl flex items-center gap-2">
           <div className="max-w-xl mx-auto w-full flex items-center gap-2">
             {/* Previous Student */}
             <Button
@@ -557,4 +577,7 @@ export function LiveRecitationModal({
       )}
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
+
