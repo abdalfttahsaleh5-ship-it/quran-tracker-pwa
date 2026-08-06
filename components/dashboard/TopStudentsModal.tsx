@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, Trophy, Printer } from "lucide-react";
 import { StudentRow, MemorizationLogRow } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,25 @@ export function TopStudentsModal({
   students,
   logs,
 }: TopStudentsModalProps) {
-  if (!isOpen) return null;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Lock body scrolling when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
+
+  if (!isOpen || !mounted) return null;
 
   // Calculate total pages for each student and rank top 5
   const topStudents: TopStudentItem[] = students
@@ -95,6 +114,82 @@ export function TopStudentsModal({
     month: "long",
     day: "numeric",
   });
+
+  const modalContent = (
+    <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 print:hidden animate-in fade-in duration-200">
+      <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl overflow-hidden flex flex-col max-h-[85vh] shadow-2xl border border-slate-200 dark:border-slate-800">
+        {/* Sticky Header */}
+        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 z-10 shrink-0">
+          <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-black text-lg sm:text-xl">
+            <div className="w-9 h-9 rounded-2xl bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-300 flex items-center justify-center shrink-0">
+              <Trophy className="w-5 h-5" />
+            </div>
+            <span>الطلاب الأوائل 🏆 (لوحة الشرف)</span>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-1 rounded-xl">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Scrollable Body */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 overscroll-contain webkit-overflow-scrolling-touch scroll-smooth touch-pan-y">
+          {topStudents.length > 0 ? (
+            topStudents.map((item) => {
+              const rankInfo = getRankBadge(item.rank);
+
+              return (
+                <div
+                  key={item.student.id}
+                  className={`p-4 rounded-2xl border transition-all flex items-center justify-between gap-3 ${rankInfo.cardStyle}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-10 h-10 rounded-2xl flex items-center justify-center text-sm ${rankInfo.badgeStyle}`}
+                    >
+                      {rankInfo.icon}
+                    </div>
+
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-black text-sm sm:text-base text-slate-900 dark:text-slate-50">
+                          {item.student.full_name}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                        {item.student.academic_grade || "غير محدد"} • {rankInfo.label}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-left shrink-0">
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 text-xs sm:text-sm font-black border border-emerald-300 dark:border-emerald-800">
+                      📖 {item.totalPages} صفحة
+                    </span>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <p className="text-center text-slate-500 py-8 text-sm font-bold">
+              لا يوجد تسميعات مسجلة للطلاب بعد
+            </p>
+          )}
+        </div>
+
+        {/* Fixed Footer */}
+        <div className="shrink-0 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 p-4 z-20 shadow-lg flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={handlePrint}
+            className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-md flex items-center justify-center gap-2 text-base active:scale-98 transition-all"
+          >
+            <Printer className="w-5 h-5" />
+            <span>طباعة لوحة الشرف 🖨️</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <>
@@ -189,80 +284,7 @@ export function TopStudentsModal({
         </div>
       </div>
 
-      {/* Screen Interactive Modal */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200 print:hidden">
-        <div className="max-h-[85vh] flex flex-col overflow-hidden rounded-3xl shadow-2xl bg-white dark:bg-slate-900 max-w-xl w-full border border-slate-200 dark:border-slate-800">
-          {/* Sticky Header */}
-          <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 z-10 p-4 shrink-0 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-black text-lg sm:text-xl">
-              <div className="w-9 h-9 rounded-2xl bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-300 flex items-center justify-center shrink-0">
-                <Trophy className="w-5 h-5" />
-              </div>
-              <span>الطلاب الأوائل 🏆 (لوحة الشرف)</span>
-            </div>
-            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-1 rounded-xl">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Scrollable Body */}
-          <div className="flex-1 overflow-y-auto overscroll-contain webkit-overflow-scrolling-touch scroll-smooth touch-pan-y p-4 space-y-3 pb-24">
-            {topStudents.length > 0 ? (
-              topStudents.map((item) => {
-                const rankInfo = getRankBadge(item.rank);
-
-                return (
-                  <div
-                    key={item.student.id}
-                    className={`p-4 rounded-2xl border transition-all flex items-center justify-between gap-3 ${rankInfo.cardStyle}`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`w-10 h-10 rounded-2xl flex items-center justify-center text-sm ${rankInfo.badgeStyle}`}
-                      >
-                        {rankInfo.icon}
-                      </div>
-
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-black text-sm sm:text-base text-slate-900 dark:text-slate-50">
-                            {item.student.full_name}
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                          {item.student.academic_grade || "غير محدد"} • {rankInfo.label}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="text-left shrink-0">
-                      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 text-xs sm:text-sm font-black border border-emerald-300 dark:border-emerald-800">
-                        📖 {item.totalPages} صفحة
-                      </span>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <p className="text-center text-slate-500 py-8 text-sm font-bold">
-                لا يوجد تسميعات مسجلة للطلاب بعد
-              </p>
-            )}
-          </div>
-
-          {/* Sticky Bottom Footer */}
-          <div className="sticky bottom-0 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 p-4 z-20 shadow-lg shrink-0 flex flex-col gap-2">
-            <button
-              type="button"
-              onClick={handlePrint}
-              className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-md flex items-center justify-center gap-2 text-base active:scale-98 transition-all"
-            >
-              <Printer className="w-5 h-5" />
-              <span>طباعة لوحة الشرف 🖨️</span>
-            </button>
-          </div>
-        </div>
-      </div>
+      {createPortal(modalContent, document.body)}
     </>
   );
 }
