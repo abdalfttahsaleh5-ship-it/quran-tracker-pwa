@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import dynamic from "next/dynamic";
-import { Search, UserPlus, Users, CalendarCheck } from "lucide-react";
+import { Search, UserPlus, Users, CalendarCheck, Mic } from "lucide-react";
 import { StudentRow } from "@/types";
 import { StudentInput } from "@/lib/validations/student";
 import { createStudent, updateStudent, deleteStudent } from "@/lib/actions/student";
@@ -14,6 +14,7 @@ import { useRealtimeSync, RealtimePayload } from "@/lib/hooks/useRealtimeSync";
 const StudentDialog = dynamic(() => import("./StudentDialog").then((mod) => mod.StudentDialog), { ssr: false });
 const DeleteStudentDialog = dynamic(() => import("./DeleteStudentDialog").then((mod) => mod.DeleteStudentDialog), { ssr: false });
 const QuickAttendanceSheet = dynamic(() => import("./QuickAttendanceSheet").then((mod) => mod.QuickAttendanceSheet), { ssr: false });
+const LiveRecitationModal = dynamic(() => import("./LiveRecitationModal").then((mod) => mod.LiveRecitationModal), { ssr: false });
 
 interface StudentListProps {
   initialStudents: StudentRow[];
@@ -26,6 +27,7 @@ export function StudentList({ initialStudents }: StudentListProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isQuickAttendanceOpen, setIsQuickAttendanceOpen] = useState(false);
+  const [isLiveRecitationOpen, setIsLiveRecitationOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<StudentRow | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [alertMessage, setAlertMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -169,6 +171,14 @@ export function StudentList({ initialStudents }: StudentListProps) {
 
         <div className="flex flex-wrap items-center gap-2">
           <Button
+            onClick={() => setIsLiveRecitationOpen(true)}
+            className="gap-2 shadow-md bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl"
+          >
+            <Mic className="w-4 h-4 text-amber-300 animate-pulse" />
+            <span>بدء التسميع المباشر 🎙️</span>
+          </Button>
+
+          <Button
             variant="outline"
             onClick={() => setIsQuickAttendanceOpen(true)}
             className="gap-2 shadow-sm border-teal-200 text-teal-800 hover:bg-teal-50"
@@ -243,6 +253,12 @@ export function StudentList({ initialStudents }: StudentListProps) {
         onClose={() => setIsQuickAttendanceOpen(false)}
         students={students}
         onSuccess={() => setAlertMessage({ type: "success", text: "تم تسجيل حضور الحلقة بنجاح!" })}
+      />
+
+      <LiveRecitationModal
+        isOpen={isLiveRecitationOpen}
+        onClose={() => setIsLiveRecitationOpen(false)}
+        students={students}
       />
     </div>
   );
