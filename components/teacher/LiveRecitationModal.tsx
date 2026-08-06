@@ -154,7 +154,7 @@ export function LiveRecitationModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-xl flex flex-col text-slate-100 font-sans dir-rtl overflow-hidden animate-in fade-in duration-200">
+    <div className="h-[100dvh] w-screen fixed inset-0 z-50 flex flex-col bg-slate-950 text-slate-100 font-sans dir-rtl overflow-hidden animate-in fade-in duration-200">
       {/* Top Header Controls */}
       <div className="sticky top-0 bg-slate-900/90 border-b border-slate-800 z-10 p-3 sm:p-4 shrink-0 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
@@ -192,8 +192,8 @@ export function LiveRecitationModal({
         />
       </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 max-w-xl mx-auto w-full">
+      {/* Main Content Area with Smooth Touch-Scrolling & Bottom Clearance */}
+      <div className="flex-1 overflow-y-auto overscroll-contain webkit-overflow-scrolling-touch scroll-smooth p-4 sm:p-6 space-y-5 max-w-xl mx-auto w-full pb-36 touch-pan-y">
         {isFinished || !currentStudent ? (
           /* Completion Screen */
           <div className="py-10 text-center space-y-6 animate-in zoom-in-95 duration-300">
