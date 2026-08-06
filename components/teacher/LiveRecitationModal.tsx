@@ -46,18 +46,52 @@ export function LiveRecitationModal({
     ? students[currentIndex]
     : null;
 
-  // Reset form inputs when active student index changes
+  // Reset and auto-select form inputs when active student changes
   useEffect(() => {
     setLogType("جديد");
-    setSurahStart("الفاتحة");
-    setAyaStart(1);
-    setSurahEnd("الفاتحة");
-    setAyaEnd(7);
-    setPageCount(1.0);
     setGrade("ممتاز");
     setNotes("");
     setErrorMessage(null);
-  }, [currentIndex]);
+    setPageCount(1.0);
+
+    if (currentStudent && logs && logs.length > 0) {
+      const studentLogs = logs.filter((l) => l.student_id === currentStudent.id);
+      if (studentLogs.length > 0) {
+        const sorted = [...studentLogs].sort(
+          (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+        );
+        const lastLog = sorted[0];
+        const rawSurahName = lastLog.surah_end || lastLog.surah_start || "";
+        const cleanName = rawSurahName.replace(/^سورة\s*/, "").trim();
+        const lastSurahObj = QURAN_SURAHS.find(
+          (s) => s.name === cleanName || s.name === rawSurahName
+        );
+
+        if (lastSurahObj) {
+          let nextSurah = lastSurahObj;
+          // If student finished all ayahs of the last surah, advance to next surah in Quran order
+          if (lastLog.aya_end >= lastSurahObj.numberOfAyahs && lastSurahObj.id < 114) {
+            const nextSurahObj = QURAN_SURAHS.find((s) => s.id === lastSurahObj.id + 1);
+            if (nextSurahObj) {
+              nextSurah = nextSurahObj;
+            }
+          }
+
+          setSurahStart(nextSurah.name);
+          setSurahEnd(nextSurah.name);
+          setAyaStart(1);
+          setAyaEnd(nextSurah.numberOfAyahs);
+          return;
+        }
+      }
+    }
+
+    // Default fallback if no previous log or student
+    setSurahStart("الفاتحة");
+    setSurahEnd("الفاتحة");
+    setAyaStart(1);
+    setAyaEnd(7);
+  }, [currentIndex, currentStudent, logs]);
 
   // Reset session counters whenever modal opens
   useEffect(() => {
@@ -77,6 +111,21 @@ export function LiveRecitationModal({
       (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
     )[0];
   }, [currentStudent, logs]);
+
+  // Format "Last Recitation Info" text for badge
+  const lastRecitationBadgeText = useMemo(() => {
+    if (!lastStudentLog) {
+      return "آخر تسميع: جديد (لا يوجد سجل سابق)";
+    }
+
+    const rawSurah = lastStudentLog.surah_end || lastStudentLog.surah_start || "";
+    const surahName = rawSurah.startsWith("سورة") ? rawSurah : `سورة ${rawSurah}`;
+
+    if (lastStudentLog.page_count) {
+      return `آخر تسميع: ${surahName} (${lastStudentLog.page_count} صفحة)`;
+    }
+    return `آخر تسميع: ${surahName}`;
+  }, [lastStudentLog]);
 
   // Handle Early Return AFTER all hooks are unconditionally declared
   if (!isOpen) return null;
@@ -154,7 +203,7 @@ export function LiveRecitationModal({
   };
 
   return (
-    <div className="h-[100dvh] w-screen fixed inset-0 z-50 flex flex-col bg-slate-950 text-slate-100 font-sans dir-rtl overflow-hidden animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex flex-col h-[100dvh] w-screen bg-slate-900 overflow-hidden text-slate-100 font-sans dir-rtl animate-in fade-in duration-200">
       {/* Top Header Controls */}
       <div className="sticky top-0 bg-slate-900/90 border-b border-slate-800 z-10 p-3 sm:p-4 shrink-0 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
@@ -193,7 +242,7 @@ export function LiveRecitationModal({
       </div>
 
       {/* Main Content Area with Smooth Touch-Scrolling & Bottom Clearance */}
-      <div className="flex-1 overflow-y-auto overscroll-contain webkit-overflow-scrolling-touch scroll-smooth p-4 sm:p-6 space-y-5 max-w-xl mx-auto w-full pb-36 touch-pan-y">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-36 overscroll-contain max-w-xl mx-auto w-full scroll-smooth webkit-overflow-scrolling-touch">
         {isFinished || !currentStudent ? (
           /* Completion Screen */
           <div className="py-10 text-center space-y-6 animate-in zoom-in-95 duration-300">
@@ -240,29 +289,26 @@ export function LiveRecitationModal({
               </div>
             )}
 
-            {/* Active Student Info Header Card */}
-            <div className="p-4 rounded-3xl bg-slate-900 border border-slate-800 shadow-md flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-800/50 border border-emerald-600/40 text-emerald-200 flex items-center justify-center font-black text-lg shrink-0">
-                  {currentStudent.full_name.charAt(0)}
-                </div>
-                <div>
-                  <h3 className="text-lg font-black text-white">{currentStudent.full_name}</h3>
-                  <p className="text-xs text-slate-400 font-medium">
-                    {currentStudent.academic_grade || "غير محدد"}
-                  </p>
+            {/* Active Student Info Header Card with Highlighted Last Recitation Badge */}
+            <div className="p-4 rounded-3xl bg-slate-900 border border-slate-800 shadow-md space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-800/50 border border-emerald-600/40 text-emerald-200 flex items-center justify-center font-black text-lg shrink-0 shadow-inner">
+                    {currentStudent.full_name.charAt(0)}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black text-white">{currentStudent.full_name}</h3>
+                    <p className="text-xs text-slate-400 font-medium">
+                      {currentStudent.academic_grade || "غير محدد"}
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              {/* Last Recorded Recitation Badge */}
-              <div className="text-left">
-                <span className="inline-block px-3 py-1 rounded-xl bg-slate-800 border border-slate-700 text-[11px] font-bold text-amber-300">
-                  {lastStudentLog ? (
-                    <>آخر تسميع: {lastStudentLog.log_type} ({lastStudentLog.page_count || 1} صفحة)</>
-                  ) : (
-                    <>لا يوجد تسميع سابق</>
-                  )}
-                </span>
+              {/* Prominent Highlighted Last Recitation Info Badge */}
+              <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-2.5 shadow-sm">
+                <BookOpen className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>{lastRecitationBadgeText}</span>
               </div>
             </div>
 
@@ -360,8 +406,14 @@ export function LiveRecitationModal({
                 <select
                   value={surahStart}
                   onChange={(e) => {
-                    setSurahStart(e.target.value);
-                    if (!surahEnd) setSurahEnd(e.target.value);
+                    const selectedName = e.target.value;
+                    setSurahStart(selectedName);
+                    if (!surahEnd) setSurahEnd(selectedName);
+                    const surahObj = QURAN_SURAHS.find((s) => s.name === selectedName);
+                    if (surahObj) {
+                      setAyaStart(1);
+                      setAyaEnd(surahObj.numberOfAyahs);
+                    }
                   }}
                   className="w-full p-2.5 rounded-2xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-100"
                 >
@@ -377,7 +429,14 @@ export function LiveRecitationModal({
                 <label className="text-xs font-bold text-slate-400">السورة (النهاية)</label>
                 <select
                   value={surahEnd}
-                  onChange={(e) => setSurahEnd(e.target.value)}
+                  onChange={(e) => {
+                    const selectedName = e.target.value;
+                    setSurahEnd(selectedName);
+                    const surahObj = QURAN_SURAHS.find((s) => s.name === selectedName);
+                    if (surahObj) {
+                      setAyaEnd(surahObj.numberOfAyahs);
+                    }
+                  }}
                   className="w-full p-2.5 rounded-2xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-100"
                 >
                   {QURAN_SURAHS.map((s) => (
@@ -450,48 +509,50 @@ export function LiveRecitationModal({
         )}
       </div>
 
-      {/* Sticky Bottom Navigation Controls */}
+      {/* Permanently Fixed Bottom Action Footer */}
       {!isFinished && currentStudent && (
-        <div className="sticky bottom-0 bg-slate-900 border-t border-slate-800 p-3 sm:p-4 shrink-0 flex items-center justify-between gap-2 max-w-xl mx-auto w-full">
-          {/* Previous Student */}
-          <Button
-            type="button"
-            variant="outline"
-            disabled={currentIndex === 0 || isSubmitting}
-            onClick={handlePrevious}
-            className="rounded-2xl border-slate-800 bg-slate-950 text-slate-300 hover:text-white text-xs font-bold px-3"
-          >
-            <ChevronRight className="w-4 h-4" />
-            <span className="hidden sm:inline">السابق</span>
-          </Button>
+        <div className="fixed bottom-0 left-0 right-0 z-[100] bg-slate-900/98 backdrop-blur border-t border-slate-800 p-3 pb-6 flex items-center gap-2 shadow-2xl">
+          <div className="max-w-xl mx-auto w-full flex items-center gap-2">
+            {/* Previous Student */}
+            <Button
+              type="button"
+              variant="outline"
+              disabled={currentIndex === 0 || isSubmitting}
+              onClick={handlePrevious}
+              className="rounded-2xl border-slate-800 bg-slate-950 text-slate-300 hover:text-white text-xs font-bold px-3 shrink-0"
+            >
+              <ChevronRight className="w-4 h-4" />
+              <span className="hidden sm:inline">السابق</span>
+            </Button>
 
-          {/* Skip Student */}
-          <Button
-            type="button"
-            variant="ghost"
-            disabled={isSubmitting}
-            onClick={handleSkip}
-            className="rounded-2xl text-slate-400 hover:text-slate-200 text-xs font-bold gap-1 px-3"
-          >
-            <SkipForward className="w-4 h-4" />
-            <span>تجاوز</span>
-          </Button>
+            {/* Skip Student */}
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={isSubmitting}
+              onClick={handleSkip}
+              className="rounded-2xl text-slate-400 hover:text-slate-200 text-xs font-bold gap-1 px-3 shrink-0"
+            >
+              <SkipForward className="w-4 h-4" />
+              <span>تجاوز</span>
+            </Button>
 
-          {/* Save & Next Student */}
-          <Button
-            type="button"
-            disabled={isSubmitting}
-            onClick={handleSaveAndNext}
-            className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl shadow-lg gap-2 text-sm"
-          >
-            {isSubmitting ? (
-              <RefreshCw className="w-4 h-4 animate-spin" />
-            ) : (
-              <>
-                <span>حفظ والتالي ➡️</span>
-              </>
-            )}
-          </Button>
+            {/* Save & Next Student */}
+            <Button
+              type="button"
+              disabled={isSubmitting}
+              onClick={handleSaveAndNext}
+              className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl shadow-lg gap-2 text-sm"
+            >
+              {isSubmitting ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <span>حفظ والتالي ➡️</span>
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       )}
     </div>
