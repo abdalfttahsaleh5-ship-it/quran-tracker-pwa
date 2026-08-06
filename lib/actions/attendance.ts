@@ -120,6 +120,57 @@ export async function deleteAttendance(
   }
 }
 
+export async function deleteAttendanceById(
+  recordId: string,
+  studentId?: string
+): Promise<ActionResult> {
+  if (!recordId) {
+    return { success: false, error: "معرف سجل الحضور مطلوب" };
+  }
+
+  try {
+    const supabase = createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: "غير مصرح لك بتعديل الحضور، يرجى تسجيل الدخول",
+      };
+    }
+
+    const { error } = await supabase
+      .from("attendance_records")
+      .delete()
+      .eq("id", recordId)
+      .eq("teacher_id", user.id);
+
+    if (error) {
+      return {
+        success: false,
+        error: "فشل حذف سجل الحضور: " + error.message,
+      };
+    }
+
+    if (studentId) {
+      revalidatePath(`/students/${studentId}`);
+    }
+    revalidatePath("/dashboard");
+    revalidatePath("/students");
+    revalidatePath("/");
+    return { success: true };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "حدث خطأ غير متوقع أثناء حذف سجل الحضور",
+    };
+  }
+}
+
+
 export async function recordBulkAttendance(records: AttendanceInput[]): Promise<ActionResult> {
   if (!records || records.length === 0) {
     return { success: false, error: "لا توجد سجلات لتحديثها" };

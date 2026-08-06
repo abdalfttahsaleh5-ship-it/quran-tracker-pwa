@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import {
   Phone,
@@ -18,6 +19,7 @@ import {
 import { StudentRow, MemorizationLogRow, AttendanceRecordRow } from "@/types";
 import { GRADE_LABELS, ATTENDANCE_LABELS, LOG_TYPE_LABELS, formatArabicDate, formatPageCount } from "@/lib/utils";
 import { deleteMemorizationLog } from "@/lib/actions/log";
+import { deleteAttendanceById } from "@/lib/actions/attendance";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useRealtimeSync, RealtimePayload } from "@/lib/hooks/useRealtimeSync";
@@ -36,6 +38,7 @@ export function StudentDetailClient({
   initialLogs,
   initialAttendance,
 }: StudentDetailClientProps) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"logs" | "attendance">("logs");
   const [logs, setLogs] = useState<MemorizationLogRow[]>(initialLogs);
   const [attendance, setAttendance] = useState<AttendanceRecordRow[]>(initialAttendance);
@@ -88,6 +91,16 @@ export function StudentDetailClient({
     const res = await deleteMemorizationLog(logId, student.id);
     if (res.success) {
       setLogs((prev) => prev.filter((l) => l.id !== logId));
+    }
+  };
+
+  const handleDeleteAttendance = async (recordId: string) => {
+    if (!confirm("هل أنت تأكد من رغبتك في حذف سجل الحضور هذا؟")) return;
+    setAttendance((prev) => prev.filter((a) => a.id !== recordId));
+    const res = await deleteAttendanceById(recordId, student.id);
+    if (!res.success) {
+      alert(res.error || "فشل حذف سجل الحضور");
+      router.refresh();
     }
   };
 
@@ -409,7 +422,7 @@ export function StudentDetailClient({
 
                 return (
                   <Card key={att.id} className="hover:shadow-sm transition-all border-slate-200 dark:border-slate-800 rounded-2xl">
-                    <CardContent className="p-4 flex items-center justify-between">
+                    <CardContent className="p-4 flex items-center justify-between gap-3">
                       <div className="space-y-1">
                         <div className="flex items-center gap-3">
                           <span className={`px-3 py-1 rounded-full text-xs font-black border ${statusInfo.color}`}>
@@ -423,6 +436,16 @@ export function StudentDetailClient({
                           <p className="text-xs text-slate-500 mt-1">ملاحظات: {att.notes}</p>
                         )}
                       </div>
+
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteAttendance(att.id)}
+                        className="text-slate-400 hover:text-rose-600 p-2 rounded-xl transition-colors shrink-0"
+                        title="حذف سجل الحضور"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </CardContent>
                   </Card>
                 );
