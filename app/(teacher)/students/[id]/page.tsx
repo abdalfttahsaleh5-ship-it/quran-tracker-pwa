@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getStudentLogs } from "@/lib/actions/log";
-import { getStudentAttendance } from "@/lib/actions/attendance";
+import { getStudentLogsCached } from "@/lib/actions/log";
+import { getStudentAttendanceCached } from "@/lib/actions/attendance";
 import { StudentDetailClient } from "@/components/teacher/StudentDetailClient";
 
 export const revalidate = 0;
@@ -37,11 +37,11 @@ export default async function StudentDetailPage({ params }: StudentDetailPagePro
   }
 
   // Fetch Student Memorization Logs
-  const logsRes = await getStudentLogs(id, 100);
+  const logsRes = await getStudentLogsCached(id, 100);
   const logs = logsRes.success && logsRes.data ? logsRes.data : [];
 
   // Fetch Student Attendance Records
-  const attendanceRes = await getStudentAttendance(id, 100);
+  const attendanceRes = await getStudentAttendanceCached(id, 100);
   const attendance = attendanceRes.success && attendanceRes.data ? attendanceRes.data : [];
 
   return (

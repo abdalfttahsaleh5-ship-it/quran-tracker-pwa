@@ -1,5 +1,6 @@
 "use server";
 
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { attendanceSchema, AttendanceInput } from "@/lib/validations/log";
 import { AttendanceRecordRow } from "@/types";
@@ -259,3 +260,6 @@ export async function getDailyAttendanceOverview(
     };
   }
 }
+
+export const getStudentAttendanceCached = cache(getStudentAttendance);
+export const getDailyAttendanceOverviewCached = cache(getDailyAttendanceOverview);

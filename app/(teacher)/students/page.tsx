@@ -1,10 +1,10 @@
-import { getStudents } from "@/lib/actions/student";
+import { getStudentsCached } from "@/lib/actions/student";
 import { StudentList } from "@/components/teacher/StudentList";
 
 export const revalidate = 0;
 
 export default async function StudentsPage() {
-  const res = await getStudents();
+  const res = await getStudentsCached();
   const students = res.success && res.data ? res.data : [];
 
   return (

@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { getStudentProgressByToken } from "@/lib/actions/student";
+import { getStudentProgressByTokenCached } from "@/lib/actions/student";
 import { AlertCircle } from "lucide-react";
 import { Card, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { ParentProgressPayload } from "@/types";
@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: ParentPortalPageProps): Promi
       };
     }
 
-    const payload = await getStudentProgressByToken(token);
+    const payload = await getStudentProgressByTokenCached(token);
 
     if (payload && payload.success && payload.student) {
       const studentName = payload.student.full_name || "الطالب";
@@ -60,7 +60,7 @@ export default async function ParentPortalPage({ params }: ParentPortalPageProps
     return renderErrorCard("الرابط غير صحيح أو مفقود");
   }
 
-  const payload: ParentProgressPayload = await getStudentProgressByToken(token);
+  const payload: ParentProgressPayload = await getStudentProgressByTokenCached(token);
 
   if (!payload || !payload.success || !payload.student) {
     return renderErrorCard(payload?.error || "الرابط غير صالح أو تم حذف بيانات الطالب");

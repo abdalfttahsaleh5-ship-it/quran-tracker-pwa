@@ -1,13 +1,13 @@
 import { Users, BookCheck, Award, Sparkles } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { getTeacherReportData } from "@/lib/actions/student";
+import { getTeacherReportDataCached } from "@/lib/actions/student";
 import { TeacherDashboardClient } from "@/components/teacher/TeacherDashboardClient";
 import { SummaryReportTable } from "@/components/dashboard/SummaryReportTable";
 
 export const revalidate = 0;
 
 export default async function TeacherDashboardPage() {
-  const reportRes = await getTeacherReportData();
+  const reportRes = await getTeacherReportDataCached();
 
   const students = reportRes.success && reportRes.students ? reportRes.students : [];
   const logs = reportRes.success && reportRes.logs ? reportRes.logs : [];

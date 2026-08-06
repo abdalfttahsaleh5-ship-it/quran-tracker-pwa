@@ -1,5 +1,6 @@
 import { Header } from "@/components/layout/Header";
 import { BottomNav } from "@/components/layout/BottomNav";
+import { RoutePrefetcher } from "@/components/common/RoutePrefetcher";
 
 export default function TeacherLayout({
   children,
@@ -8,6 +9,7 @@ export default function TeacherLayout({
 }) {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+      <RoutePrefetcher />
       {/* Top Header */}
       <Header />
 

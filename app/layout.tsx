@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Tajawal } from "next/font/google";
 import { OfflineBanner } from "@/components/common/OfflineBanner";
 import { PwaInstallPrompt } from "@/components/common/PwaInstallPrompt";
+import { RoutePrefetcher } from "@/components/common/RoutePrefetcher";
 import "./globals.css";
 
 const tajawal = Tajawal({
@@ -43,6 +44,7 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" className={tajawal.variable}>
       <body className="antialiased selection:bg-teal-100 selection:text-teal-900 pt-6 sm:pt-0">
+        <RoutePrefetcher />
         <OfflineBanner />
         <main className="min-h-screen flex flex-col">{children}</main>
         <PwaInstallPrompt />

@@ -47,7 +47,7 @@ export function StudentCard({ student, onEdit, onDelete }: StudentCardProps) {
             )}
           </div>
           <div>
-            <Link href={`/students/${student.id}`} className="hover:underline">
+            <Link href={`/students/${student.id}`} prefetch={true} className="hover:underline">
               <CardTitle className="text-base font-bold text-slate-900 dark:text-slate-50 flex items-center gap-1.5 flex-wrap">
                 <span>{student.full_name}</span>
                 {student.academic_grade && (
@@ -81,7 +81,7 @@ export function StudentCard({ student, onEdit, onDelete }: StudentCardProps) {
 
       <CardFooter className="p-4 pt-0 flex flex-col gap-2">
         {/* Main Action: Open Student Detail Profile */}
-        <Link href={`/students/${student.id}`} className="w-full">
+        <Link href={`/students/${student.id}`} prefetch={true} className="w-full">
           <Button variant="default" size="sm" className="w-full gap-2 font-bold shadow-sm">
             <BookOpen className="w-4 h-4" />
             <span>عرض الملف والتسميع اليومي</span>
@@ -112,7 +112,7 @@ export function StudentCard({ student, onEdit, onDelete }: StudentCardProps) {
 
         {/* Action Row */}
         <div className="flex items-center justify-between w-full pt-1">
-          <Link href={`/parent/${student.parent_token}`} target="_blank">
+          <Link href={`/parent/${student.parent_token}`} prefetch={true} target="_blank">
             <Button variant="ghost" size="sm" className="gap-1 text-xs text-teal-700 hover:text-teal-800">
               <ExternalLink className="w-3.5 h-3.5" />
               <span>معاينة البوابة</span>

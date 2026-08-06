@@ -2,14 +2,17 @@
 
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { StudentRow, MemorizationLogRow, AttendanceRecordRow, AttendanceStatusEnum } from "@/types";
 import { Search, Printer, Calendar, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { PrintReportView, StudentReportItem } from "./PrintReportView";
+import { StudentReportItem } from "./PrintReportView";
 import { recordAttendance, deleteAttendance, ActionResult } from "@/lib/actions/attendance";
 import { useRealtimeSync, RealtimePayload } from "@/lib/hooks/useRealtimeSync";
+
+const PrintReportView = dynamic(() => import("./PrintReportView").then((mod) => mod.PrintReportView), { ssr: false });
 
 interface SummaryReportTableProps {
   students: StudentRow[];
@@ -358,6 +361,7 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
                       <td className="p-3 font-bold text-slate-900 dark:text-slate-100">
                         <Link
                           href={`/students/${item.student.id}`}
+                          prefetch={true}
                           className="hover:text-emerald-700 dark:hover:text-emerald-400 hover:underline transition-colors"
                         >
                           {item.student.full_name}
