@@ -191,11 +191,11 @@ export function TopStudentsModal({
 
       {/* Screen Interactive Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200 print:hidden">
-        <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-5 max-h-[90vh] flex flex-col">
-          {/* Modal Header */}
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 shrink-0">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-xl w-full shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[85vh] overflow-hidden">
+          {/* Sticky Header */}
+          <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 z-10 p-4 shrink-0 flex items-center justify-between">
             <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-black text-lg sm:text-xl">
-              <div className="w-9 h-9 rounded-2xl bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-300 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-2xl bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-300 flex items-center justify-center shrink-0">
                 <Trophy className="w-5 h-5" />
               </div>
               <span>الطلاب الأوائل 🏆 (لوحة الشرف)</span>
@@ -205,8 +205,8 @@ export function TopStudentsModal({
             </button>
           </div>
 
-          {/* Top 5 Students List */}
-          <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+          {/* Scrollable Body */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {topStudents.length > 0 ? (
               topStudents.map((item) => {
                 const rankInfo = getRankBadge(item.rank);
@@ -250,18 +250,16 @@ export function TopStudentsModal({
             )}
           </div>
 
-          {/* Modal Actions */}
-          <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800 shrink-0">
-            <Button variant="outline" onClick={onClose} className="rounded-xl font-bold">
-              إغلاق
-            </Button>
-            <Button
+          {/* Sticky Bottom Footer */}
+          <div className="sticky bottom-0 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 p-4 z-20 shadow-lg shrink-0 flex flex-col gap-2">
+            <button
+              type="button"
               onClick={handlePrint}
-              className="gap-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl shadow-md"
+              className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-md flex items-center justify-center gap-2 text-base active:scale-98 transition-all"
             >
-              <Printer className="w-4 h-4" />
+              <Printer className="w-5 h-5" />
               <span>طباعة لوحة الشرف 🖨️</span>
-            </Button>
+            </button>
           </div>
         </div>
       </div>
