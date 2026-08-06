@@ -156,7 +156,7 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
         }
       } else {
         if (totalDays > 0) {
-          attendanceText = `${attendedDays} / ${totalDays} أيام`;
+          attendanceText = `${attendedDays} / ${totalDays}`;
         } else {
           attendanceText = "لا يوجد سجل";
         }
