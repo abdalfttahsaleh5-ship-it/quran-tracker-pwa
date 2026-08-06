@@ -191,7 +191,7 @@ export function TopStudentsModal({
 
       {/* Screen Interactive Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200 print:hidden">
-        <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-xl w-full shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[85vh] overflow-hidden">
+        <div className="max-h-[85vh] flex flex-col overflow-hidden rounded-3xl shadow-2xl bg-white dark:bg-slate-900 max-w-xl w-full border border-slate-200 dark:border-slate-800">
           {/* Sticky Header */}
           <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 z-10 p-4 shrink-0 flex items-center justify-between">
             <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-black text-lg sm:text-xl">
@@ -206,7 +206,7 @@ export function TopStudentsModal({
           </div>
 
           {/* Scrollable Body */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          <div className="flex-1 overflow-y-auto overscroll-contain webkit-overflow-scrolling-touch scroll-smooth touch-pan-y p-4 space-y-3 pb-24">
             {topStudents.length > 0 ? (
               topStudents.map((item) => {
                 const rankInfo = getRankBadge(item.rank);
