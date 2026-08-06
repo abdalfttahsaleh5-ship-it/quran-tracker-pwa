@@ -97,10 +97,10 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
 
         if (filteredAttendance.length > 0) {
           const status = filteredAttendance[0].status;
-          if (status === "حاضر") attendanceText = "حاضر 🟢";
-          else if (status === "متأخر") attendanceText = "متأخر 🟡";
-          else if (status === "مستأذن") attendanceText = "مستأذن 🔵";
-          else if (status === "غائب") attendanceText = "غائب 🔴";
+          if (status === "حاضر" || (status as string) === "present") attendanceText = "حاضر 🟢";
+          else if (status === "متأخر" || (status as string) === "late") attendanceText = "متأخر 🟡";
+          else if (status === "مستأذن" || (status as string) === "excused") attendanceText = "مستأذن 🔵";
+          else if (status === "غائب" || (status as string) === "absent") attendanceText = "غائب 🔴";
         } else {
           attendanceText = "غير مسجل ⚪";
         }
@@ -111,11 +111,6 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
         filteredAttendance = localAttendance.filter(
           (a) => a.student_id === student.id && a.date >= dateBounds.startOfWeekStr
         );
-
-        const presentDays = filteredAttendance.filter(
-          (a) => a.status === "حاضر" || a.status === "متأخر"
-        ).length;
-        attendanceText = filteredAttendance.length > 0 ? `${presentDays} / ${filteredAttendance.length} أيام` : "لا يوجد سجل";
       } else if (period === "monthly") {
         filteredLogs = logs.filter(
           (l) => l.student_id === student.id && l.created_at && l.created_at >= dateBounds.startOfMonthStr
@@ -123,11 +118,31 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
         filteredAttendance = localAttendance.filter(
           (a) => a.student_id === student.id && a.date >= dateBounds.startOfMonthStr
         );
+      }
 
-        const presentDays = filteredAttendance.filter(
-          (a) => a.status === "حاضر" || a.status === "متأخر"
-        ).length;
-        attendanceText = filteredAttendance.length > 0 ? `${presentDays} يوماً` : "لا يوجد سجل";
+      // Deduplicate attendance records by date to prevent double-counting
+      const uniqueAttendanceMap = new Map<string, AttendanceRecordRow>();
+      filteredAttendance.forEach((rec) => {
+        uniqueAttendanceMap.set(rec.date, rec);
+      });
+      const uniqueAttendanceList = Array.from(uniqueAttendanceMap.values());
+
+      const totalPresentCount = uniqueAttendanceList.filter(
+        (a) =>
+          a.status === "حاضر" ||
+          a.status === "متأخر" ||
+          (a.status as string) === "present" ||
+          (a.status as string) === "late"
+      ).length;
+
+      if (period === "weekly") {
+        attendanceText =
+          uniqueAttendanceList.length > 0
+            ? `${totalPresentCount} / ${uniqueAttendanceList.length} أيام`
+            : "لا يوجد سجل";
+      } else if (period === "monthly") {
+        attendanceText =
+          uniqueAttendanceList.length > 0 ? `${totalPresentCount} يوماً` : "لا يوجد سجل";
       }
 
       const pagesCount = filteredLogs.reduce((sum, l) => sum + (l.page_count || 1), 0);
@@ -137,6 +152,7 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
         student,
         attendanceText,
         pagesCount: roundedPages,
+        totalPresentCount,
       };
     });
   }, [students, logs, localAttendance, period, dateBounds]);

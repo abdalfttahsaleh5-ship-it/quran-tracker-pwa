@@ -159,6 +159,7 @@ export async function recordBulkAttendance(records: AttendanceInput[]): Promise<
 
     revalidatePath("/dashboard");
     revalidatePath("/students");
+    revalidatePath("/");
     return { success: true };
   } catch (err) {
     return {

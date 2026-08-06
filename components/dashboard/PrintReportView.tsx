@@ -7,6 +7,7 @@ export interface StudentReportItem {
   student: StudentRow;
   attendanceText: string;
   pagesCount: number;
+  totalPresentCount: number;
 }
 
 interface PrintReportViewProps {
@@ -84,7 +85,8 @@ export function PrintReportView({ reportItems, periodLabel }: PrintReportViewPro
             <th className="p-2 border border-slate-300 w-10 text-center">#</th>
             <th className="p-2 border border-slate-300">اسم الطالب</th>
             <th className="p-2 border border-slate-300">الصف الدراسي</th>
-            <th className="p-2 border border-slate-300 text-center">سجل الحضور</th>
+            <th className="p-2 border border-slate-300 text-center">حالة الحضور</th>
+            <th className="p-2 border border-slate-300 text-center">عدد أيام الحضور</th>
             <th className="p-2 border border-slate-300 text-center">الصفحات المنفذة</th>
             <th className="p-2 border border-slate-300 text-center">رقم ولي الأمر</th>
           </tr>
@@ -96,6 +98,9 @@ export function PrintReportView({ reportItems, periodLabel }: PrintReportViewPro
               <td className="p-2 border border-slate-300 font-bold text-slate-900">{item.student.full_name}</td>
               <td className="p-2 border border-slate-300">{item.student.academic_grade || "غير محدد"}</td>
               <td className="p-2 border border-slate-300 text-center font-bold">{item.attendanceText}</td>
+              <td className="p-2 border border-slate-300 text-center font-extrabold text-emerald-950">
+                {item.totalPresentCount} {item.totalPresentCount === 1 ? "يوم" : "أيام"}
+              </td>
               <td className="p-2 border border-slate-300 text-center font-extrabold text-emerald-900">
                 {item.pagesCount > 0 ? `${item.pagesCount} صفحة` : "—"}
               </td>
@@ -115,3 +120,4 @@ export function PrintReportView({ reportItems, periodLabel }: PrintReportViewPro
     </div>
   );
 }
+
