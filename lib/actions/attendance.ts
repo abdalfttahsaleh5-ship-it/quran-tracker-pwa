@@ -58,6 +58,7 @@ export async function recordAttendance(data: AttendanceInput): Promise<ActionRes
 
     revalidatePath(`/students/${validation.data.student_id}`);
     revalidatePath("/dashboard");
+    revalidatePath("/students");
     return {
       success: true,
       data: record as AttendanceRecordRow,
@@ -66,6 +67,54 @@ export async function recordAttendance(data: AttendanceInput): Promise<ActionRes
     return {
       success: false,
       error: err instanceof Error ? err.message : "حدث خطأ غير متوقع أثناء تسجيل الحضور",
+    };
+  }
+}
+
+export async function deleteAttendance(
+  studentId: string,
+  date: string
+): Promise<ActionResult> {
+  if (!studentId || !date) {
+    return { success: false, error: "معرف الطالب والتاريخ مطلوبان" };
+  }
+
+  try {
+    const supabase = createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: "غير مصرح لك بتعديل الحضور، يرجى تسجيل الدخول",
+      };
+    }
+
+    const { error } = await supabase
+      .from("attendance_records")
+      .delete()
+      .eq("student_id", studentId)
+      .eq("date", date)
+      .eq("teacher_id", user.id);
+
+    if (error) {
+      return {
+        success: false,
+        error: "فشل إلغاء تسجيل الحضور: " + error.message,
+      };
+    }
+
+    revalidatePath(`/students/${studentId}`);
+    revalidatePath("/dashboard");
+    revalidatePath("/students");
+    return { success: true };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "حدث خطأ غير متوقع أثناء إلغاء تسجيل الحضور",
     };
   }
 }
