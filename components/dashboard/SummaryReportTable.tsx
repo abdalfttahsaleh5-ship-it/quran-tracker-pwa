@@ -141,9 +141,25 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
 
       const totalDays = Math.max(totalPeriodDays, uniqueAttendanceList.length);
 
-      let attendanceText = "لا يوجد سجل";
-      if (totalDays > 0) {
-        attendanceText = `${attendedDays} / ${totalDays} أيام`;
+      let attendanceText = "غير مسجل";
+
+      if (period === "daily") {
+        if (filteredAttendance.length > 0) {
+          const status = filteredAttendance[0].status;
+          if (status === "حاضر" || (status as string) === "present") attendanceText = "حاضر";
+          else if (status === "متأخر" || (status as string) === "late") attendanceText = "متأخر";
+          else if (status === "مستأذن" || (status as string) === "excused") attendanceText = "مستأذن";
+          else if (status === "غائب" || (status as string) === "absent") attendanceText = "غائب";
+          else attendanceText = String(status);
+        } else {
+          attendanceText = "غير مسجل";
+        }
+      } else {
+        if (totalDays > 0) {
+          attendanceText = `${attendedDays} / ${totalDays} أيام`;
+        } else {
+          attendanceText = "لا يوجد سجل";
+        }
       }
 
       const pagesCount = filteredLogs.reduce((sum, l) => sum + (l.page_count || 1), 0);
@@ -303,12 +319,22 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
                       </td>
                       <td className="p-3 text-center font-bold">
                         <span
-                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black dir-ltr ${
-                            item.attendanceText === "لا يوجد سجل"
-                              ? "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
-                              : item.totalPresentCount > 0
+                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black ${
+                            item.attendanceText.includes("/") ? "dir-ltr " : ""
+                          }${
+                            item.attendanceText === "حاضر"
                               ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
-                              : "bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-300 dark:border-rose-800"
+                              : item.attendanceText === "غائب"
+                              ? "bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-300 dark:border-rose-800"
+                              : item.attendanceText === "متأخر"
+                              ? "bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-800"
+                              : item.attendanceText === "مستأذن"
+                              ? "bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300 border border-blue-300 dark:border-blue-800"
+                              : item.attendanceText.includes("/") && item.totalPresentCount > 0
+                              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
+                              : item.attendanceText.includes("/") && item.totalPresentCount === 0
+                              ? "bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-300 dark:border-rose-800"
+                              : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
                           }`}
                         >
                           {item.attendanceText}
