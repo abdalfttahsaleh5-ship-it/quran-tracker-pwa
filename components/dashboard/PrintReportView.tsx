@@ -36,11 +36,13 @@ export function PrintReportView({ reportItems, periodLabel }: PrintReportViewPro
             color: black !important;
             font-size: 11px !important;
           }
-          /* Hide all app navigation controls during print */
+          /* Hide all app navigation controls & honor roll during print */
           header,
           nav,
           footer,
-          .print\\:hidden {
+          aside,
+          .print\\:hidden,
+          .printable-honor-roll {
             display: none !important;
           }
           .print\\:block {

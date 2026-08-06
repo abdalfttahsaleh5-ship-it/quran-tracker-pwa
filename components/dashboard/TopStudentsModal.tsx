@@ -98,46 +98,65 @@ export function TopStudentsModal({
 
   return (
     <>
-      {/* Printable Honor Roll Sheet (hidden on screen, visible on print) */}
-      <div className="printable-honor-roll hidden print:block text-slate-900 bg-white p-6 font-sans dir-rtl">
+      {/* Printable Honor Roll Sheet (hidden on screen, isolated on print) */}
+      <div className="printable-honor-roll hidden print:block text-slate-900 bg-white p-4 font-sans dir-rtl">
         <style jsx global>{`
           @media print {
             @page {
               size: A4 portrait;
-              margin: 12mm 12mm 15mm 12mm;
+              margin: 10mm 12mm 12mm 12mm;
             }
             body {
               background-color: white !important;
               color: black !important;
             }
-            .print\\:hidden {
+            /* Strict print isolation for Honor Roll sheet */
+            header,
+            nav,
+            footer,
+            aside,
+            .print\\:hidden,
+            .printable-report-only {
               display: none !important;
             }
-            .print\\:block {
+            .printable-honor-roll {
               display: block !important;
+              width: 100% !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              box-shadow: none !important;
+              border: none !important;
+              page-break-inside: avoid !important;
+              page-break-after: avoid !important;
+            }
+            table {
+              page-break-inside: avoid !important;
+            }
+            tr {
+              page-break-inside: avoid !important;
             }
           }
         `}</style>
 
         {/* Printable Honor Roll Header */}
-        <div className="text-center border-b-4 border-amber-500 pb-4 mb-6">
-          <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-amber-100 text-amber-900 font-black text-sm mb-2">
+        <div className="text-center border-b-4 border-amber-500 pb-3 mb-5">
+          <div className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full bg-amber-100 text-amber-900 font-black text-xs mb-1.5">
             <span>🏆 لوحة الشرف والتميز 🏆</span>
           </div>
-          <h1 className="text-3xl font-black text-emerald-950">لوحة شرف متميزي حلقة القرآن الكريم</h1>
-          <p className="text-sm font-bold text-slate-600 mt-1">
-            الطلاب الأوائل الأكثر إنجازاً في التسميع والحفظ — <span className="text-emerald-800">{currentDateFormatted}</span>
+          <h1 className="text-2xl font-black text-emerald-950">لوحة شرف متميزي حلقة القرآن الكريم</h1>
+          <p className="text-xs font-bold text-slate-600 mt-1">
+            الطلاب الأوائل الأكثر إنجازاً في التسميع والحفظ — <span className="text-emerald-800 font-extrabold">{currentDateFormatted}</span>
           </p>
         </div>
 
-        {/* Printable Honor Roll Table */}
-        <table className="w-full text-right border-collapse border border-slate-300 text-sm">
+        {/* Printable Honor Roll Table (Fits Single A4 Page) */}
+        <table className="w-full text-right border-collapse border border-slate-300 text-xs">
           <thead>
             <tr className="bg-amber-100 text-amber-950 font-black border-b-2 border-amber-400">
-              <th className="p-3 border border-slate-300 w-16 text-center">الترتيب</th>
-              <th className="p-3 border border-slate-300">اسم الطالب المتميز</th>
-              <th className="p-3 border border-slate-300 text-center">الصف الدراسي</th>
-              <th className="p-3 border border-slate-300 text-center">إجمالي الصفحات المنجزة</th>
+              <th className="p-2.5 border border-slate-300 w-16 text-center">الترتيب</th>
+              <th className="p-2.5 border border-slate-300">اسم الطالب المتميز</th>
+              <th className="p-2.5 border border-slate-300 text-center">الصف الدراسي</th>
+              <th className="p-2.5 border border-slate-300 text-center">إجمالي الصفحات المنجزة</th>
             </tr>
           </thead>
           <tbody>
@@ -145,16 +164,16 @@ export function TopStudentsModal({
               const rankInfo = getRankBadge(item.rank);
               return (
                 <tr key={item.student.id} className="border-b border-slate-300">
-                  <td className="p-3 border border-slate-300 text-center font-black text-base">
+                  <td className="p-2.5 border border-slate-300 text-center font-black text-sm">
                     {rankInfo.icon}
                   </td>
-                  <td className="p-3 border border-slate-300 font-black text-base text-slate-900">
+                  <td className="p-2.5 border border-slate-300 font-black text-sm text-slate-900">
                     {item.student.full_name}
                   </td>
-                  <td className="p-3 border border-slate-300 text-center font-bold text-slate-700">
+                  <td className="p-2.5 border border-slate-300 text-center font-bold text-slate-700">
                     {item.student.academic_grade || "غير محدد"}
                   </td>
-                  <td className="p-3 border border-slate-300 text-center font-black text-emerald-900 text-base">
+                  <td className="p-2.5 border border-slate-300 text-center font-black text-emerald-900 text-sm">
                     📖 {item.totalPages} صفحة
                   </td>
                 </tr>
@@ -164,7 +183,7 @@ export function TopStudentsModal({
         </table>
 
         {/* Sign-off Footer */}
-        <div className="mt-12 pt-6 border-t-2 border-slate-300 flex justify-between items-center text-xs font-bold text-slate-700">
+        <div className="mt-10 pt-4 border-t-2 border-slate-300 flex justify-between items-center text-xs font-bold text-slate-700">
           <div>توقيع معلم الحلقة: ..............................</div>
           <div>اعتماد مشرف الحلقة: ..............................</div>
         </div>
