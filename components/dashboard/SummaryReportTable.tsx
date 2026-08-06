@@ -80,12 +80,26 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
     return { todayStr, startOfWeekStr, startOfMonthStr };
   }, []);
 
+  // Calculate total active session dates for the selected period across all students
+  const totalPeriodDays = useMemo(() => {
+    const dates = new Set<string>();
+    localAttendance.forEach((a) => {
+      if (period === "daily" && a.date === dateBounds.todayStr) {
+        dates.add(a.date);
+      } else if (period === "weekly" && a.date >= dateBounds.startOfWeekStr) {
+        dates.add(a.date);
+      } else if (period === "monthly" && a.date >= dateBounds.startOfMonthStr) {
+        dates.add(a.date);
+      }
+    });
+    return dates.size;
+  }, [localAttendance, period, dateBounds]);
+
   // Aggregate items per student based on selected period
   const reportItems: StudentReportItem[] = useMemo(() => {
     return students.map((student) => {
       let filteredLogs: MemorizationLogRow[] = [];
       let filteredAttendance: AttendanceRecordRow[] = [];
-      let attendanceText = "غير مسجل ⚪";
 
       if (period === "daily") {
         filteredLogs = logs.filter(
@@ -94,16 +108,6 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
         filteredAttendance = localAttendance.filter(
           (a) => a.student_id === student.id && a.date === dateBounds.todayStr
         );
-
-        if (filteredAttendance.length > 0) {
-          const status = filteredAttendance[0].status;
-          if (status === "حاضر" || (status as string) === "present") attendanceText = "حاضر 🟢";
-          else if (status === "متأخر" || (status as string) === "late") attendanceText = "متأخر 🟡";
-          else if (status === "مستأذن" || (status as string) === "excused") attendanceText = "مستأذن 🔵";
-          else if (status === "غائب" || (status as string) === "absent") attendanceText = "غائب 🔴";
-        } else {
-          attendanceText = "غير مسجل ⚪";
-        }
       } else if (period === "weekly") {
         filteredLogs = logs.filter(
           (l) => l.student_id === student.id && l.created_at && l.created_at >= dateBounds.startOfWeekStr
@@ -127,7 +131,7 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
       });
       const uniqueAttendanceList = Array.from(uniqueAttendanceMap.values());
 
-      const totalPresentCount = uniqueAttendanceList.filter(
+      const attendedDays = uniqueAttendanceList.filter(
         (a) =>
           a.status === "حاضر" ||
           a.status === "متأخر" ||
@@ -135,14 +139,11 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
           (a.status as string) === "late"
       ).length;
 
-      if (period === "weekly") {
-        attendanceText =
-          uniqueAttendanceList.length > 0
-            ? `${totalPresentCount} / ${uniqueAttendanceList.length} أيام`
-            : "لا يوجد سجل";
-      } else if (period === "monthly") {
-        attendanceText =
-          uniqueAttendanceList.length > 0 ? `${totalPresentCount} يوماً` : "لا يوجد سجل";
+      const totalDays = Math.max(totalPeriodDays, uniqueAttendanceList.length);
+
+      let attendanceText = "لا يوجد سجل";
+      if (totalDays > 0) {
+        attendanceText = `${attendedDays} / ${totalDays} أيام`;
       }
 
       const pagesCount = filteredLogs.reduce((sum, l) => sum + (l.page_count || 1), 0);
@@ -152,10 +153,10 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
         student,
         attendanceText,
         pagesCount: roundedPages,
-        totalPresentCount,
+        totalPresentCount: attendedDays,
       };
     });
-  }, [students, logs, localAttendance, period, dateBounds]);
+  }, [students, logs, localAttendance, period, dateBounds, totalPeriodDays]);
 
   // Filter report items by search query
   const filteredReportItems = useMemo(() => {
@@ -269,7 +270,7 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
                   <th className="p-3 text-center w-10">#</th>
                   <th className="p-3">اسم الطالب</th>
                   <th className="p-3">الصف الدراسي</th>
-                  <th className="p-3 text-center">سجل الحضور</th>
+                  <th className="p-3 text-center">حالة الحضور</th>
                   <th className="p-3 text-center">إجمالي الصفحات</th>
                   <th className="p-3 text-center">ولي الأمر</th>
                 </tr>
@@ -302,16 +303,12 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
                       </td>
                       <td className="p-3 text-center font-bold">
                         <span
-                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black ${
-                            item.attendanceText.includes("حاضر")
+                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black dir-ltr ${
+                            item.attendanceText === "لا يوجد سجل"
+                              ? "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
+                              : item.totalPresentCount > 0
                               ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
-                              : item.attendanceText.includes("غائب")
-                              ? "bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-300 dark:border-rose-800"
-                              : item.attendanceText.includes("متأخر")
-                              ? "bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-800"
-                              : item.attendanceText.includes("مستأذن")
-                              ? "bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300 border border-blue-300 dark:border-blue-800"
-                              : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
+                              : "bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-300 dark:border-rose-800"
                           }`}
                         >
                           {item.attendanceText}

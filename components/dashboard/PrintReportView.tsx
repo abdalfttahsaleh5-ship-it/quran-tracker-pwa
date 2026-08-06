@@ -58,7 +58,7 @@ export function PrintReportView({ reportItems, periodLabel }: PrintReportViewPro
           }
           th,
           td {
-            padding: 4px 6px !important;
+            padding: 5px 8px !important;
             border: 1px solid #cbd5e1 !important;
           }
         }
@@ -78,17 +78,16 @@ export function PrintReportView({ reportItems, periodLabel }: PrintReportViewPro
         </div>
       </div>
 
-      {/* High-density Printable Table */}
+      {/* High-density Printable Table with Balanced Column Layout */}
       <table className="w-full text-right border-collapse border border-slate-300">
         <thead>
           <tr className="bg-slate-100 font-bold text-slate-900 border-b border-slate-300">
             <th className="p-2 border border-slate-300 w-10 text-center">#</th>
-            <th className="p-2 border border-slate-300">اسم الطالب</th>
-            <th className="p-2 border border-slate-300">الصف الدراسي</th>
-            <th className="p-2 border border-slate-300 text-center">حالة الحضور</th>
-            <th className="p-2 border border-slate-300 text-center">عدد أيام الحضور</th>
-            <th className="p-2 border border-slate-300 text-center">الصفحات المنفذة</th>
-            <th className="p-2 border border-slate-300 text-center">رقم ولي الأمر</th>
+            <th className="p-2 border border-slate-300 w-1/3">اسم الطالب</th>
+            <th className="p-2 border border-slate-300 text-center w-1/6">الصف الدراسي</th>
+            <th className="p-2 border border-slate-300 text-center w-1/6">حالة الحضور</th>
+            <th className="p-2 border border-slate-300 text-center w-1/6">الصفحات المنفذة</th>
+            <th className="p-2 border border-slate-300 text-center w-1/6">رقم ولي الأمر</th>
           </tr>
         </thead>
         <tbody>
@@ -96,10 +95,9 @@ export function PrintReportView({ reportItems, periodLabel }: PrintReportViewPro
             <tr key={item.student.id} className={index % 2 === 0 ? "bg-white" : "bg-slate-50/60"}>
               <td className="p-2 border border-slate-300 text-center font-bold">{index + 1}</td>
               <td className="p-2 border border-slate-300 font-bold text-slate-900">{item.student.full_name}</td>
-              <td className="p-2 border border-slate-300">{item.student.academic_grade || "غير محدد"}</td>
-              <td className="p-2 border border-slate-300 text-center font-bold">{item.attendanceText}</td>
-              <td className="p-2 border border-slate-300 text-center font-extrabold text-emerald-950">
-                {item.totalPresentCount} {item.totalPresentCount === 1 ? "يوم" : "أيام"}
+              <td className="p-2 border border-slate-300 text-center">{item.student.academic_grade || "غير محدد"}</td>
+              <td className="p-2 border border-slate-300 text-center font-bold text-emerald-950 dir-ltr">
+                {item.attendanceText}
               </td>
               <td className="p-2 border border-slate-300 text-center font-extrabold text-emerald-900">
                 {item.pagesCount > 0 ? `${item.pagesCount} صفحة` : "—"}
@@ -120,4 +118,5 @@ export function PrintReportView({ reportItems, periodLabel }: PrintReportViewPro
     </div>
   );
 }
+
 
