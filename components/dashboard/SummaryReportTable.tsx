@@ -3,13 +3,12 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { StudentRow, MemorizationLogRow, AttendanceRecordRow, AttendanceStatusEnum } from "@/types";
-import { Search, Printer, Calendar, Loader2 } from "lucide-react";
+import { StudentRow, MemorizationLogRow, AttendanceRecordRow } from "@/types";
+import { Search, Printer, Calendar } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { StudentReportItem } from "./PrintReportView";
-import { recordAttendance, deleteAttendance, ActionResult } from "@/lib/actions/attendance";
 import { useRealtimeSync, RealtimePayload } from "@/lib/hooks/useRealtimeSync";
 
 const PrintReportView = dynamic(() => import("./PrintReportView").then((mod) => mod.PrintReportView), { ssr: false });
@@ -26,7 +25,6 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
   const [period, setPeriod] = useState<PeriodType>("daily");
   const [searchQuery, setSearchQuery] = useState("");
   const [localAttendance, setLocalAttendance] = useState<AttendanceRecordRow[]>(attendance);
-  const [togglingMap, setTogglingMap] = useState<Record<string, boolean>>({});
 
   // Synchronize local state when attendance prop changes
   useEffect(() => {
@@ -81,90 +79,6 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
 
     return { todayStr, startOfWeekStr, startOfMonthStr };
   }, []);
-
-  // Cycle attendance status for a student today: "غير مسجل" ⚪ -> "حاضر" 🟢 -> "غائب" 🔴 -> "غير مسجل" ⚪
-  const handleToggleAttendance = async (studentId: string) => {
-    if (togglingMap[studentId]) return;
-
-    const todayRecord = localAttendance.find(
-      (a) => a.student_id === studentId && a.date === dateBounds.todayStr
-    );
-    const currentStatus = todayRecord?.status;
-
-    let nextStatus: AttendanceStatusEnum | undefined;
-    if (!currentStatus) {
-      nextStatus = "حاضر";
-    } else if (currentStatus === "حاضر") {
-      nextStatus = "غائب";
-    } else {
-      // "غائب" or any other status ("متأخر", "مستأذن") -> back to "غير مسجل" (delete record)
-      nextStatus = undefined;
-    }
-
-    setTogglingMap((prev) => ({ ...prev, [studentId]: true }));
-    const previousAttendance = localAttendance;
-
-    // Optimistic Update
-    if (nextStatus) {
-      const optimisticRecord: AttendanceRecordRow = todayRecord
-        ? { ...todayRecord, status: nextStatus }
-        : {
-            id: `temp-${Date.now()}-${Math.random()}`,
-            student_id: studentId,
-            teacher_id: "",
-            date: dateBounds.todayStr,
-            status: nextStatus,
-            notes: null,
-            created_at: new Date().toISOString(),
-          };
-
-      setLocalAttendance((prev) => {
-        const exists = prev.some(
-          (a) => a.student_id === studentId && a.date === dateBounds.todayStr
-        );
-        if (exists) {
-          return prev.map((a) =>
-            a.student_id === studentId && a.date === dateBounds.todayStr ? optimisticRecord : a
-          );
-        }
-        return [optimisticRecord, ...prev];
-      });
-    } else {
-      setLocalAttendance((prev) =>
-        prev.filter((a) => !(a.student_id === studentId && a.date === dateBounds.todayStr))
-      );
-    }
-
-    try {
-      let res: ActionResult<AttendanceRecordRow> | ActionResult;
-      if (nextStatus) {
-        res = await recordAttendance({
-          student_id: studentId,
-          date: dateBounds.todayStr,
-          status: nextStatus,
-        });
-      } else {
-        res = await deleteAttendance(studentId, dateBounds.todayStr);
-      }
-
-      if (!res.success) {
-        setLocalAttendance(previousAttendance);
-        alert(res.error || "فشل تحديث سجل الحضور");
-      } else if (nextStatus && res.data) {
-        const confirmedRecord = res.data;
-        setLocalAttendance((prev) =>
-          prev.map((a) =>
-            a.student_id === studentId && a.date === dateBounds.todayStr ? confirmedRecord : a
-          )
-        );
-      }
-    } catch (err) {
-      setLocalAttendance(previousAttendance);
-      alert(err instanceof Error ? err.message : "حدث خطأ أثناء تحديث الحضور");
-    } finally {
-      setTogglingMap((prev) => ({ ...prev, [studentId]: false }));
-    }
-  };
 
   // Aggregate items per student based on selected period
   const reportItems: StudentReportItem[] = useMemo(() => {
@@ -260,7 +174,7 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
               <span>تقرير متابعة طلاب الحلقة 📊</span>
             </CardTitle>
             <CardDescription className="text-xs text-slate-500 mt-0.5">
-              إحصائيات الحضور والصفحات حسب الفترة الزمانية (انقر زر الحضور للتغيير السريع)
+              إحصائيات الحضور والصفحات حسب الفترة الزمانية
             </CardDescription>
           </div>
 
@@ -371,34 +285,21 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
                         {item.student.academic_grade || "غير محدد"}
                       </td>
                       <td className="p-3 text-center font-bold">
-                        {period === "daily" ? (
-                          <button
-                            type="button"
-                            onClick={() => handleToggleAttendance(item.student.id)}
-                            disabled={togglingMap[item.student.id]}
-                            title="اضغط للتغيير: غير مسجل ⚪ ➔ حاضر 🟢 ➔ غائب 🔴"
-                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
-                              item.attendanceText.includes("حاضر")
-                                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 hover:bg-emerald-200"
-                                : item.attendanceText.includes("غائب")
-                                ? "bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-300 dark:border-rose-800 hover:bg-rose-200"
-                                : item.attendanceText.includes("متأخر")
-                                ? "bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-800 hover:bg-amber-200"
-                                : item.attendanceText.includes("مستأذن")
-                                ? "bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300 border border-blue-300 dark:border-blue-800 hover:bg-blue-200"
-                                : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-200"
-                            }`}
-                          >
-                            {togglingMap[item.student.id] && (
-                              <Loader2 className="w-3 h-3 animate-spin text-slate-500 shrink-0" />
-                            )}
-                            <span>{item.attendanceText}</span>
-                          </button>
-                        ) : (
-                          <span className="inline-block px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200">
-                            {item.attendanceText}
-                          </span>
-                        )}
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black ${
+                            item.attendanceText.includes("حاضر")
+                              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
+                              : item.attendanceText.includes("غائب")
+                              ? "bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-300 dark:border-rose-800"
+                              : item.attendanceText.includes("متأخر")
+                              ? "bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-800"
+                              : item.attendanceText.includes("مستأذن")
+                              ? "bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300 border border-blue-300 dark:border-blue-800"
+                              : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
+                          }`}
+                        >
+                          {item.attendanceText}
+                        </span>
                       </td>
                       <td className="p-3 text-center font-black text-emerald-700 dark:text-emerald-400">
                         {item.pagesCount > 0 ? (
@@ -429,3 +330,4 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
     </>
   );
 }
+
