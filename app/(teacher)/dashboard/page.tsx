@@ -1,8 +1,8 @@
-import { Users, BookCheck, Award, Sparkles } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Sparkles } from "lucide-react";
 import { getTeacherReportDataCached } from "@/lib/actions/student";
 import { TeacherDashboardClient } from "@/components/teacher/TeacherDashboardClient";
 import { SummaryReportTable } from "@/components/dashboard/SummaryReportTable";
+import { StatsCards } from "@/components/dashboard/StatsCards";
 
 export const revalidate = 0;
 
@@ -12,10 +12,6 @@ export default async function TeacherDashboardPage() {
   const students = reportRes.success && reportRes.students ? reportRes.students : [];
   const logs = reportRes.success && reportRes.logs ? reportRes.logs : [];
   const attendance = reportRes.success && reportRes.attendance ? reportRes.attendance : [];
-
-  const totalStudents = students.length;
-  const totalPagesSum = logs.reduce((sum, l) => sum + (l.page_count || 1), 0);
-  const activeStudentsCount = students.filter((s) => logs.some((l) => l.student_id === s.id)).length;
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-300">
@@ -42,72 +38,12 @@ export default async function TeacherDashboardPage() {
         </div>
       </div>
 
-      {/* Unified Single-Row 3-Column KPI Stats */}
-      <div className="stats-grid no-print print:hidden grid grid-cols-3 gap-2 sm:gap-4">
-        {/* Metric 1: Registered Students */}
-        <Card className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
-          <CardHeader className="p-3 sm:p-4 pb-1 flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-[11px] sm:text-xs font-bold text-slate-500 dark:text-slate-400">
-              إجمالي الطلاب
-            </CardTitle>
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-bold shrink-0">
-              <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            </div>
-          </CardHeader>
-          <CardContent className="p-3 sm:p-4 pt-0">
-            <div className="text-lg sm:text-2xl font-black text-slate-900 dark:text-slate-50 tracking-tight">
-              {totalStudents}
-            </div>
-            <CardDescription className="text-[10px] sm:text-[11px] text-slate-400 font-medium truncate">
-              مسجل بالحلقة
-            </CardDescription>
-          </CardContent>
-        </Card>
-
-        {/* Metric 2: Total Recitation Pages */}
-        <Card className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
-          <CardHeader className="p-3 sm:p-4 pb-1 flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-[11px] sm:text-xs font-bold text-slate-500 dark:text-slate-400">
-              إجمالي الصفحات
-            </CardTitle>
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 flex items-center justify-center font-bold shrink-0">
-              <BookCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            </div>
-          </CardHeader>
-          <CardContent className="p-3 sm:p-4 pt-0">
-            <div className="text-lg sm:text-2xl font-black text-slate-900 dark:text-slate-50 tracking-tight">
-              {Number(totalPagesSum.toFixed(1))}
-            </div>
-            <CardDescription className="text-[10px] sm:text-[11px] text-slate-400 font-medium truncate">
-              صفحة موثقة
-            </CardDescription>
-          </CardContent>
-        </Card>
-
-        {/* Metric 3: Active Students */}
-        <Card className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
-          <CardHeader className="p-3 sm:p-4 pb-1 flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-[11px] sm:text-xs font-bold text-slate-500 dark:text-slate-400">
-              الطلاب الفاعلون
-            </CardTitle>
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300 flex items-center justify-center font-bold shrink-0">
-              <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            </div>
-          </CardHeader>
-          <CardContent className="p-3 sm:p-4 pt-0">
-            <div className="text-lg sm:text-2xl font-black text-slate-900 dark:text-slate-50 tracking-tight flex items-baseline gap-1">
-              <span>{activeStudentsCount}</span>
-              <span className="text-xs text-slate-400 font-bold">/{totalStudents}</span>
-            </div>
-            <CardDescription className="text-[10px] sm:text-[11px] text-slate-400 font-medium truncate">
-              لهم تسميعات
-            </CardDescription>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Unified Single-Row 3-Column KPI Stats Cards */}
+      <StatsCards students={students} logs={logs} />
 
       {/* Summary Report Table with Daily/Weekly/Monthly Filter and A4 Print Export */}
       <SummaryReportTable students={students} logs={logs} attendance={attendance} />
     </div>
   );
 }
+
