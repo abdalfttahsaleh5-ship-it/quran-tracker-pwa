@@ -1,11 +1,12 @@
-import { getStudentsCached } from "@/lib/actions/student";
+import { getTeacherReportDataCached } from "@/lib/actions/student";
 import { StudentList } from "@/components/teacher/StudentList";
 
 export const revalidate = 0;
 
 export default async function StudentsPage() {
-  const res = await getStudentsCached();
-  const students = res.success && res.data ? res.data : [];
+  const res = await getTeacherReportDataCached();
+  const students = res.success && res.students ? res.students : [];
+  const attendance = res.success && res.attendance ? res.attendance : [];
 
   return (
     <div className="space-y-6">
@@ -18,7 +19,7 @@ export default async function StudentsPage() {
         </p>
       </div>
 
-      <StudentList initialStudents={students} />
+      <StudentList initialStudents={students} initialAttendance={attendance} />
     </div>
   );
 }

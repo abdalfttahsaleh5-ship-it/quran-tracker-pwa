@@ -4,6 +4,7 @@ import React, { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { StudentRow, MemorizationLogRow, AttendanceRecordRow } from "@/types";
+import { getAttendanceAlertsMap } from "@/lib/attendanceAlerts";
 import { Search, Printer, Calendar } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -79,6 +80,11 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
 
     return { todayStr, startOfWeekStr, startOfMonthStr };
   }, []);
+
+  // Map student IDs to active absence alerts
+  const alertsMap = useMemo(() => {
+    return getAttendanceAlertsMap(students, localAttendance);
+  }, [students, localAttendance]);
 
   // Calculate total active session dates for the selected period across all students
   const totalPeriodDays = useMemo(() => {
@@ -306,13 +312,23 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
                     >
                       <td className="p-3 text-center font-bold text-slate-400">{index + 1}</td>
                       <td className="p-3 font-bold text-slate-900 dark:text-slate-100">
-                        <Link
-                          href={`/students/${item.student.id}`}
-                          prefetch={true}
-                          className="hover:text-emerald-700 dark:hover:text-emerald-400 hover:underline transition-colors"
-                        >
-                          {item.student.full_name}
-                        </Link>
+                        <div className="flex items-center gap-1.5">
+                          <Link
+                            href={`/students/${item.student.id}`}
+                            prefetch={true}
+                            className="hover:text-emerald-700 dark:hover:text-emerald-400 hover:underline transition-colors"
+                          >
+                            {item.student.full_name}
+                          </Link>
+                          {alertsMap.has(item.student.id) && (
+                            <span
+                              title={`تنبيه متابعة عاجلة: ${alertsMap.get(item.student.id)?.reason}`}
+                              className="text-xs cursor-help shrink-0"
+                            >
+                              ⚠️
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="p-3 text-slate-600 dark:text-slate-400">
                         {item.student.academic_grade || "غير محدد"}

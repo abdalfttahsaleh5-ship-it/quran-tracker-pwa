@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { Search, UserPlus, Users, CalendarCheck, Mic } from "lucide-react";
-import { StudentRow } from "@/types";
+import { StudentRow, AttendanceRecordRow } from "@/types";
+import { getAttendanceAlertsMap } from "@/lib/attendanceAlerts";
 import { StudentInput } from "@/lib/validations/student";
 import { createStudent, updateStudent, deleteStudent } from "@/lib/actions/student";
 import { StudentCard } from "./StudentCard";
@@ -18,9 +19,10 @@ const LiveRecitationModal = dynamic(() => import("./LiveRecitationModal").then((
 
 interface StudentListProps {
   initialStudents: StudentRow[];
+  initialAttendance?: AttendanceRecordRow[];
 }
 
-export function StudentList({ initialStudents }: StudentListProps) {
+export function StudentList({ initialStudents, initialAttendance = [] }: StudentListProps) {
   const [students, setStudents] = useState<StudentRow[]>(initialStudents);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"name" | "pages">("name");
@@ -52,6 +54,11 @@ export function StudentList({ initialStudents }: StudentListProps) {
     tables: ["students"],
     onPayload: handleRealtimePayload,
   });
+
+  // Compute attendance alerts for student cards
+  const alertsMap = useMemo(() => {
+    return getAttendanceAlertsMap(students, initialAttendance);
+  }, [students, initialAttendance]);
 
   const filteredStudents = students
     .filter((s) => s.full_name.toLowerCase().includes(searchQuery.trim().toLowerCase()))
@@ -201,6 +208,7 @@ export function StudentList({ initialStudents }: StudentListProps) {
             <StudentCard
               key={student.id}
               student={student}
+              alert={alertsMap.get(student.id)}
               onEdit={handleOpenEdit}
               onDelete={handleOpenDelete}
             />

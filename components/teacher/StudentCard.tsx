@@ -1,19 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { User, Phone, Copy, Check, Edit3, Trash2, ExternalLink, BookOpen } from "lucide-react";
+import { User, Phone, Copy, Check, Edit3, Trash2, ExternalLink, BookOpen, MessageSquare, AlertTriangle } from "lucide-react";
 import { StudentRow } from "@/types";
+import { AttendanceAlert } from "@/lib/attendanceAlerts";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
 interface StudentCardProps {
   student: StudentRow;
+  alert?: AttendanceAlert;
   onEdit: (student: StudentRow) => void;
   onDelete: (student: StudentRow) => void;
 }
 
-export function StudentCard({ student, onEdit, onDelete }: StudentCardProps) {
+export function StudentCard({ student, alert, onEdit, onDelete }: StudentCardProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopyParentLink = async () => {
@@ -53,6 +55,14 @@ export function StudentCard({ student, onEdit, onDelete }: StudentCardProps) {
                 {student.academic_grade && (
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 border border-teal-200">
                     {student.academic_grade}
+                  </span>
+                )}
+                {alert && (
+                  <span
+                    title={alert.reason}
+                    className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800 flex items-center gap-1 shrink-0"
+                  >
+                    ⚠️ {alert.reason}
                   </span>
                 )}
               </CardTitle>
