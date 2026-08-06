@@ -6,7 +6,6 @@ import { StudentRow, MemorizationLogRow, LogTypeEnum, EvaluationGradeEnum } from
 import { createMemorizationLog } from "@/lib/actions/log";
 import { QURAN_SURAHS } from "@/lib/constants/quran";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 
 interface LiveRecitationModalProps {
@@ -19,7 +18,7 @@ interface LiveRecitationModalProps {
 export function LiveRecitationModal({
   isOpen,
   onClose,
-  students,
+  students = [],
   logs = [],
 }: LiveRecitationModalProps) {
   const router = useRouter();
@@ -42,7 +41,12 @@ export function LiveRecitationModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Reset form when active student changes
+  // Safe Student Bounds & Current Selection
+  const currentStudent = students && students.length > 0 && currentIndex < students.length
+    ? students[currentIndex]
+    : null;
+
+  // Reset form inputs when active student index changes
   useEffect(() => {
     setLogType("جديد");
     setSurahStart("الفاتحة");
@@ -55,20 +59,30 @@ export function LiveRecitationModal({
     setErrorMessage(null);
   }, [currentIndex]);
 
-  if (!isOpen) return null;
+  // Reset session counters whenever modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setCurrentIndex(0);
+      setSessionCompletedCount(0);
+      setSessionTotalPages(0);
+    }
+  }, [isOpen]);
 
-  const currentStudent = students[currentIndex];
-  const isFinished = currentIndex >= students.length || students.length === 0;
-
-  // Derive active student's last recorded log
+  // Derive active student's last recorded log (Declared BEFORE conditional return)
   const lastStudentLog = useMemo(() => {
     if (!currentStudent || !logs || logs.length === 0) return null;
     const studentLogs = logs.filter((l) => l.student_id === currentStudent.id);
     if (studentLogs.length === 0) return null;
-    return studentLogs.sort(
+    return [...studentLogs].sort(
       (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
     )[0];
   }, [currentStudent, logs]);
+
+  // Handle Early Return AFTER all hooks are unconditionally declared
+  if (!isOpen) return null;
+
+  const safeStudentsLength = students ? students.length : 0;
+  const isFinished = currentIndex >= safeStudentsLength || safeStudentsLength === 0 || !currentStudent;
 
   const currentDateFormatted = new Date().toLocaleDateString("ar-SA", {
     weekday: "long",
@@ -76,8 +90,8 @@ export function LiveRecitationModal({
     month: "long",
   });
 
-  const progressPercentage = students.length > 0
-    ? Math.min(100, Math.round((currentIndex / students.length) * 100))
+  const progressPercentage = safeStudentsLength > 0
+    ? Math.min(100, Math.round((currentIndex / safeStudentsLength) * 100))
     : 100;
 
   // Handle Page Count Adjustment (+ / - 0.5)
@@ -94,26 +108,31 @@ export function LiveRecitationModal({
     setIsSubmitting(true);
     setErrorMessage(null);
 
-    const res = await createMemorizationLog({
-      student_id: currentStudent.id,
-      log_type: logType,
-      surah_start: surahStart,
-      aya_start: ayaStart,
-      surah_end: surahEnd || surahStart,
-      aya_end: ayaEnd,
-      grade: grade,
-      page_count: pageCount,
-      notes: notes.trim() || null,
-    });
+    try {
+      const res = await createMemorizationLog({
+        student_id: currentStudent.id,
+        log_type: logType,
+        surah_start: surahStart,
+        aya_start: ayaStart,
+        surah_end: surahEnd || surahStart,
+        aya_end: ayaEnd,
+        grade: grade,
+        page_count: pageCount,
+        notes: notes.trim() || null,
+      });
 
-    setIsSubmitting(false);
+      setIsSubmitting(false);
 
-    if (res.success) {
-      setSessionCompletedCount((prev) => prev + 1);
-      setSessionTotalPages((prev) => Number((prev + pageCount).toFixed(2)));
-      setCurrentIndex((prev) => prev + 1);
-    } else {
-      setErrorMessage(res.error || "فشل حفظ التسميع، حاول مرة أخرى");
+      if (res.success) {
+        setSessionCompletedCount((prev) => prev + 1);
+        setSessionTotalPages((prev) => Number((prev + pageCount).toFixed(2)));
+        setCurrentIndex((prev) => prev + 1);
+      } else {
+        setErrorMessage(res.error || "فشل حفظ التسميع، حاول مرة أخرى");
+      }
+    } catch (err) {
+      setIsSubmitting(false);
+      setErrorMessage("حدث خطأ غير متوقع أثناء الحفظ");
     }
   };
 
@@ -151,9 +170,9 @@ export function LiveRecitationModal({
         </div>
 
         {/* Position Counter Badge */}
-        {!isFinished && students.length > 0 && (
+        {!isFinished && safeStudentsLength > 0 && (
           <div className="px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-700/60 text-emerald-300 font-black text-xs sm:text-sm">
-            طالب {currentIndex + 1} من {students.length}
+            طالب {currentIndex + 1} من {safeStudentsLength}
           </div>
         )}
 
@@ -175,7 +194,7 @@ export function LiveRecitationModal({
 
       {/* Main Content Area */}
       <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 max-w-xl mx-auto w-full">
-        {isFinished ? (
+        {isFinished || !currentStudent ? (
           /* Completion Screen */
           <div className="py-10 text-center space-y-6 animate-in zoom-in-95 duration-300">
             <div className="w-20 h-20 rounded-full bg-emerald-500/20 border-2 border-emerald-500/60 text-emerald-400 mx-auto flex items-center justify-center text-4xl shadow-xl">
@@ -194,7 +213,7 @@ export function LiveRecitationModal({
               <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-center">
                 <span className="text-xs text-slate-400 font-bold block mb-1">الطلاب المكتملون</span>
                 <span className="text-xl font-black text-emerald-400">
-                  {sessionCompletedCount} / {students.length}
+                  {sessionCompletedCount} / {safeStudentsLength}
                 </span>
               </div>
               <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-center">
@@ -432,7 +451,7 @@ export function LiveRecitationModal({
       </div>
 
       {/* Sticky Bottom Navigation Controls */}
-      {!isFinished && (
+      {!isFinished && currentStudent && (
         <div className="sticky bottom-0 bg-slate-900 border-t border-slate-800 p-3 sm:p-4 shrink-0 flex items-center justify-between gap-2 max-w-xl mx-auto w-full">
           {/* Previous Student */}
           <Button
