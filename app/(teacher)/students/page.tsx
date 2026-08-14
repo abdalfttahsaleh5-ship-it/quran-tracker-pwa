@@ -7,6 +7,7 @@ export default async function StudentsPage() {
   const res = await getTeacherReportDataCached();
   const students = res.success && res.students ? res.students : [];
   const attendance = res.success && res.attendance ? res.attendance : [];
+  const logs = res.success && res.logs ? res.logs : [];
 
   return (
     <div className="space-y-6">
@@ -19,7 +20,11 @@ export default async function StudentsPage() {
         </p>
       </div>
 
-      <StudentList initialStudents={students} initialAttendance={attendance} />
+      <StudentList
+        initialStudents={students}
+        initialAttendance={attendance}
+        initialLogs={logs}
+      />
     </div>
   );
 }

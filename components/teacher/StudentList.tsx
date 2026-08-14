@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { Search, UserPlus, Users, CalendarCheck, Mic } from "lucide-react";
-import { StudentRow, AttendanceRecordRow } from "@/types";
+import { StudentRow, AttendanceRecordRow, MemorizationLogRow } from "@/types";
 import { getAttendanceAlertsMap } from "@/lib/attendanceAlerts";
 import { StudentInput } from "@/lib/validations/student";
 import { createStudent, updateStudent, deleteStudent } from "@/lib/actions/student";
@@ -20,10 +20,18 @@ const LiveRecitationModal = dynamic(() => import("./LiveRecitationModal").then((
 interface StudentListProps {
   initialStudents: StudentRow[];
   initialAttendance?: AttendanceRecordRow[];
+  initialLogs?: MemorizationLogRow[];
+  logs?: any[];
 }
 
-export function StudentList({ initialStudents, initialAttendance = [] }: StudentListProps) {
+export function StudentList({
+  initialStudents,
+  initialAttendance = [],
+  initialLogs = [],
+  logs: propLogs,
+}: StudentListProps) {
   const [students, setStudents] = useState<StudentRow[]>(initialStudents);
+  const [logs, setLogs] = useState<MemorizationLogRow[]>(propLogs || initialLogs || []);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"name" | "pages">("name");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -34,7 +42,7 @@ export function StudentList({ initialStudents, initialAttendance = [] }: Student
   const [isLoading, setIsLoading] = useState(false);
   const [alertMessage, setAlertMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  // Realtime payload handler for instant student list sync
+  // Realtime payload handler for instant student list & logs sync
   const handleRealtimePayload = useCallback((payload: RealtimePayload) => {
     const { table, eventType, new: newRecord, old: oldRecord } = payload;
     if (table === "students") {
@@ -48,12 +56,36 @@ export function StudentList({ initialStudents, initialAttendance = [] }: Student
         );
       }
     }
+    if (table === "memorization_logs") {
+      if (eventType === "INSERT" && newRecord) {
+        setLogs((prev) => [newRecord as unknown as MemorizationLogRow, ...prev.filter((l) => l.id !== newRecord.id)]);
+      } else if (eventType === "DELETE" && oldRecord && oldRecord.id) {
+        setLogs((prev) => prev.filter((l) => l.id !== oldRecord.id));
+      } else if (eventType === "UPDATE" && newRecord) {
+        setLogs((prev) =>
+          prev.map((l) => (l.id === newRecord.id ? (newRecord as unknown as MemorizationLogRow) : l))
+        );
+      }
+    }
   }, []);
 
   const { notification } = useRealtimeSync({
-    tables: ["students"],
+    tables: ["students", "memorization_logs"],
     onPayload: handleRealtimePayload,
   });
+
+  // Dynamic pages sum map for accurate sorting
+  const studentPagesMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    (logs || []).forEach((log) => {
+      const sid = String(log.student_id || "");
+      if (sid) {
+        const p = Number(log.page_count ?? 1);
+        map[sid] = (map[sid] || 0) + (isNaN(p) ? 0 : p);
+      }
+    });
+    return map;
+  }, [logs]);
 
   // Compute attendance alerts for student cards
   const alertsMap = useMemo(() => {
@@ -64,7 +96,9 @@ export function StudentList({ initialStudents, initialAttendance = [] }: Student
     .filter((s) => s.full_name.toLowerCase().includes(searchQuery.trim().toLowerCase()))
     .sort((a, b) => {
       if (sortBy === "pages") {
-        return (b.total_pages_count || 0) - (a.total_pages_count || 0);
+        const pagesB = studentPagesMap[b.id] ?? (b.total_pages_count || 0);
+        const pagesA = studentPagesMap[a.id] ?? (a.total_pages_count || 0);
+        return pagesB - pagesA;
       }
       return a.full_name.localeCompare(b.full_name, "ar");
     });
@@ -208,6 +242,7 @@ export function StudentList({ initialStudents, initialAttendance = [] }: Student
             <StudentCard
               key={student.id}
               student={student}
+              logs={logs}
               alert={alertsMap.get(student.id)}
               onEdit={handleOpenEdit}
               onDelete={handleOpenDelete}
@@ -267,6 +302,7 @@ export function StudentList({ initialStudents, initialAttendance = [] }: Student
         isOpen={isLiveRecitationOpen}
         onClose={() => setIsLiveRecitationOpen(false)}
         students={students}
+        logs={logs}
       />
     </div>
   );

@@ -10,13 +10,28 @@ import Link from "next/link";
 
 interface StudentCardProps {
   student: StudentRow;
+  logs?: any[];
   alert?: AttendanceAlert;
   onEdit: (student: StudentRow) => void;
   onDelete: (student: StudentRow) => void;
 }
 
-export function StudentCard({ student, alert, onEdit, onDelete }: StudentCardProps) {
+export function StudentCard({ student, logs, alert, onEdit, onDelete }: StudentCardProps) {
   const [copied, setCopied] = useState(false);
+
+  // Dynamic completed pages calculation from logs
+  const studentLogs = logs?.filter(
+    (log) => String(log.student_id || log.studentId) === String(student.id)
+  ) || [];
+
+  const totalCompletedPages = studentLogs.length > 0
+    ? studentLogs.reduce((sum, log) => {
+        const pages = Number(log.page_count ?? log.pageCount ?? log.pages ?? 1);
+        return sum + (isNaN(pages) ? 0 : pages);
+      }, 0)
+    : Number(student.total_pages_count || 0);
+
+  const formattedPages = totalCompletedPages.toFixed(1).replace(/\.0$/, "");
 
   const handleCopyParentLink = async () => {
     const parentUrl = `${window.location.origin}/parent/${student.parent_token}`;
@@ -77,7 +92,7 @@ export function StudentCard({ student, alert, onEdit, onDelete }: StudentCardPro
       <CardContent className="p-4 pt-2 text-sm space-y-2">
         <div className="flex items-center justify-between gap-2 flex-wrap text-xs font-bold text-teal-800 dark:text-teal-300 bg-teal-50/70 dark:bg-teal-950/40 p-2 rounded-lg border border-teal-100 dark:border-teal-900">
           <span>📚 مجموع التسميع المنجز:</span>
-          <span className="font-mono text-sm font-black">{student.total_pages_count || 0} صفحة</span>
+          <span className="font-mono text-sm font-black">{formattedPages} صفحة</span>
         </div>
 
         <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 pt-1">
