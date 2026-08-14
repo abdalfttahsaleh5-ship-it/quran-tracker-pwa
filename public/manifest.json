@@ -1,12 +1,11 @@
 {
-  "name": "متابع الحفظ - مسجد حذيفة بن اليمان",
+  "name": "متابع الحفظ • مسجد حذيفة بن اليمان",
   "short_name": "متابع الحفظ",
-  "description": "تطبيق متابعة تحفيظ وإتقان القرآن الكريم - حلقات مسجد حذيفة بن اليمان طبربور",
+  "description": "تطبيق متابعة حفظ وتسميع القرآن الكريم",
   "start_url": "/",
   "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#064e3b",
-  "theme_color": "#064e3b",
+  "background_color": "#ffffff",
+  "theme_color": "#065f46",
   "dir": "rtl",
   "lang": "ar",
   "icons": [

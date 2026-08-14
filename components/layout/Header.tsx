@@ -6,6 +6,7 @@ import { BookOpen, LayoutDashboard, Users, LogOut, Trash2, WifiOff, RefreshCw } 
 import { Button } from "@/components/ui/button";
 import { logoutTeacher } from "@/lib/actions/auth";
 import { useNetworkSync } from "@/lib/hooks/useNetworkSync";
+import { PWAInstallButton } from "@/components/common/PWAInstallButton";
 
 export function Header() {
   const pathname = usePathname();
@@ -64,6 +65,9 @@ export function Header() {
 
         {/* Profile / Network Badge / Logout Action */}
         <div className="flex items-center gap-2">
+          {/* PWA Install Trigger Button */}
+          <PWAInstallButton />
+
           {/* Subtle Online / Offline Status Badge */}
           {!isOnline ? (
             <div
