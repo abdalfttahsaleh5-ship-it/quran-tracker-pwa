@@ -1,13 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { BookOpen, X, CheckCircle2, UserCheck, Hash, ChevronDown } from "lucide-react";
 import { memorizationLogSchema, MemorizationLogInput } from "@/lib/validations/log";
 import { createMemorizationLog } from "@/lib/actions/log";
 import { QURAN_SURAHS } from "@/lib/constants/quran";
-import { calculateRecitationPages, getSurahStandardPages } from "@/lib/quranMetadata";
+import {
+  calculateRecitationPages,
+  getSurahStandardPages,
+  getStudentMemorizedSurahsMap,
+  normalizeSurahName,
+  MemorizedSurahRecord,
+} from "@/lib/quranMetadata";
 import { LogTypeEnum, EvaluationGradeEnum, MemorizationLogRow } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +24,7 @@ interface LogEntryDialogProps {
   onClose: () => void;
   studentId: string;
   studentName: string;
+  existingLogs?: MemorizationLogRow[];
   onSuccess?: (log: MemorizationLogRow) => void;
 }
 
@@ -26,6 +33,7 @@ export function LogEntryDialog({
   onClose,
   studentId,
   studentName,
+  existingLogs = [],
   onSuccess,
 }: LogEntryDialogProps) {
   const [error, setError] = useState<string | null>(null);
@@ -72,6 +80,65 @@ export function LogEntryDialog({
   const selectedGrade = watch("grade");
   const currentPageCount = watch("page_count");
 
+  // Map of memorized Surahs for this student
+  const memorizedSurahsMap = useMemo(() => {
+    return getStudentMemorizedSurahsMap(existingLogs, studentId);
+  }, [existingLogs, studentId]);
+
+  // Check if currently selected Surah was already memorized
+  const selectedSurahRecord = useMemo(() => {
+    const normStart = normalizeSurahName(selectedSurahStart || "");
+    const normEnd = normalizeSurahName(selectedSurahEnd || selectedSurahStart || "");
+    return memorizedSurahsMap.get(normStart) || (isCrossSurah ? memorizedSurahsMap.get(normEnd) : null) || null;
+  }, [memorizedSurahsMap, selectedSurahStart, selectedSurahEnd, isCrossSurah]);
+
+  const isSurahAlreadyMemorized = Boolean(selectedSurahRecord);
+
+  // Automatically force recitation type to revision if already memorized
+  useEffect(() => {
+    if (isSurahAlreadyMemorized && selectedLogType === "جديد") {
+      setValue("log_type", "مراجعة_صغرى");
+    }
+  }, [isSurahAlreadyMemorized, selectedLogType, setValue]);
+
+  // Set default initial surah & log_type based on student's history on modal open
+  useEffect(() => {
+    if (isOpen && existingLogs && existingLogs.length > 0) {
+      const studentLogs = existingLogs.filter((l) => l.student_id === studentId);
+      if (studentLogs.length > 0) {
+        const sorted = [...studentLogs].sort(
+          (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+        );
+        const lastLog = sorted[0];
+        const rawSurahName = lastLog.surah_end || lastLog.surah_start || "";
+        const cleanName = normalizeSurahName(rawSurahName);
+        const lastSurahObj = QURAN_SURAHS.find(
+          (s) => s.name === cleanName || s.name === rawSurahName
+        );
+
+        if (lastSurahObj) {
+          let nextSurah = lastSurahObj;
+          if (lastLog.aya_end >= lastSurahObj.numberOfAyahs && lastSurahObj.id < 114) {
+            const nextSurahObj = QURAN_SURAHS.find((s) => s.id === lastSurahObj.id + 1);
+            if (nextSurahObj) {
+              nextSurah = nextSurahObj;
+            }
+          }
+          const memMap = getStudentMemorizedSurahsMap(existingLogs, studentId);
+          const isNextMem = memMap.has(normalizeSurahName(nextSurah.name));
+
+          setValue("surah_start", nextSurah.name);
+          setValue("surah_end", nextSurah.name);
+          setValue("aya_start", 1);
+          setValue("aya_end", nextSurah.numberOfAyahs);
+          setValue("page_count", getSurahStandardPages(nextSurah.name));
+          setValue("log_type", isNextMem ? "مراجعة_صغرى" : "جديد");
+          return;
+        }
+      }
+    }
+  }, [isOpen, existingLogs, studentId, setValue]);
+
   // Automatically update page_count when surah, ayah, or cross-surah state changes
   useEffect(() => {
     if (!selectedSurahStart) return;
@@ -105,11 +172,25 @@ export function LogEntryDialog({
       !isCrossSurah ? surahObj?.numberOfAyahs : (Number(selectedAyaEnd) || undefined)
     );
     setValue("page_count", calculatedPages);
+
+    const memMap = getStudentMemorizedSurahsMap(existingLogs, studentId);
+    if (memMap.has(normalizeSurahName(surahName))) {
+      setValue("log_type", "مراجعة_صغرى");
+    }
   };
 
   if (!isOpen) return null;
 
   const handleFormSubmit = async (data: MemorizationLogInput) => {
+    // Strict Duplicate Memorization Guard
+    if (data.log_type === "جديد" && isSurahAlreadyMemorized && selectedSurahRecord) {
+      setError(
+        `⚠️ تم حفظ سورة (${selectedSurahRecord.surahName}) مسبقاً بتاريخ (${selectedSurahRecord.formattedDate}). تم قفل خيار (حفظ جديد) وتوجيه التسجيل إلى (مراجعة).`
+      );
+      setValue("log_type", "مراجعة_صغرى");
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
@@ -213,22 +294,40 @@ export function LogEntryDialog({
 
             {/* Log Type Selection */}
             <div className="space-y-1">
-              <Label className="text-xs font-bold text-slate-700 dark:text-slate-200">نوع التسميع</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-200">نوع التسميع</Label>
+                {isSurahAlreadyMemorized && (
+                  <span className="text-[11px] font-extrabold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/80 px-2 py-0.5 rounded-lg border border-amber-300 dark:border-amber-800">
+                    🔒 مقفل للحفظ الجديد
+                  </span>
+                )}
+              </div>
               <div className="grid grid-cols-3 gap-1.5">
-                {logTypes.map((type) => (
-                  <button
-                    key={type.value}
-                    type="button"
-                    onClick={() => setValue("log_type", type.value)}
-                    className={`py-2 px-1.5 text-xs font-bold rounded-xl border transition-all text-center ${
-                      selectedLogType === type.value
-                        ? "bg-teal-700 text-white border-teal-700 shadow-sm"
-                        : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
-                    }`}
-                  >
-                    {type.label}
-                  </button>
-                ))}
+                {logTypes.map((type) => {
+                  const isNewTypeLocked = type.value === "جديد" && isSurahAlreadyMemorized;
+                  return (
+                    <button
+                      key={type.value}
+                      type="button"
+                      disabled={isNewTypeLocked}
+                      onClick={() => {
+                        if (!isNewTypeLocked) {
+                          setValue("log_type", type.value);
+                        }
+                      }}
+                      title={isNewTypeLocked ? "تم حفظ هذه السورة مسبقاً لهذا الطالب" : type.label}
+                      className={`py-2 px-1.5 text-xs font-bold rounded-xl border transition-all text-center ${
+                        isNewTypeLocked
+                          ? "opacity-35 cursor-not-allowed bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-400 line-through"
+                          : selectedLogType === type.value
+                          ? "bg-teal-700 text-white border-teal-700 shadow-sm"
+                          : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      }`}
+                    >
+                      {type.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -244,11 +343,14 @@ export function LogEntryDialog({
                   onChange={(e) => handlePrimarySurahChange(e.target.value)}
                   className="w-full h-9 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 text-xs font-bold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-teal-500 outline-none transition-all"
                 >
-                  {QURAN_SURAHS.map((s) => (
-                    <option key={s.number} value={s.name}>
-                      {s.number}. سورة {s.name} ({s.numberOfAyahs} آية)
-                    </option>
-                  ))}
+                  {QURAN_SURAHS.map((s) => {
+                    const isMem = memorizedSurahsMap.has(normalizeSurahName(s.name));
+                    return (
+                      <option key={s.number} value={s.name}>
+                        {isMem ? `✅ ${s.number}. سورة ${s.name} (تم الحفظ)` : `${s.number}. سورة ${s.name} (${s.numberOfAyahs} آية)`}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
 
@@ -323,15 +425,34 @@ export function LogEntryDialog({
                         },
                       })}
                     >
-                      {QURAN_SURAHS.map((s) => (
-                        <option key={s.number} value={s.name}>
-                          {s.number}. سورة {s.name}
-                        </option>
-                      ))}
+                      {QURAN_SURAHS.map((s) => {
+                        const isMem = memorizedSurahsMap.has(normalizeSurahName(s.name));
+                        return (
+                          <option key={s.number} value={s.name}>
+                            {isMem ? `✅ ${s.number}. سورة ${s.name} (تم الحفظ)` : `${s.number}. سورة ${s.name}`}
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
                 )}
               </div>
+
+              {/* Prominent Amber Warning Box when Surah was previously memorized */}
+              {isSurahAlreadyMemorized && selectedSurahRecord && (
+                <div className="p-3 rounded-2xl bg-amber-500/15 border border-amber-500/40 text-amber-900 dark:text-amber-200 text-xs font-bold flex items-start gap-2.5 shadow-sm animate-in fade-in duration-200">
+                  <span className="text-base shrink-0">⚠️</span>
+                  <div className="space-y-1 leading-relaxed">
+                    <p>
+                      تم حفظ <strong className="text-amber-950 dark:text-amber-100 underline decoration-amber-400 decoration-2 font-black">سورة {selectedSurahRecord.surahName}</strong> مسبقاً بتاريخ (
+                      <span className="font-black text-amber-950 dark:text-amber-100">{selectedSurahRecord.formattedDate}</span>).
+                    </p>
+                    <p className="text-[11px] text-amber-800 dark:text-amber-300/90 font-medium">
+                      تم قفل خيار (حفظ جديد) وتوجيه التسجيل إلى (مراجعة) لمنع تكرار احتساب الصفحات.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Page Count Presets & Precise Input */}

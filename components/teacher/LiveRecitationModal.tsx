@@ -6,7 +6,13 @@ import { X, Mic, CheckCircle2, ChevronRight, ChevronLeft, SkipForward, BookOpen,
 import { StudentRow, MemorizationLogRow, LogTypeEnum, EvaluationGradeEnum } from "@/types";
 import { createMemorizationLog } from "@/lib/actions/log";
 import { QURAN_SURAHS } from "@/lib/constants/quran";
-import { getSurahStandardPages, calculateRecitationPages } from "@/lib/quranMetadata";
+import {
+  getSurahStandardPages,
+  calculateRecitationPages,
+  getStudentMemorizedSurahsMap,
+  normalizeSurahName,
+  MemorizedSurahRecord,
+} from "@/lib/quranMetadata";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 
@@ -67,9 +73,30 @@ export function LiveRecitationModal({
     ? students[currentIndex]
     : null;
 
+  // Map of memorized Surahs for the active student
+  const memorizedSurahsMap = useMemo(() => {
+    if (!currentStudent || !logs || logs.length === 0) return new Map<string, MemorizedSurahRecord>();
+    return getStudentMemorizedSurahsMap(logs, currentStudent.id);
+  }, [currentStudent, logs]);
+
+  // Check if current selected Surah range contains already-memorized Surah
+  const selectedSurahRecord = useMemo(() => {
+    const normStart = normalizeSurahName(surahStart);
+    const normEnd = normalizeSurahName(surahEnd || surahStart);
+    return memorizedSurahsMap.get(normStart) || memorizedSurahsMap.get(normEnd) || null;
+  }, [memorizedSurahsMap, surahStart, surahEnd]);
+
+  const isSurahAlreadyMemorized = Boolean(selectedSurahRecord);
+
+  // Automatically force recitation type to revision if already memorized
+  useEffect(() => {
+    if (isSurahAlreadyMemorized && logType === "جديد") {
+      setLogType("مراجعة_صغرى");
+    }
+  }, [isSurahAlreadyMemorized, logType]);
+
   // Reset and auto-select form inputs when active student changes
   useEffect(() => {
-    setLogType("جديد");
     setGrade("ممتاز");
     setNotes("");
     setErrorMessage(null);
@@ -97,22 +124,28 @@ export function LiveRecitationModal({
             }
           }
 
+          const memMap = getStudentMemorizedSurahsMap(logs, currentStudent.id);
+          const isNextMem = memMap.has(normalizeSurahName(nextSurah.name));
+
           setSurahStart(nextSurah.name);
           setSurahEnd(nextSurah.name);
           setAyaStart(1);
           setAyaEnd(nextSurah.numberOfAyahs);
           setPageCount(getSurahStandardPages(nextSurah.name));
+          setLogType(isNextMem ? "مراجعة_صغرى" : "جديد");
           return;
         }
       }
     }
 
     // Default fallback if no previous log or student
+    const fallbackMem = currentStudent ? getStudentMemorizedSurahsMap(logs, currentStudent.id).has("الفاتحة") : false;
     setSurahStart("الفاتحة");
     setSurahEnd("الفاتحة");
     setAyaStart(1);
     setAyaEnd(7);
     setPageCount(getSurahStandardPages("الفاتحة"));
+    setLogType(fallbackMem ? "مراجعة_صغرى" : "جديد");
   }, [currentIndex, currentStudent, logs]);
 
   // Reset session counters whenever modal opens
@@ -176,6 +209,16 @@ export function LiveRecitationModal({
   // Submit Recitation for Current Student and Advance
   const handleSaveAndNext = async () => {
     if (!currentStudent) return;
+
+    // Strict Duplicate Memorization Guard: reject and warn if attempted as 'جديد' when already memorized
+    if (logType === "جديد" && isSurahAlreadyMemorized && selectedSurahRecord) {
+      setErrorMessage(
+        `⚠️ تم حفظ سورة (${selectedSurahRecord.surahName}) مسبقاً بتاريخ (${selectedSurahRecord.formattedDate}). تم قفل خيار (حفظ جديد) وتوجيه التسجيل إلى (مراجعة).`
+      );
+      setLogType("مراجعة_صغرى");
+      return;
+    }
+
     setIsSubmitting(true);
     setErrorMessage(null);
 
@@ -336,13 +379,28 @@ export function LiveRecitationModal({
 
             {/* Recitation Type Toggle Buttons */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-400">نوع التسميع 🎯</label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-400">نوع التسميع 🎯</label>
+                {isSurahAlreadyMemorized && (
+                  <span className="text-[11px] font-extrabold text-amber-400 bg-amber-950/80 px-2 py-0.5 rounded-lg border border-amber-800/80">
+                    🔒 مقفل للحفظ الجديد
+                  </span>
+                )}
+              </div>
               <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
-                  onClick={() => setLogType("جديد")}
+                  disabled={isSurahAlreadyMemorized}
+                  onClick={() => {
+                    if (!isSurahAlreadyMemorized) {
+                      setLogType("جديد");
+                    }
+                  }}
+                  title={isSurahAlreadyMemorized ? "تم حفظ هذه السورة مسبقاً لهذا الطالب" : "حفظ جديد"}
                   className={`py-2.5 px-3 rounded-2xl text-xs font-black border transition-all ${
-                    logType === "جديد"
+                    isSurahAlreadyMemorized
+                      ? "opacity-35 cursor-not-allowed bg-slate-950 border-slate-850 text-slate-500 line-through"
+                      : logType === "جديد"
                       ? "bg-emerald-600 border-emerald-500 text-white shadow-md"
                       : "bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-850"
                   }`}
@@ -422,62 +480,86 @@ export function LiveRecitationModal({
             </div>
 
             {/* Surah Selection */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-400">السورة (البداية)</label>
-                <select
-                  value={surahStart}
-                  onChange={(e) => {
-                    const selectedName = e.target.value;
-                    const wasSameSurah = !surahEnd || surahStart === surahEnd;
-                    setSurahStart(selectedName);
-                    const targetEnd = wasSameSurah ? selectedName : surahEnd;
-                    if (wasSameSurah) {
-                      setSurahEnd(selectedName);
-                    }
-                    const surahObj = QURAN_SURAHS.find((s) => s.name === selectedName);
-                    if (surahObj) {
-                      setAyaStart(1);
+            <div className="space-y-2.5">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-400">السورة (البداية)</label>
+                  <select
+                    value={surahStart}
+                    onChange={(e) => {
+                      const selectedName = e.target.value;
+                      const wasSameSurah = !surahEnd || surahStart === surahEnd;
+                      setSurahStart(selectedName);
+                      const targetEnd = wasSameSurah ? selectedName : surahEnd;
                       if (wasSameSurah) {
+                        setSurahEnd(selectedName);
+                      }
+                      const surahObj = QURAN_SURAHS.find((s) => s.name === selectedName);
+                      if (surahObj) {
+                        setAyaStart(1);
+                        if (wasSameSurah) {
+                          setAyaEnd(surahObj.numberOfAyahs);
+                        }
+                      }
+                      const calculated = calculateRecitationPages(selectedName, targetEnd);
+                      setPageCount(calculated);
+                    }}
+                    className="w-full p-2.5 rounded-2xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-100"
+                  >
+                    {QURAN_SURAHS.map((s) => {
+                      const isMem = memorizedSurahsMap.has(normalizeSurahName(s.name));
+                      return (
+                        <option key={s.id} value={s.name}>
+                          {isMem ? `✅ ${s.id}. سورة ${s.name} (تم الحفظ)` : `${s.id}. سورة ${s.name}`}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-400">السورة (النهاية)</label>
+                  <select
+                    value={surahEnd}
+                    onChange={(e) => {
+                      const selectedName = e.target.value;
+                      setSurahEnd(selectedName);
+                      const surahObj = QURAN_SURAHS.find((s) => s.name === selectedName);
+                      if (surahObj) {
                         setAyaEnd(surahObj.numberOfAyahs);
                       }
-                    }
-                    const calculated = calculateRecitationPages(selectedName, targetEnd);
-                    setPageCount(calculated);
-                  }}
-                  className="w-full p-2.5 rounded-2xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-100"
-                >
-                  {QURAN_SURAHS.map((s) => (
-                    <option key={s.id} value={s.name}>
-                      {s.id}. سورة {s.name}
-                    </option>
-                  ))}
-                </select>
+                      const calculated = calculateRecitationPages(surahStart, selectedName);
+                      setPageCount(calculated);
+                    }}
+                    className="w-full p-2.5 rounded-2xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-100"
+                  >
+                    {QURAN_SURAHS.map((s) => {
+                      const isMem = memorizedSurahsMap.has(normalizeSurahName(s.name));
+                      return (
+                        <option key={s.id} value={s.name}>
+                          {isMem ? `✅ ${s.id}. سورة ${s.name} (تم الحفظ)` : `${s.id}. سورة ${s.name}`}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-400">السورة (النهاية)</label>
-                <select
-                  value={surahEnd}
-                  onChange={(e) => {
-                    const selectedName = e.target.value;
-                    setSurahEnd(selectedName);
-                    const surahObj = QURAN_SURAHS.find((s) => s.name === selectedName);
-                    if (surahObj) {
-                      setAyaEnd(surahObj.numberOfAyahs);
-                    }
-                    const calculated = calculateRecitationPages(surahStart, selectedName);
-                    setPageCount(calculated);
-                  }}
-                  className="w-full p-2.5 rounded-2xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-100"
-                >
-                  {QURAN_SURAHS.map((s) => (
-                    <option key={s.id} value={s.name}>
-                      {s.id}. سورة {s.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {/* Prominent Amber Warning Box when Surah was previously memorized */}
+              {isSurahAlreadyMemorized && selectedSurahRecord && (
+                <div className="p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/40 text-amber-200 text-xs font-bold flex items-start gap-2.5 shadow-sm animate-in fade-in duration-200">
+                  <span className="text-base shrink-0">⚠️</span>
+                  <div className="space-y-1 leading-relaxed">
+                    <p>
+                      تم حفظ <strong className="text-amber-100 underline decoration-amber-400 decoration-2 font-black">سورة {selectedSurahRecord.surahName}</strong> مسبقاً بتاريخ (
+                      <span className="font-black text-amber-100">{selectedSurahRecord.formattedDate}</span>).
+                    </p>
+                    <p className="text-[11px] text-amber-300/90 font-medium">
+                      تم قفل خيار (حفظ جديد) وتوجيه التسجيل إلى (مراجعة) لمنع تكرار احتساب الصفحات.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Evaluation Grade Rating Badges */}

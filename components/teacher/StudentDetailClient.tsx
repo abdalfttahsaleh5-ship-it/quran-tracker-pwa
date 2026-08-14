@@ -472,6 +472,7 @@ export function StudentDetailClient({
         onClose={() => setIsLogDialogOpen(false)}
         studentId={student.id}
         studentName={student.full_name}
+        existingLogs={logs}
         onSuccess={(newLog) => {
           setLogs((prev) => [newLog, ...prev.filter((l) => l.id !== newLog.id)]);
         }}

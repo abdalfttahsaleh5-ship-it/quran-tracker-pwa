@@ -216,3 +216,99 @@ export function getJuz30TotalPages(): number {
       .toFixed(1)
   );
 }
+
+export interface MemorizedSurahRecord {
+  surahName: string;
+  memorizedAt: string;
+  formattedDate: string;
+  logId: string;
+}
+
+export function normalizeSurahName(name: string): string {
+  return name.replace(/^سورة\s*/, "").trim();
+}
+
+export function formatArabicLogDate(dateStr?: string | null): string {
+  if (!dateStr) return "تاريخ سابق";
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString("ar-SA", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  } catch {
+    return dateStr || "تاريخ سابق";
+  }
+}
+
+/**
+ * Returns a map of normalized surah name -> MemorizedSurahRecord for all surahs
+ * that have been logged under 'جديد' (or already completed) for the given student.
+ */
+export function getStudentMemorizedSurahsMap(
+  logs?: Array<{
+    student_id?: string;
+    log_type?: string;
+    surah_start?: string | null;
+    surah_end?: string | null;
+    surahs?: string[] | null;
+    created_at?: string;
+    id?: string;
+  }> | null,
+  studentId?: string
+): Map<string, MemorizedSurahRecord> {
+  const map = new Map<string, MemorizedSurahRecord>();
+  if (!logs || logs.length === 0) return map;
+
+  const studentLogs = studentId ? logs.filter((l) => l.student_id === studentId) : logs;
+  const newLogs = studentLogs.filter((l) => l.log_type === "جديد");
+
+  for (const log of newLogs) {
+    const formattedDate = formatArabicLogDate(log.created_at);
+
+    // Check surah range if available
+    const startMeta = log.surah_start ? getSurahMetadata(log.surah_start) : undefined;
+    const endMeta = log.surah_end ? getSurahMetadata(log.surah_end) : startMeta;
+
+    if (startMeta && endMeta) {
+      const minId = Math.min(startMeta.id, endMeta.id);
+      const maxId = Math.max(startMeta.id, endMeta.id);
+      for (let id = minId; id <= maxId; id++) {
+        const s = getSurahMetadata(id);
+        if (s) {
+          const norm = normalizeSurahName(s.name);
+          if (!map.has(norm)) {
+            map.set(norm, {
+              surahName: s.name,
+              memorizedAt: log.created_at || "",
+              formattedDate,
+              logId: log.id || "",
+            });
+          }
+        }
+      }
+    } else {
+      const names: string[] = [];
+      if (log.surahs && Array.isArray(log.surahs)) names.push(...log.surahs);
+      if (log.surah_start) names.push(log.surah_start);
+      if (log.surah_end) names.push(log.surah_end);
+
+      for (const raw of names) {
+        const norm = normalizeSurahName(raw);
+        if (!map.has(norm)) {
+          map.set(norm, {
+            surahName: norm,
+            memorizedAt: log.created_at || "",
+            formattedDate,
+            logId: log.id || "",
+          });
+        }
+      }
+    }
+  }
+
+  return map;
+}
+
