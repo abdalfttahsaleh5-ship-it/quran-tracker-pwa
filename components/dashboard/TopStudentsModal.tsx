@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { X, Trophy, Printer } from "lucide-react";
+import { X, Trophy, Printer, Calendar } from "lucide-react";
 import { StudentRow, MemorizationLogRow } from "@/types";
 
 export interface TopStudentItem {
@@ -10,6 +10,8 @@ export interface TopStudentItem {
   totalPages: number;
   rank: number;
 }
+
+export type TimeframeOption = "this_week" | "7_days" | "10_days" | "14_days" | "30_days";
 
 interface TopStudentsModalProps {
   isOpen: boolean;
@@ -25,7 +27,8 @@ export function TopStudentsModal({
   logs,
 }: TopStudentsModalProps) {
   const [mounted, setMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState<"all" | "weekly">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "period">("period");
+  const [timeframe, setTimeframe] = useState<TimeframeOption>("7_days");
 
   useEffect(() => {
     setMounted(true);
@@ -43,19 +46,44 @@ export function TopStudentsModal({
     };
   }, [isOpen]);
 
-  // Calculate total pages for each student and rank top 5 according to activeTab
+  // Calculate start date based on selected timeframe option
+  const getStartDate = (tf: TimeframeOption): Date | null => {
+    const now = new Date();
+
+    switch (tf) {
+      case "this_week": {
+        // Sunday of current week (Arabic week starts on Sunday)
+        const day = now.getDay(); // 0 = Sunday
+        const startDate = new Date(now);
+        startDate.setDate(now.getDate() - day);
+        startDate.setHours(0, 0, 0, 0);
+        return startDate;
+      }
+      case "7_days":
+        return new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      case "10_days":
+        return new Date(Date.now() - 10 * 24 * 60 * 60 * 1000);
+      case "14_days":
+        return new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+      case "30_days":
+        return new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      default:
+        return new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    }
+  };
+
+  // Calculate total pages for each student and rank top 5 according to activeTab and timeframe
   const topStudents: TopStudentItem[] = useMemo(() => {
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const startDate = activeTab === "all" ? null : getStartDate(timeframe);
 
     return students
       .map((student) => {
         const studentLogs = logs.filter((l) => {
           if (l.student_id !== student.id) return false;
-          if (activeTab === "weekly") {
+          if (startDate) {
             if (!l.created_at) return false;
             const logDate = new Date(l.created_at);
-            return !isNaN(logDate.getTime()) && logDate >= sevenDaysAgo;
+            return !isNaN(logDate.getTime()) && logDate >= startDate;
           }
           return true;
         });
@@ -71,13 +99,49 @@ export function TopStudentsModal({
       .sort((a, b) => b.totalPages - a.totalPages)
       .slice(0, 5)
       .map((item, index) => ({ ...item, rank: index + 1 }));
-  }, [students, logs, activeTab]);
+  }, [students, logs, activeTab, timeframe]);
 
   if (!isOpen || !mounted) return null;
 
   const handlePrint = () => {
     if (typeof window !== "undefined") {
       window.print();
+    }
+  };
+
+  const getTimeframeLabel = (tf: TimeframeOption, isAll: boolean) => {
+    if (isAll) return "العام (الكلي)";
+    switch (tf) {
+      case "this_week":
+        return "الأسبوع الحالي (من الأحد)";
+      case "7_days":
+        return "آخر 7 أيام";
+      case "10_days":
+        return "أسبوع ونصف (10 أيام)";
+      case "14_days":
+        return "أسبوعان (14 يوم)";
+      case "30_days":
+        return "شهر كامل (30 يوم)";
+      default:
+        return "الفترة المحددة";
+    }
+  };
+
+  const getPrintTitle = (tf: TimeframeOption, isAll: boolean) => {
+    if (isAll) return "لوحة شرف متميزي حلقة القرآن الكريم (عام)";
+    switch (tf) {
+      case "this_week":
+        return "لوحة شرف متميزي الأسبوع الحالي في القرآن الكريم";
+      case "7_days":
+        return "لوحة شرف متميزي الأيام السبعة الماضية";
+      case "10_days":
+        return "لوحة شرف متميزي الـ 10 أيام الماضية (أسبوع ونصف)";
+      case "14_days":
+        return "لوحة شرف متميزي الأسبوعين الماضيين (14 يوم)";
+      case "30_days":
+        return "لوحة شرف متميزي الشهر الماضي (30 يوم)";
+      default:
+        return "لوحة شرف متميزي الفترة المحددة";
     }
   };
 
@@ -149,8 +213,8 @@ export function TopStudentsModal({
           </button>
         </div>
 
-        {/* Tabbed Segmented Control Switcher */}
-        <div className="px-4 pt-3 pb-1 shrink-0 bg-white dark:bg-slate-900">
+        {/* Tabbed Segmented Control & Timeframe Switcher */}
+        <div className="px-4 pt-3 pb-2 shrink-0 bg-white dark:bg-slate-900 space-y-2.5">
           <div className="flex p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl text-xs font-bold">
             <button
               type="button"
@@ -162,21 +226,42 @@ export function TopStudentsModal({
               }`}
             >
               <span>🌐</span>
-              <span>العام</span>
+              <span>العام (الكل)</span>
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab("weekly")}
+              onClick={() => setActiveTab("period")}
               className={`flex-1 py-2 px-3 rounded-lg transition-all text-center flex items-center justify-center gap-1.5 ${
-                activeTab === "weekly"
+                activeTab === "period"
                   ? "bg-white dark:bg-slate-700 text-amber-800 dark:text-amber-300 shadow-sm font-black"
                   : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-semibold"
               }`}
             >
               <span>📅</span>
-              <span>هذا الأسبوع</span>
+              <span>فترة محددة</span>
             </button>
           </div>
+
+          {/* Flexible Timeframe Selector (visible when activeTab === 'period') */}
+          {activeTab === "period" && (
+            <div className="flex items-center gap-2 bg-amber-50/60 dark:bg-amber-950/20 p-2 rounded-2xl border border-amber-200/70 dark:border-amber-900/40">
+              <Calendar className="w-4 h-4 text-amber-700 dark:text-amber-400 shrink-0" />
+              <span className="text-xs font-bold text-amber-900 dark:text-amber-300 shrink-0">
+                الفترة:
+              </span>
+              <select
+                value={timeframe}
+                onChange={(e) => setTimeframe(e.target.value as TimeframeOption)}
+                className="w-full text-xs font-extrabold py-1.5 px-2.5 rounded-xl border border-amber-300/80 dark:border-amber-800 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all cursor-pointer"
+              >
+                <option value="this_week">الأسبوع الحالي (من الأحد)</option>
+                <option value="7_days">آخر 7 أيام</option>
+                <option value="10_days">أسبوع ونصف (10 أيام)</option>
+                <option value="14_days">أسبوعان (14 يوم)</option>
+                <option value="30_days">شهر كامل (30 يوم)</option>
+              </select>
+            </div>
+          )}
         </div>
 
         {/* Scrollable Body */}
@@ -219,8 +304,8 @@ export function TopStudentsModal({
             })
           ) : (
             <p className="text-center text-slate-500 dark:text-slate-400 py-8 text-sm font-bold">
-              {activeTab === "weekly"
-                ? "لا يوجد تسميعات مسجلة للطلاب هذا الأسبوع"
+              {activeTab === "period"
+                ? `لا يوجد تسميعات مسجلة للطلاب خلال (${getTimeframeLabel(timeframe, false)})`
                 : "لا يوجد تسميعات مسجلة للطلاب بعد"}
             </p>
           )}
@@ -287,18 +372,18 @@ export function TopStudentsModal({
         <div className="text-center border-b-4 border-amber-500 pb-3 mb-5">
           <div className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full bg-amber-100 text-amber-900 font-black text-xs mb-1.5">
             <span>
-              🏆 لوحة الشرف والتميز {activeTab === "weekly" ? "(هذا الأسبوع)" : "(العام)"} 🏆
+              🏆 لوحة الشرف والتميز ({getTimeframeLabel(timeframe, activeTab === "all")}) 🏆
             </span>
           </div>
           <h1 className="text-2xl font-black text-emerald-950">
-            {activeTab === "weekly"
-              ? "لوحة شرف متميزي الأسبوع في القرآن الكريم"
-              : "لوحة شرف متميزي حلقة القرآن الكريم"}
+            {getPrintTitle(timeframe, activeTab === "all")}
           </h1>
           <p className="text-xs font-bold text-slate-600 mt-1">
-            الطلاب الأوائل الأكثر إنجازاً في التسميع والحفظ{" "}
-            {activeTab === "weekly" ? "خلال السبعة أيام الماضية" : "إجمالياً"} —{" "}
-            <span className="text-emerald-800 font-extrabold">{currentDateFormatted}</span>
+            الطلاب الأوائل الأكثر إنجازاً في التسميع والحفظ —{" "}
+            <span className="text-emerald-900 font-black">
+              {getTimeframeLabel(timeframe, activeTab === "all")}
+            </span>{" "}
+            — <span className="text-emerald-800 font-extrabold">{currentDateFormatted}</span>
           </p>
         </div>
 
@@ -336,8 +421,8 @@ export function TopStudentsModal({
             ) : (
               <tr>
                 <td colSpan={4} className="p-4 text-center text-slate-500 font-bold">
-                  {activeTab === "weekly"
-                    ? "لا يوجد تسميعات مسجلة للطلاب هذا الأسبوع"
+                  {activeTab === "period"
+                    ? `لا يوجد تسميعات مسجلة للطلاب خلال (${getTimeframeLabel(timeframe, false)})`
                     : "لا يوجد تسميعات مسجلة للطلاب بعد"}
                 </td>
               </tr>
