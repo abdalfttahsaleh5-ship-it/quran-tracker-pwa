@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { BookOpen, Sparkles, Share2, PlusSquare, X, Download, MoreVertical } from "lucide-react";
+import { BookOpen, X, Download, CheckCircle2, Share2, PlusSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { lightHaptic, successHaptic } from "@/lib/haptics";
 
@@ -17,6 +17,8 @@ export function PWAInstallModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  const [showIOSHint, setShowIOSHint] = useState(false);
+  const [installedSuccess, setInstalledSuccess] = useState(false);
 
   useEffect(() => {
     // Check if running as installed standalone PWA
@@ -34,6 +36,7 @@ export function PWAInstallModal() {
 
     // Global event listener to manually open this modal from Header or any button
     const handleManualOpen = () => {
+      setShowIOSHint(false);
       setIsOpen(true);
     };
 
@@ -44,7 +47,6 @@ export function PWAInstallModal() {
 
     if (!isDismissed) {
       if (isIosDevice) {
-        // Show for iOS users after a gentle 3s delay
         const timer = setTimeout(() => {
           setIsOpen(true);
         }, 3000);
@@ -55,7 +57,7 @@ export function PWAInstallModal() {
       }
     }
 
-    // For Android/Chrome: listen to beforeinstallprompt
+    // For Android/Chrome: capture beforeinstallprompt
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       const promptEvent = e as BeforeInstallPromptEvent;
@@ -79,29 +81,46 @@ export function PWAInstallModal() {
 
   const handleInstallClick = async () => {
     lightHaptic();
-    const prompt = deferredPrompt || (window as unknown as { deferredPwaPrompt?: BeforeInstallPromptEvent }).deferredPwaPrompt;
-    if (!prompt) return;
+    const prompt =
+      deferredPrompt ||
+      (typeof window !== "undefined"
+        ? (window as unknown as { deferredPwaPrompt?: BeforeInstallPromptEvent }).deferredPwaPrompt
+        : null);
 
-    await prompt.prompt();
-    const choice = await prompt.userChoice;
+    if (prompt) {
+      try {
+        await prompt.prompt();
+        const choice = await prompt.userChoice;
 
-    if (choice.outcome === "accepted") {
-      successHaptic();
-      setIsOpen(false);
+        if (choice.outcome === "accepted") {
+          successHaptic();
+          setInstalledSuccess(true);
+          setTimeout(() => {
+            setIsOpen(false);
+            setInstalledSuccess(false);
+          }, 2000);
+        }
+      } catch (err) {
+        console.error("Install prompt error:", err);
+      }
+      setDeferredPrompt(null);
+      (window as unknown as { deferredPwaPrompt?: BeforeInstallPromptEvent | null }).deferredPwaPrompt = null;
+    } else if (isIOS) {
+      // Graceful fallback toggle for iOS
+      setShowIOSHint(true);
+    } else {
+      setShowIOSHint(true);
     }
-    setDeferredPrompt(null);
-    (window as unknown as { deferredPwaPrompt?: BeforeInstallPromptEvent | null }).deferredPwaPrompt = null;
   };
 
   const handleDismiss = () => {
     lightHaptic();
     setIsOpen(false);
+    setShowIOSHint(false);
     sessionStorage.setItem(PWA_DISMISS_SESSION_KEY, "true");
   };
 
   if (isStandalone || !isOpen) return null;
-
-  const currentPrompt = deferredPrompt || (typeof window !== "undefined" ? (window as unknown as { deferredPwaPrompt?: BeforeInstallPromptEvent }).deferredPwaPrompt : null);
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-300">
@@ -123,7 +142,7 @@ export function PWAInstallModal() {
               <div className="flex items-center gap-1.5 pt-0.5">
                 <span className="text-[11px] font-black text-amber-500">⭐⭐⭐⭐⭐</span>
                 <span className="text-[10px] font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/80 px-2 py-0.2 rounded-md">
-                  النسخة الرسمية
+                  النسخة الرسمية للمسجد
                 </span>
               </div>
             </div>
@@ -138,102 +157,61 @@ export function PWAInstallModal() {
           </button>
         </div>
 
-        {/* Feature Highlights Pills */}
-        <div className="grid grid-cols-1 gap-2 pt-1">
-          <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300">
+        {/* Feature Highlights */}
+        <div className="space-y-2 text-xs font-bold text-slate-600 dark:text-slate-300">
+          <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
             <span className="text-base">⚡</span>
-            <span>وصول فوري بلمسة واحدة من شاشتك الرئيسية</span>
+            <span>وصول فوري وسريع من الشاشة الرئيسية</span>
           </div>
 
-          <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300">
+          <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
             <span className="text-base">🎙️</span>
-            <span>استماع لتلاوات الطلاب وتسجيل الملاحظات الصوتية</span>
+            <span>استماع لتلاوات الطلاب وتسجيل التسميع</span>
           </div>
 
-          <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300">
+          <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
             <span className="text-base">📴</span>
-            <span>تجربة تطبيق أصلية كاملة دون الحاجة لمتصفح</span>
+            <span>يعمل بسلاسة كتطبيق أصلي دون الحاجة لمتصفح</span>
           </div>
         </div>
 
-        {/* Platform Specific Action Cards */}
-        {isIOS ? (
-          /* iOS Step-by-Step Instructions */
-          <div className="p-4 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 space-y-3">
-            <h4 className="text-xs font-black text-emerald-900 dark:text-emerald-200 flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-emerald-600" />
-              <span>طريقة التثبيت على أجهزة آيفون (iOS Safari):</span>
-            </h4>
-
-            <div className="space-y-2 text-xs font-bold text-slate-700 dark:text-slate-300">
-              <div className="flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-emerald-200 dark:bg-emerald-800 text-emerald-900 dark:text-emerald-100 text-[11px] font-black flex items-center justify-center shrink-0">
-                  1
-                </span>
-                <span>
-                  اضغط على زر المشاركة السفلي في Safari{" "}
-                  <Share2 className="w-4 h-4 inline-block text-emerald-700 dark:text-emerald-400 mx-1 align-text-bottom" />
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-emerald-200 dark:bg-emerald-800 text-emerald-900 dark:text-emerald-100 text-[11px] font-black flex items-center justify-center shrink-0">
-                  2
-                </span>
-                <span>
-                  مرر للأسفل واختر{" "}
-                  <strong className="text-emerald-800 dark:text-emerald-300">
-                    &quot;إضافة إلى الشاشة الرئيسية&quot;
-                  </strong>{" "}
-                  <PlusSquare className="w-4 h-4 inline-block text-emerald-700 dark:text-emerald-400 mx-1 align-text-bottom" />
-                </span>
-              </div>
-            </div>
-          </div>
-        ) : currentPrompt ? (
-          /* Android / Chrome Native Install Button */
-          <Button
-            onClick={handleInstallClick}
-            className="w-full py-4 h-auto bg-emerald-700 hover:bg-emerald-800 active:scale-[0.98] text-white font-black text-sm sm:text-base rounded-2xl shadow-xl shadow-emerald-800/20 gap-2 transition-all"
-          >
-            <Download className="w-5 h-5" />
-            <span>تثبيت التطبيق الآن 📲</span>
-          </Button>
-        ) : (
-          /* Android / Browser Menu Fallback Instructions */
-          <div className="p-4 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 space-y-3">
-            <h4 className="text-xs font-black text-emerald-900 dark:text-emerald-200 flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-emerald-600" />
-              <span>طريقة التثبيت عبر المتصفح (Android / Chrome):</span>
-            </h4>
-
-            <div className="space-y-2 text-xs font-bold text-slate-700 dark:text-slate-300">
-              <div className="flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-emerald-200 dark:bg-emerald-800 text-emerald-900 dark:text-emerald-100 text-[11px] font-black flex items-center justify-center shrink-0">
-                  1
-                </span>
-                <span>
-                  اضغط على زر خيارات المتصفح (الثلاث نقاط علوياً){" "}
-                  <MoreVertical className="w-4 h-4 inline-block text-emerald-700 dark:text-emerald-400 mx-0.5 align-text-bottom" />
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-emerald-200 dark:bg-emerald-800 text-emerald-900 dark:text-emerald-100 text-[11px] font-black flex items-center justify-center shrink-0">
-                  2
-                </span>
-                <span>
-                  اختر <strong className="text-emerald-800 dark:text-emerald-300">&quot;تثبيت التطبيق&quot;</strong> أو <strong className="text-emerald-800 dark:text-emerald-300">&quot;إضافة إلى الشاشة الرئيسية&quot;</strong>
-                </span>
-              </div>
-            </div>
+        {/* Success Toast State */}
+        {installedSuccess && (
+          <div className="p-3 rounded-2xl bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-200 text-xs font-black flex items-center justify-center gap-2 animate-in zoom-in-95">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            <span>تم تثبيت التطبيق بنجاح 🎉</span>
           </div>
         )}
 
+        {/* Graceful iOS / Browser Hint (Only if prompted and prompt was blocked) */}
+        {showIOSHint && (
+          <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-xs font-bold text-emerald-900 dark:text-emerald-200 space-y-1.5 animate-in fade-in">
+            <p className="flex items-center gap-1.5 font-black">
+              <span>للإضافة للشاشة الرئيسية:</span>
+            </p>
+            <p className="text-[11px] text-slate-600 dark:text-slate-300">
+              اضغط على زر المشاركة{" "}
+              <Share2 className="w-3.5 h-3.5 inline text-emerald-700 mx-0.5 align-text-bottom" /> ثم اختر{" "}
+              <strong className="text-emerald-700 dark:text-emerald-400">&quot;إضافة إلى الشاشة الرئيسية ➕&quot;</strong>
+            </p>
+          </div>
+        )}
+
+        {/* Single Full-Width Primary Action Button */}
+        <Button
+          type="button"
+          onClick={handleInstallClick}
+          className="w-full py-4 h-auto bg-emerald-700 hover:bg-emerald-800 active:scale-[0.98] text-white font-black text-sm sm:text-base rounded-2xl shadow-xl shadow-emerald-800/20 gap-2 transition-all flex items-center justify-center"
+        >
+          <Download className="w-5 h-5" />
+          <span>تثبيت التطبيق على الهاتف الآن 📲</span>
+        </Button>
+
         {/* Footer Dismiss Button */}
         <button
+          type="button"
           onClick={handleDismiss}
-          className="w-full py-2.5 text-xs font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors text-center"
+          className="w-full py-2 text-xs font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors text-center"
         >
           المتابعة في المتصفح (إغلاق)
         </button>
