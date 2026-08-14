@@ -93,6 +93,32 @@ export function StudentList({
     return getAttendanceAlertsMap(students, initialAttendance);
   }, [students, initialAttendance]);
 
+  // Compute weekly top student id for gamification badges
+  const weeklyTopStudentId = useMemo(() => {
+    if (!students || students.length === 0 || !logs || logs.length === 0) return undefined;
+    const now = new Date();
+    const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay(), 0, 0, 0, 0).getTime();
+
+    const weeklyLogs = logs.filter((l) => l.created_at && new Date(l.created_at).getTime() >= startOfWeek);
+    const pagesMap: Record<string, number> = {};
+    weeklyLogs.forEach((l) => {
+      if (l.student_id) {
+        pagesMap[l.student_id] = (pagesMap[l.student_id] || 0) + (Number(l.page_count) || 1);
+      }
+    });
+
+    let topId: string | undefined = undefined;
+    let maxPages = 0;
+    Object.entries(pagesMap).forEach(([id, p]) => {
+      if (p > maxPages) {
+        maxPages = p;
+        topId = id;
+      }
+    });
+
+    return maxPages > 0 ? topId : undefined;
+  }, [students, logs]);
+
   const filteredStudents = students
     .filter((s) => s.full_name.toLowerCase().includes(searchQuery.trim().toLowerCase()))
     .sort((a, b) => {
@@ -259,7 +285,9 @@ export function StudentList({
               key={student.id}
               student={student}
               logs={logs}
+              attendance={initialAttendance}
               alert={alertsMap.get(student.id)}
+              weeklyTopStudentId={weeklyTopStudentId}
               onEdit={handleOpenEdit}
               onDelete={handleOpenDelete}
             />

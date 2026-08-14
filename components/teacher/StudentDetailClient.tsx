@@ -24,6 +24,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Button } from "@/components/ui/button";
 import { useRealtimeSync, RealtimePayload } from "@/lib/hooks/useRealtimeSync";
 import { lightHaptic } from "@/lib/haptics";
+import { ShareAchievementModal } from "./ShareAchievementModal";
 
 const LogEntryDialog = dynamic(() => import("./LogEntryDialog").then((mod) => mod.LogEntryDialog), { ssr: false });
 const AttendanceDialog = dynamic(() => import("./AttendanceDialog").then((mod) => mod.AttendanceDialog), { ssr: false });
@@ -45,6 +46,7 @@ export function StudentDetailClient({
   const [attendance, setAttendance] = useState<AttendanceRecordRow[]>(initialAttendance);
   const [isLogDialogOpen, setIsLogDialogOpen] = useState(false);
   const [isAttendanceDialogOpen, setIsAttendanceDialogOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [imgError, setImgError] = useState(false);
 
   // Realtime Payload Handler for Instant Client State Update
@@ -200,11 +202,27 @@ export function StudentDetailClient({
           <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 shrink-0 w-full md:w-auto">
             <Button
               size="lg"
-              onClick={() => setIsLogDialogOpen(true)}
+              onClick={() => {
+                lightHaptic();
+                setIsLogDialogOpen(true);
+              }}
               className="w-full sm:w-auto bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-2xl gap-2 shadow-lg shadow-amber-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               <Plus className="w-5 h-5 text-slate-950" />
               <span>تسجيل تسميع جديد 📖</span>
+            </Button>
+
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={() => {
+                lightHaptic();
+                setIsShareModalOpen(true);
+              }}
+              className="w-full sm:w-auto bg-amber-500/20 border-amber-400/50 text-amber-300 hover:bg-amber-500/30 font-bold rounded-2xl gap-2"
+            >
+              <Sparkles className="w-4 h-4 text-amber-300" />
+              <span>تهنئة ومشاركة الإنجاز 🌟</span>
             </Button>
 
             <Link href={`/parent/${student.parent_token}`} prefetch={true} target="_blank" className="w-full sm:w-auto">
@@ -507,6 +525,14 @@ export function StudentDetailClient({
             return [newRecord, ...prev];
           });
         }}
+      />
+
+      <ShareAchievementModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        student={student}
+        logs={logs}
+        attendance={attendance}
       />
     </div>
   );
