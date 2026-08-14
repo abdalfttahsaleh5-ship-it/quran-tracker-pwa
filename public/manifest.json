@@ -3,9 +3,10 @@
   "short_name": "متابع الحفظ",
   "description": "تطبيق متابعة حفظ وتسميع القرآن الكريم",
   "start_url": "/",
+  "id": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#065f46",
+  "background_color": "#064e3b",
+  "theme_color": "#064e3b",
   "dir": "rtl",
   "lang": "ar",
   "icons": [
