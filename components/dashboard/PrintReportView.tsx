@@ -6,6 +6,7 @@ import { StudentRow } from "@/types";
 export interface StudentReportItem {
   student: StudentRow;
   attendanceText: string;
+  badgeStyle?: string;
   pagesCount: number;
   totalPresentCount: number;
 }
