@@ -15,6 +15,7 @@ import {
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { ParentProgressPayload } from "@/types";
 import { GRADE_LABELS, ATTENDANCE_LABELS, LOG_TYPE_LABELS, formatArabicDate, formatPageCount } from "@/lib/utils";
+import { AudioPlayer } from "@/components/common/AudioPlayer";
 
 interface ParentPortalClientProps {
   student: NonNullable<ParentProgressPayload["student"]>;
@@ -240,6 +241,12 @@ export function ParentPortalClient({ student, logs, attendance }: ParentPortalCl
                           من سورة <span className="text-teal-700 dark:text-teal-400">{log?.surah_start || "-"}</span> (آية {log?.aya_start || 1}) إلى سورة{" "}
                           <span className="text-teal-700 dark:text-teal-400">{log?.surah_end || "-"}</span> (آية {log?.aya_end || 1})
                         </div>
+
+                        {log?.audio_url && (
+                          <div className="pt-1">
+                            <AudioPlayer src={log.audio_url} title={`تلاوة ${log?.surah_start}`} />
+                          </div>
+                        )}
 
                         {log?.notes && (
                           <div className="text-xs text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200/80 dark:border-slate-800">

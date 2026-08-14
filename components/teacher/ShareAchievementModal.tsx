@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { X, Award, Share2, Copy, Check, Sparkles, MessageCircle, ExternalLink, ShieldCheck } from "lucide-react";
+import { X, Award, Share2, Copy, Check, Sparkles, MessageCircle, ExternalLink, ShieldCheck, Volume2 } from "lucide-react";
 import { StudentRow, MemorizationLogRow, AttendanceRecordRow } from "@/types";
 import { calculateStudentBadges } from "@/lib/achievements";
 import { generateParentPraiseMessage, generateWhatsAppShareUrl } from "@/lib/whatsappUtils";
 import { formatCleanPageCount, getTimeframeDateBounds } from "@/lib/reportCalculations";
 import { lightHaptic, successHaptic } from "@/lib/haptics";
 import { Button } from "@/components/ui/button";
+import { AudioPlayer } from "@/components/common/AudioPlayer";
 
 export interface ShareAchievementModalProps {
   isOpen: boolean;
@@ -44,6 +45,13 @@ export function ShareAchievementModal({
   const studentLogs = useMemo(() => {
     return logs.filter((l) => l.student_id === student.id);
   }, [logs, student.id]);
+
+  const recentAudioLog = useMemo(() => {
+    const sorted = [...studentLogs].sort(
+      (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+    );
+    return sorted.find((l) => Boolean(l.audio_url)) || null;
+  }, [studentLogs]);
 
   const studentAttendance = useMemo(() => {
     return attendance.filter((a) => a.student_id === student.id);
@@ -190,6 +198,22 @@ export function ShareAchievementModal({
               </div>
             </div>
           </div>
+
+          {/* Recorded Recitation Highlight Player (if available) */}
+          {recentAudioLog?.audio_url && (
+            <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300/80 dark:border-emerald-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+              <div className="space-y-0.5">
+                <span className="text-xs font-black text-emerald-950 dark:text-emerald-200 flex items-center gap-1.5">
+                  <Volume2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>تلاوة مسجلة: سورة {recentAudioLog.surah_start}</span>
+                </span>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                  استمع لتلاوة الطالب المسجلة أثناء الجلسة
+                </p>
+              </div>
+              <AudioPlayer src={recentAudioLog.audio_url} title={`سورة ${recentAudioLog.surah_start}`} />
+            </div>
+          )}
 
           {/* Badges Collection Grid */}
           <div className="space-y-2">

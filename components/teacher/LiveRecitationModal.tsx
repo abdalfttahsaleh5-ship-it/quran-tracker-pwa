@@ -16,6 +16,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { lightHaptic, successHaptic, warningHaptic } from "@/lib/haptics";
 import { queuePendingAction } from "@/lib/offlineQueue";
+import { uploadRecitationAudio } from "@/lib/storage";
+import { VoiceRecorder } from "./VoiceRecorder";
 import { useRouter } from "next/navigation";
 
 interface LiveRecitationModalProps {
@@ -69,6 +71,12 @@ export function LiveRecitationModal({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+
+  // Sync state when active student changes
+  useEffect(() => {
+    setAudioBlob(null);
+  }, [currentIndex]);
 
   // Safe Student Bounds & Current Selection
   const currentStudent = students && students.length > 0 && currentIndex < students.length
@@ -223,6 +231,18 @@ export function LiveRecitationModal({
       return;
     }
 
+    setIsSubmitting(true);
+    setErrorMessage(null);
+
+    let audioUrl: string | null = null;
+    if (audioBlob) {
+      try {
+        audioUrl = await uploadRecitationAudio(currentStudent.id, audioBlob);
+      } catch (e) {
+        console.warn("Audio upload warning:", e);
+      }
+    }
+
     const payload = {
       student_id: currentStudent.id,
       log_type: logType,
@@ -233,6 +253,7 @@ export function LiveRecitationModal({
       grade: grade,
       page_count: pageCount,
       notes: notes.trim() || null,
+      audio_url: audioUrl,
     };
 
     // If completely offline, immediately enqueue and advance optimistically
@@ -244,9 +265,6 @@ export function LiveRecitationModal({
       setCurrentIndex((prev) => prev + 1);
       return;
     }
-
-    setIsSubmitting(true);
-    setErrorMessage(null);
 
     try {
       const res = await createMemorizationLog(payload);
@@ -659,6 +677,12 @@ export function LiveRecitationModal({
                   <span>إعادة</span>
                 </button>
               </div>
+            </div>
+
+            {/* Voice Audio Recording */}
+            <div className="space-y-1.5 pt-1">
+              <label className="text-xs font-bold text-slate-400">تسجيل تلاوة صوتية (اختياري) 🎙️</label>
+              <VoiceRecorder onAudioRecorded={(blob) => setAudioBlob(blob)} />
             </div>
           </>
         )}

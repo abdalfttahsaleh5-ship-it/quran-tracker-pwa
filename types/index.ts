@@ -38,12 +38,14 @@ export type MemorizationLogRow = Database["public"]["Tables"]["memorization_logs
   assistant_name?: string | null;
   page_count?: number | null;
   surahs?: string[] | null;
+  audio_url?: string | null;
 };
 
 export type MemorizationLogInsert = Database["public"]["Tables"]["memorization_logs"]["Insert"] & {
   assistant_name?: string | null;
   page_count?: number | null;
   surahs?: string[] | null;
+  audio_url?: string | null;
 };
 
 export type AttendanceRecordRow = Database["public"]["Tables"]["attendance_records"]["Row"];
@@ -80,6 +82,7 @@ export interface ParentProgressPayload {
     assistant_name?: string | null;
     page_count?: number | null;
     surahs?: string[] | null;
+    audio_url?: string | null;
     created_at: string;
   }>;
   attendance?: Array<{

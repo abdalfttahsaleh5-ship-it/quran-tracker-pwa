@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { useRealtimeSync, RealtimePayload } from "@/lib/hooks/useRealtimeSync";
 import { lightHaptic } from "@/lib/haptics";
 import { ShareAchievementModal } from "./ShareAchievementModal";
+import { AudioPlayer } from "@/components/common/AudioPlayer";
 
 const LogEntryDialog = dynamic(() => import("./LogEntryDialog").then((mod) => mod.LogEntryDialog), { ssr: false });
 const AttendanceDialog = dynamic(() => import("./AttendanceDialog").then((mod) => mod.AttendanceDialog), { ssr: false });
@@ -392,6 +393,12 @@ export function StudentDetailClient({
                           من سورة <span className="text-emerald-700 dark:text-emerald-400">{log.surah_start}</span> (آية {log.aya_start}) إلى سورة{" "}
                           <span className="text-emerald-700 dark:text-emerald-400">{log.surah_end}</span> (آية {log.aya_end})
                         </div>
+
+                        {log.audio_url && (
+                          <div className="pt-1">
+                            <AudioPlayer src={log.audio_url} title={`تلاوة ${log.surah_start}`} />
+                          </div>
+                        )}
 
                         {log.notes && (
                           <p className="text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700 mt-1">

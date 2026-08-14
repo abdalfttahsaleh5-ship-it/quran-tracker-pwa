@@ -20,6 +20,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { lightHaptic, successHaptic, warningHaptic } from "@/lib/haptics";
 import { queuePendingAction } from "@/lib/offlineQueue";
+import { uploadRecitationAudio } from "@/lib/storage";
+import { VoiceRecorder } from "./VoiceRecorder";
 
 interface LogEntryDialogProps {
   isOpen: boolean;
@@ -41,6 +43,7 @@ export function LogEntryDialog({
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isCrossSurah, setIsCrossSurah] = useState(false);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
 
   const {
     register,
@@ -197,6 +200,15 @@ export function LogEntryDialog({
     setIsLoading(true);
     setError(null);
 
+    let audioUrl: string | null = null;
+    if (audioBlob) {
+      try {
+        audioUrl = await uploadRecitationAudio(studentId, audioBlob);
+      } catch (e) {
+        console.warn("Audio upload warning:", e);
+      }
+    }
+
     if (data.assistant_name && typeof window !== "undefined") {
       localStorage.setItem("quran_tracker_last_assistant_name", data.assistant_name.trim());
     }
@@ -206,6 +218,7 @@ export function LogEntryDialog({
       student_id: studentId,
       surah_end: isCrossSurah ? data.surah_end : data.surah_start,
       surahs: [data.surah_start, ...(isCrossSurah && data.surah_end !== data.surah_start ? [data.surah_end] : [])],
+      audio_url: audioUrl,
     };
 
     if (typeof window !== "undefined" && !navigator.onLine) {
@@ -227,6 +240,7 @@ export function LogEntryDialog({
         notes: payload.notes || null,
         assistant_name: payload.assistant_name || null,
         surahs: payload.surahs || null,
+        audio_url: audioUrl,
       } as unknown as MemorizationLogRow);
       onClose();
       return;
@@ -599,6 +613,14 @@ export function LogEntryDialog({
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Voice Audio Recording */}
+            <div className="space-y-1">
+              <Label className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                تسجيل تلاوة مميزة 🎙️ (صوت)
+              </Label>
+              <VoiceRecorder onAudioRecorded={(blob) => setAudioBlob(blob)} />
             </div>
 
             {/* Teacher Notes */}

@@ -40,6 +40,7 @@ export async function createMemorizationLog(data: MemorizationLogInput): Promise
       assistant_name?: string | null;
       page_count?: number | null;
       surahs?: string[] | null;
+      audio_url?: string | null;
     } = {
       student_id: validation.data.student_id,
       teacher_id: user.id,
@@ -53,6 +54,7 @@ export async function createMemorizationLog(data: MemorizationLogInput): Promise
       assistant_name: validation.data.assistant_name || null,
       page_count: validation.data.page_count ?? null,
       surahs: validation.data.surahs || null,
+      audio_url: validation.data.audio_url || null,
     };
 
     const { data: newLog, error } = await (supabase.from("memorization_logs") as ReturnType<typeof supabase.from>)
