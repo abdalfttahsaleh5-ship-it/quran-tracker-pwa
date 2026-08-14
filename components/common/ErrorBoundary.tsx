@@ -14,6 +14,22 @@ interface State {
   error: Error | null;
 }
 
+const CHUNK_RELOAD_KEY = "quran_tracker_chunk_reloaded";
+
+function isChunkError(error: Error | null): boolean {
+  if (!error) return false;
+  const msg = (error.message || "").toLowerCase();
+  const name = (error.name || "").toLowerCase();
+  return (
+    name.includes("chunkloaderror") ||
+    msg.includes("loading chunk") ||
+    msg.includes("chunkloaderror") ||
+    msg.includes("failed to fetch dynamically imported module") ||
+    msg.includes("error loading dynamically imported module") ||
+    msg.includes("failed to load script")
+  );
+}
+
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
@@ -24,19 +40,40 @@ export class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
+  componentDidMount() {
+    // Clear chunk reload guard once healthy mount succeeds
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem(CHUNK_RELOAD_KEY);
+    }
+  }
+
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     if (process.env.NODE_ENV !== "production") {
       console.error("ErrorBoundary caught an error:", error, errorInfo);
+    }
+
+    // Auto-detect chunk loading failure and reload safely once
+    if (typeof window !== "undefined" && isChunkError(error)) {
+      const hasReloaded = sessionStorage.getItem(CHUNK_RELOAD_KEY);
+      if (!hasReloaded) {
+        sessionStorage.setItem(CHUNK_RELOAD_KEY, "true");
+        window.location.reload();
+        return;
+      }
     }
   }
 
   handleReload = () => {
     if (typeof window !== "undefined") {
+      sessionStorage.removeItem(CHUNK_RELOAD_KEY);
       window.location.reload();
     }
   };
 
   handleReset = () => {
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem(CHUNK_RELOAD_KEY);
+    }
     this.setState({ hasError: false, error: null });
   };
 
