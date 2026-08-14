@@ -70,17 +70,12 @@ export function RecitationLogCard({
 
           {/* Inline Audio Player */}
           {audioUrl && (
-            <div className="pt-1.5 space-y-1 w-full max-w-md">
-              <div className="flex items-center gap-1 text-xs font-bold text-emerald-800 dark:text-emerald-300">
-                <Volume2 className="w-3.5 h-3.5 text-emerald-600" />
-                <span>تسجيل تلاوة الطالب:</span>
+            <div className="mt-3 p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 w-full max-w-lg">
+              <div className="flex items-center gap-2 mb-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                <Volume2 className="w-3.5 h-3.5" />
+                <span>🎙️ تلاوة الطالب المسجلة</span>
               </div>
-              <audio
-                controls
-                className="w-full h-9 rounded-xl shadow-xs bg-slate-50 dark:bg-slate-850"
-                src={audioUrl}
-                preload="none"
-              />
+              <audio controls src={audioUrl} className="w-full h-8" preload="metadata" />
             </div>
           )}
 

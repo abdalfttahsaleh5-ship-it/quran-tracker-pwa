@@ -14,32 +14,32 @@ export async function uploadRecitationAudio(
 
   try {
     const supabase = createClient();
-    const fileName = `${studentId}/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.webm`;
+    const isMp4 = audioBlob.type.includes("mp4");
+    const isOgg = audioBlob.type.includes("ogg");
+    const ext = isMp4 ? "mp4" : isOgg ? "ogg" : "webm";
+    const contentType = audioBlob.type || `audio/${ext}`;
+    const fileName = `${studentId}/${Date.now()}.${ext}`;
 
     const { data, error } = await supabase.storage
       .from("recitation-audio")
       .upload(fileName, audioBlob, {
-        contentType: audioBlob.type || "audio/webm",
+        contentType,
         cacheControl: "3600",
-        upsert: false,
+        upsert: true,
       });
 
     if (error) {
-      if (process.env.NODE_ENV !== "production") {
-        console.warn("Storage upload warning (recitation-audio bucket may need to be created):", error.message);
-      }
+      console.error("Storage upload error in recitation-audio:", error.message);
       return null;
     }
 
     const { data: publicData } = supabase.storage
       .from("recitation-audio")
-      .getPublicUrl(data.path);
+      .getPublicUrl(data.path || fileName);
 
-    return publicData.publicUrl;
+    return publicData?.publicUrl || null;
   } catch (err) {
-    if (process.env.NODE_ENV !== "production") {
-      console.warn("Error in uploadRecitationAudio:", err);
-    }
+    console.error("Error in uploadRecitationAudio:", err);
     return null;
   }
 }
