@@ -7,6 +7,7 @@ import { StudentRow, AttendanceStatusEnum } from "@/types";
 import { recordBulkAttendance } from "@/lib/actions/attendance";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { lightHaptic, successHaptic, warningHaptic } from "@/lib/haptics";
 
 export interface BulkAttendanceModalProps {
   isOpen: boolean;
@@ -37,6 +38,7 @@ export function BulkAttendanceModal({
   if (!isOpen) return null;
 
   const handleStatusChange = (studentId: string, status: AttendanceStatusEnum) => {
+    lightHaptic();
     setAttendanceMap((prev) => ({
       ...prev,
       [studentId]: status,
@@ -44,6 +46,7 @@ export function BulkAttendanceModal({
   };
 
   const handleSetAll = (status: AttendanceStatusEnum) => {
+    lightHaptic();
     const newMap: Record<string, AttendanceStatusEnum> = {};
     students.forEach((s) => {
       newMap[s.id] = status;
@@ -64,10 +67,12 @@ export function BulkAttendanceModal({
     const res = await recordBulkAttendance(records);
 
     if (res.success) {
+      successHaptic();
       router.refresh();
       onSuccess?.();
       onClose();
     } else {
+      warningHaptic();
       setError(res.error || "فشل حفظ الحضور الجماعي");
     }
     setIsLoading(false);

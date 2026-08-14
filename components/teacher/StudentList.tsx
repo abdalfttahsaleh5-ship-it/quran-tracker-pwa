@@ -11,6 +11,7 @@ import { StudentCard } from "./StudentCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRealtimeSync, RealtimePayload } from "@/lib/hooks/useRealtimeSync";
+import { lightHaptic } from "@/lib/haptics";
 
 const StudentDialog = dynamic(() => import("./StudentDialog").then((mod) => mod.StudentDialog), { ssr: false });
 const DeleteStudentDialog = dynamic(() => import("./DeleteStudentDialog").then((mod) => mod.DeleteStudentDialog), { ssr: false });
@@ -202,7 +203,10 @@ export function StudentList({
 
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as "name" | "pages")}
+            onChange={(e) => {
+              lightHaptic();
+              setSortBy(e.target.value as "name" | "pages");
+            }}
             className="h-10 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-xs font-bold text-slate-700 dark:text-slate-200"
           >
             <option value="name">الترتيب الأبجدي (حسب الاسم)</option>
@@ -212,7 +216,10 @@ export function StudentList({
 
         <div className="flex flex-wrap items-center gap-2">
           <Button
-            onClick={() => setIsLiveRecitationOpen(true)}
+            onClick={() => {
+              lightHaptic();
+              setIsLiveRecitationOpen(true);
+            }}
             className="gap-2 shadow-md bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl"
           >
             <Mic className="w-4 h-4 text-amber-300 animate-pulse" />
@@ -221,14 +228,23 @@ export function StudentList({
 
           <Button
             variant="outline"
-            onClick={() => setIsQuickAttendanceOpen(true)}
+            onClick={() => {
+              lightHaptic();
+              setIsQuickAttendanceOpen(true);
+            }}
             className="gap-2 shadow-sm border-teal-200 text-teal-800 hover:bg-teal-50"
           >
             <CalendarCheck className="w-4 h-4 text-teal-600" />
             <span>تحضير الحلقة اليوم</span>
           </Button>
 
-          <Button onClick={handleOpenAdd} className="gap-2 shadow-sm">
+          <Button
+            onClick={() => {
+              lightHaptic();
+              handleOpenAdd();
+            }}
+            className="gap-2 shadow-sm"
+          >
             <UserPlus className="w-4 h-4" />
             <span>إضافة طالب جديد</span>
           </Button>

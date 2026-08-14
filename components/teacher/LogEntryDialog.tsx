@@ -18,6 +18,7 @@ import { LogTypeEnum, EvaluationGradeEnum, MemorizationLogRow } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { lightHaptic, successHaptic, warningHaptic } from "@/lib/haptics";
 
 interface LogEntryDialogProps {
   isOpen: boolean;
@@ -184,6 +185,7 @@ export function LogEntryDialog({
   const handleFormSubmit = async (data: MemorizationLogInput) => {
     // Strict Duplicate Memorization Guard
     if (data.log_type === "جديد" && isSurahAlreadyMemorized && selectedSurahRecord) {
+      warningHaptic();
       setError(
         `⚠️ تم حفظ سورة (${selectedSurahRecord.surahName}) مسبقاً بتاريخ (${selectedSurahRecord.formattedDate}). تم قفل خيار (حفظ جديد) وتوجيه التسجيل إلى (مراجعة).`
       );
@@ -208,10 +210,12 @@ export function LogEntryDialog({
     const res = await createMemorizationLog(payload);
 
     if (res.success && res.data) {
+      successHaptic();
       reset();
       onSuccess?.(res.data);
       onClose();
     } else {
+      warningHaptic();
       setError(res.error || "فشل حفظ التسميع");
     }
     setIsLoading(false);
@@ -312,7 +316,10 @@ export function LogEntryDialog({
                       disabled={isNewTypeLocked}
                       onClick={() => {
                         if (!isNewTypeLocked) {
+                          lightHaptic();
                           setValue("log_type", type.value);
+                        } else {
+                          warningHaptic();
                         }
                       }}
                       title={isNewTypeLocked ? "تم حفظ هذه السورة مسبقاً لهذا الطالب" : type.label}
@@ -468,7 +475,10 @@ export function LogEntryDialog({
                   <button
                     key={preset.value}
                     type="button"
-                    onClick={() => setValue("page_count", preset.value)}
+                    onClick={() => {
+                      lightHaptic();
+                      setValue("page_count", preset.value);
+                    }}
                     className={`py-1.5 px-1 text-xs font-bold rounded-xl border transition-all text-center ${
                       currentPageCount === preset.value
                         ? "bg-teal-800 text-white border-teal-800 shadow-sm"

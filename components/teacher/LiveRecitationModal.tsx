@@ -14,6 +14,7 @@ import {
   MemorizedSurahRecord,
 } from "@/lib/quranMetadata";
 import { Button } from "@/components/ui/button";
+import { lightHaptic, successHaptic, warningHaptic } from "@/lib/haptics";
 import { useRouter } from "next/navigation";
 
 interface LiveRecitationModalProps {
@@ -200,6 +201,7 @@ export function LiveRecitationModal({
 
   // Handle Page Count Adjustment (+ / - 0.5)
   const adjustPageCount = (delta: number) => {
+    lightHaptic();
     setPageCount((prev) => {
       const updated = Math.max(0.25, Number((prev + delta).toFixed(2)));
       return updated;
@@ -212,6 +214,7 @@ export function LiveRecitationModal({
 
     // Strict Duplicate Memorization Guard: reject and warn if attempted as 'جديد' when already memorized
     if (logType === "جديد" && isSurahAlreadyMemorized && selectedSurahRecord) {
+      warningHaptic();
       setErrorMessage(
         `⚠️ تم حفظ سورة (${selectedSurahRecord.surahName}) مسبقاً بتاريخ (${selectedSurahRecord.formattedDate}). تم قفل خيار (حفظ جديد) وتوجيه التسجيل إلى (مراجعة).`
       );
@@ -238,14 +241,17 @@ export function LiveRecitationModal({
       setIsSubmitting(false);
 
       if (res.success) {
+        successHaptic();
         setSessionCompletedCount((prev) => prev + 1);
         setSessionTotalPages((prev) => Number((prev + pageCount).toFixed(2)));
         setCurrentIndex((prev) => prev + 1);
       } else {
+        warningHaptic();
         setErrorMessage(res.error || "فشل حفظ التسميع، حاول مرة أخرى");
       }
     } catch (err) {
       setIsSubmitting(false);
+      warningHaptic();
       setErrorMessage("حدث خطأ غير متوقع أثناء الحفظ");
     }
   };
@@ -393,7 +399,10 @@ export function LiveRecitationModal({
                   disabled={isSurahAlreadyMemorized}
                   onClick={() => {
                     if (!isSurahAlreadyMemorized) {
+                      lightHaptic();
                       setLogType("جديد");
+                    } else {
+                      warningHaptic();
                     }
                   }}
                   title={isSurahAlreadyMemorized ? "تم حفظ هذه السورة مسبقاً لهذا الطالب" : "حفظ جديد"}
@@ -409,7 +418,10 @@ export function LiveRecitationModal({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setLogType("مراجعة_صغرى")}
+                  onClick={() => {
+                    lightHaptic();
+                    setLogType("مراجعة_صغرى");
+                  }}
                   className={`py-2.5 px-3 rounded-2xl text-xs font-black border transition-all ${
                     logType === "مراجعة_صغرى"
                       ? "bg-teal-600 border-teal-500 text-white shadow-md"
@@ -420,7 +432,10 @@ export function LiveRecitationModal({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setLogType("مراجعة_كبرى")}
+                  onClick={() => {
+                    lightHaptic();
+                    setLogType("مراجعة_كبرى");
+                  }}
                   className={`py-2.5 px-3 rounded-2xl text-xs font-black border transition-all ${
                     logType === "مراجعة_كبرى"
                       ? "bg-indigo-600 border-indigo-500 text-white shadow-md"
@@ -466,7 +481,10 @@ export function LiveRecitationModal({
                   <button
                     key={preset}
                     type="button"
-                    onClick={() => setPageCount(preset)}
+                    onClick={() => {
+                      lightHaptic();
+                      setPageCount(preset);
+                    }}
                     className={`flex-1 py-1 text-[11px] font-bold rounded-xl border transition-all ${
                       pageCount === preset
                         ? "bg-emerald-950 border-emerald-600 text-emerald-300"

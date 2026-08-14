@@ -23,6 +23,7 @@ import { deleteAttendanceById } from "@/lib/actions/attendance";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useRealtimeSync, RealtimePayload } from "@/lib/hooks/useRealtimeSync";
+import { lightHaptic } from "@/lib/haptics";
 
 const LogEntryDialog = dynamic(() => import("./LogEntryDialog").then((mod) => mod.LogEntryDialog), { ssr: false });
 const AttendanceDialog = dynamic(() => import("./AttendanceDialog").then((mod) => mod.AttendanceDialog), { ssr: false });
@@ -44,6 +45,7 @@ export function StudentDetailClient({
   const [attendance, setAttendance] = useState<AttendanceRecordRow[]>(initialAttendance);
   const [isLogDialogOpen, setIsLogDialogOpen] = useState(false);
   const [isAttendanceDialogOpen, setIsAttendanceDialogOpen] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   // Realtime Payload Handler for Instant Client State Update
   const handleRealtimePayload = useCallback(
@@ -143,9 +145,14 @@ export function StudentDetailClient({
           <div className="flex flex-col sm:flex-row items-center sm:items-start md:items-center gap-4 sm:gap-6 text-center sm:text-right">
             {/* Significantly Enlarged Student Profile Picture */}
             <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl bg-white/10 backdrop-blur-md text-amber-300 flex items-center justify-center font-black text-3xl sm:text-4xl shadow-lg shrink-0 overflow-hidden border-2 border-white/20">
-              {student.avatar_url ? (
+              {student.avatar_url && !imgError ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={student.avatar_url} alt={student.full_name} className="w-full h-full object-cover" />
+                <img
+                  src={student.avatar_url}
+                  alt={student.full_name}
+                  onError={() => setImgError(true)}
+                  className="w-full h-full object-cover"
+                />
               ) : (
                 <span>{student.full_name.charAt(0)}</span>
               )}
@@ -286,7 +293,10 @@ export function StudentDetailClient({
       {/* Navigation Tabs Header */}
       <div className="flex border-b border-slate-200 dark:border-slate-800">
         <button
-          onClick={() => React.startTransition(() => setActiveTab("logs"))}
+          onClick={() => {
+            lightHaptic();
+            React.startTransition(() => setActiveTab("logs"));
+          }}
           className={`py-3 px-5 text-xs sm:text-sm font-extrabold border-b-2 transition-all flex items-center gap-2 ${
             activeTab === "logs"
               ? "border-emerald-700 text-emerald-800 dark:text-emerald-300"
@@ -298,7 +308,10 @@ export function StudentDetailClient({
         </button>
 
         <button
-          onClick={() => React.startTransition(() => setActiveTab("attendance"))}
+          onClick={() => {
+            lightHaptic();
+            React.startTransition(() => setActiveTab("attendance"));
+          }}
           className={`py-3 px-5 text-xs sm:text-sm font-extrabold border-b-2 transition-all flex items-center gap-2 ${
             activeTab === "attendance"
               ? "border-emerald-700 text-emerald-800 dark:text-emerald-300"

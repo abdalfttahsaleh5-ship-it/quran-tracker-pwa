@@ -6,6 +6,7 @@ import { StudentRow } from "@/types";
 import { AttendanceAlert } from "@/lib/attendanceAlerts";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { lightHaptic, successHaptic } from "@/lib/haptics";
 import Link from "next/link";
 
 interface StudentCardProps {
@@ -18,6 +19,7 @@ interface StudentCardProps {
 
 export function StudentCard({ student, logs, alert, onEdit, onDelete }: StudentCardProps) {
   const [copied, setCopied] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   // Dynamic completed pages calculation from logs
   const studentLogs = logs?.filter(
@@ -34,10 +36,12 @@ export function StudentCard({ student, logs, alert, onEdit, onDelete }: StudentC
   const formattedPages = totalCompletedPages.toFixed(1).replace(/\.0$/, "");
 
   const handleCopyParentLink = async () => {
+    lightHaptic();
     const parentUrl = `${window.location.origin}/parent/${student.parent_token}`;
     try {
       await navigator.clipboard.writeText(parentUrl);
       setCopied(true);
+      successHaptic();
       setTimeout(() => setCopied(false), 2000);
     } catch {
       const input = document.createElement("input");
@@ -47,6 +51,7 @@ export function StudentCard({ student, logs, alert, onEdit, onDelete }: StudentC
       document.execCommand("copy");
       document.body.removeChild(input);
       setCopied(true);
+      successHaptic();
       setTimeout(() => setCopied(false), 2000);
     }
   };
@@ -55,12 +60,17 @@ export function StudentCard({ student, logs, alert, onEdit, onDelete }: StudentC
     <Card className="hover:shadow-md transition-all border-slate-200 dark:border-slate-800">
       <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-full bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-200 flex items-center justify-center font-bold overflow-hidden border border-teal-200 shrink-0">
-            {student.avatar_url ? (
+          <div className="w-11 h-11 rounded-full bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-200 flex items-center justify-center font-bold overflow-hidden border border-teal-200 shrink-0 shadow-inner">
+            {student.avatar_url && !imgError ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={student.avatar_url} alt={student.full_name} className="w-full h-full object-cover" />
+              <img
+                src={student.avatar_url}
+                alt={student.full_name}
+                onError={() => setImgError(true)}
+                className="w-full h-full object-cover"
+              />
             ) : (
-              <span className="text-base">{student.full_name.charAt(0)}</span>
+              <span className="text-base select-none">{student.full_name.charAt(0)}</span>
             )}
           </div>
           <div>
