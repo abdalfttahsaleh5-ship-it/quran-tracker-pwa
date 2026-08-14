@@ -6,6 +6,7 @@ import { X, Mic, CheckCircle2, ChevronRight, ChevronLeft, SkipForward, BookOpen,
 import { StudentRow, MemorizationLogRow, LogTypeEnum, EvaluationGradeEnum } from "@/types";
 import { createMemorizationLog } from "@/lib/actions/log";
 import { QURAN_SURAHS } from "@/lib/constants/quran";
+import { getSurahStandardPages, calculateRecitationPages } from "@/lib/quranMetadata";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 
@@ -72,7 +73,6 @@ export function LiveRecitationModal({
     setGrade("ممتاز");
     setNotes("");
     setErrorMessage(null);
-    setPageCount(1.0);
 
     if (currentStudent && logs && logs.length > 0) {
       const studentLogs = logs.filter((l) => l.student_id === currentStudent.id);
@@ -101,6 +101,7 @@ export function LiveRecitationModal({
           setSurahEnd(nextSurah.name);
           setAyaStart(1);
           setAyaEnd(nextSurah.numberOfAyahs);
+          setPageCount(getSurahStandardPages(nextSurah.name));
           return;
         }
       }
@@ -111,6 +112,7 @@ export function LiveRecitationModal({
     setSurahEnd("الفاتحة");
     setAyaStart(1);
     setAyaEnd(7);
+    setPageCount(getSurahStandardPages("الفاتحة"));
   }, [currentIndex, currentStudent, logs]);
 
   // Reset session counters whenever modal opens
@@ -427,13 +429,21 @@ export function LiveRecitationModal({
                   value={surahStart}
                   onChange={(e) => {
                     const selectedName = e.target.value;
+                    const wasSameSurah = !surahEnd || surahStart === surahEnd;
                     setSurahStart(selectedName);
-                    if (!surahEnd) setSurahEnd(selectedName);
+                    const targetEnd = wasSameSurah ? selectedName : surahEnd;
+                    if (wasSameSurah) {
+                      setSurahEnd(selectedName);
+                    }
                     const surahObj = QURAN_SURAHS.find((s) => s.name === selectedName);
                     if (surahObj) {
                       setAyaStart(1);
-                      setAyaEnd(surahObj.numberOfAyahs);
+                      if (wasSameSurah) {
+                        setAyaEnd(surahObj.numberOfAyahs);
+                      }
                     }
+                    const calculated = calculateRecitationPages(selectedName, targetEnd);
+                    setPageCount(calculated);
                   }}
                   className="w-full p-2.5 rounded-2xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-100"
                 >
@@ -456,6 +466,8 @@ export function LiveRecitationModal({
                     if (surahObj) {
                       setAyaEnd(surahObj.numberOfAyahs);
                     }
+                    const calculated = calculateRecitationPages(surahStart, selectedName);
+                    setPageCount(calculated);
                   }}
                   className="w-full p-2.5 rounded-2xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-100"
                 >

@@ -7,6 +7,7 @@ import { BookOpen, X, CheckCircle2, UserCheck, Hash, ChevronDown } from "lucide-
 import { memorizationLogSchema, MemorizationLogInput } from "@/lib/validations/log";
 import { createMemorizationLog } from "@/lib/actions/log";
 import { QURAN_SURAHS } from "@/lib/constants/quran";
+import { calculateRecitationPages, getSurahStandardPages } from "@/lib/quranMetadata";
 import { LogTypeEnum, EvaluationGradeEnum, MemorizationLogRow } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -75,61 +76,35 @@ export function LogEntryDialog({
   useEffect(() => {
     if (!selectedSurahStart) return;
 
-    const fromSurah = QURAN_SURAHS.find((s) => s.name === selectedSurahStart);
     const targetSurahName = isCrossSurah ? (selectedSurahEnd || selectedSurahStart) : selectedSurahStart;
-    const toSurah = QURAN_SURAHS.find((s) => s.name === targetSurahName);
-
-    if (!fromSurah || !toSurah) return;
-
     const fromAyah = Number(selectedAyaStart) || 1;
-    const toAyah = Number(selectedAyaEnd) || 1;
+    const toAyah = Number(selectedAyaEnd) || undefined;
 
-    let calculatedPages = 1;
-
-    if (fromSurah.id === toSurah.id) {
-      const totalSurahPages = fromSurah.endPage - fromSurah.startPage + 1;
-      const validFrom = Math.max(1, Math.min(fromAyah, fromSurah.numberOfAyahs));
-      const validTo = Math.max(1, Math.min(toAyah, fromSurah.numberOfAyahs));
-      const ayahsCount = Math.max(1, validTo - validFrom + 1);
-      const rawPages = (ayahsCount / fromSurah.numberOfAyahs) * totalSurahPages;
-
-      if (rawPages >= 1) {
-        calculatedPages = Math.max(1, Math.round(rawPages));
-      } else {
-        const roundedFraction = Math.round(rawPages * 4) / 4;
-        calculatedPages = Math.max(0.25, roundedFraction);
-      }
-    } else {
-      // Cross-surah page calculation using QURAN_SURAHS startPage & ayah offsets:
-      // Start Page = fromSurah.startPage + fractional offset based on from_ayah
-      // End Page = toSurah.startPage + fractional offset based on to_ayah
-      const validFrom = Math.max(1, Math.min(fromAyah, fromSurah.numberOfAyahs));
-      const validTo = Math.max(1, Math.min(toAyah, toSurah.numberOfAyahs));
-
-      const fromOffset = (validFrom - 1) / fromSurah.numberOfAyahs;
-      const startPage = fromSurah.startPage + fromOffset;
-
-      const toOffset = validTo / toSurah.numberOfAyahs;
-      const endPage = toSurah.startPage + toOffset;
-
-      const diff = Math.abs(endPage - startPage);
-      calculatedPages = Math.max(0.25, Math.round(diff));
-    }
-
+    const calculatedPages = calculateRecitationPages(selectedSurahStart, targetSurahName, fromAyah, toAyah);
     setValue("page_count", calculatedPages);
   }, [selectedSurahStart, selectedSurahEnd, selectedAyaStart, selectedAyaEnd, isCrossSurah, setValue]);
 
   // Auto-fill verse range upon selecting primary surah
   const handlePrimarySurahChange = (surahName: string) => {
     setValue("surah_start", surahName);
+    const targetEnd = !isCrossSurah ? surahName : (selectedSurahEnd || surahName);
     if (!isCrossSurah) {
       setValue("surah_end", surahName);
     }
     const surahObj = QURAN_SURAHS.find((s) => s.name === surahName);
     if (surahObj) {
       setValue("aya_start", 1);
-      setValue("aya_end", surahObj.numberOfAyahs);
+      if (!isCrossSurah) {
+        setValue("aya_end", surahObj.numberOfAyahs);
+      }
     }
+    const calculatedPages = calculateRecitationPages(
+      surahName,
+      targetEnd,
+      1,
+      !isCrossSurah ? surahObj?.numberOfAyahs : (Number(selectedAyaEnd) || undefined)
+    );
+    setValue("page_count", calculatedPages);
   };
 
   if (!isOpen) return null;
