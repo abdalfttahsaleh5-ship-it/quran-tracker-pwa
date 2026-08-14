@@ -26,6 +26,7 @@ import { useRealtimeSync, RealtimePayload } from "@/lib/hooks/useRealtimeSync";
 import { lightHaptic } from "@/lib/haptics";
 import { ShareAchievementModal } from "./ShareAchievementModal";
 import { AudioPlayer } from "@/components/common/AudioPlayer";
+import { RecitationLogCard } from "./RecitationLogCard";
 
 const LogEntryDialog = dynamic(() => import("./LogEntryDialog").then((mod) => mod.LogEntryDialog), { ssr: false });
 const AttendanceDialog = dynamic(() => import("./AttendanceDialog").then((mod) => mod.AttendanceDialog), { ssr: false });
@@ -361,65 +362,13 @@ export function StudentDetailClient({
 
           {logs.length > 0 ? (
             <div className="space-y-3">
-              {logs.map((log) => {
-                const gradeInfo = GRADE_LABELS[log.grade] || { label: log.grade, color: "" };
-                const typeInfo = LOG_TYPE_LABELS[log.log_type] || { label: log.log_type, color: "" };
-
-                return (
-                  <Card key={log.id} className="hover:shadow-md transition-all border-slate-200 dark:border-slate-800 rounded-2xl">
-                    <CardContent className="p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-extrabold ${typeInfo.color}`}>
-                            {typeInfo.label}
-                          </span>
-                          <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-extrabold border ${gradeInfo.color}`}>
-                            {gradeInfo.label}
-                          </span>
-                          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-200">
-                            📖 {formatPageCount(log.page_count)}
-                          </span>
-                          {log.assistant_name && (
-                            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                              👤 المسمّع: {log.assistant_name}
-                            </span>
-                          )}
-                          <span className="text-[11px] text-slate-400 font-bold">
-                            {formatArabicDate(log.created_at)}
-                          </span>
-                        </div>
-
-                        <div className="text-sm sm:text-base font-black text-slate-900 dark:text-slate-100">
-                          من سورة <span className="text-emerald-700 dark:text-emerald-400">{log.surah_start}</span> (آية {log.aya_start}) إلى سورة{" "}
-                          <span className="text-emerald-700 dark:text-emerald-400">{log.surah_end}</span> (آية {log.aya_end})
-                        </div>
-
-                        {log.audio_url && (
-                          <div className="pt-1">
-                            <AudioPlayer src={log.audio_url} title={`تلاوة ${log.surah_start}`} />
-                          </div>
-                        )}
-
-                        {log.notes && (
-                          <p className="text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700 mt-1">
-                            ملاحظة المعلم: {log.notes}
-                          </p>
-                        )}
-                      </div>
-
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteLog(log.id)}
-                        className="text-slate-400 hover:text-rose-600 shrink-0 rounded-xl"
-                        title="حذف التسميع"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+              {logs.map((log) => (
+                <RecitationLogCard
+                  key={log.id}
+                  log={log}
+                  onDelete={handleDeleteLog}
+                />
+              ))}
             </div>
           ) : (
             <Card className="p-8 text-center border-dashed rounded-3xl">

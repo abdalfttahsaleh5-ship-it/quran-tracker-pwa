@@ -214,6 +214,11 @@ export function ParentPortalClient({ student, logs, attendance }: ParentPortalCl
                         <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-200/80">
                           📖 {formatPageCount(log?.page_count)}
                         </span>
+                        {log?.audio_url && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 animate-pulse">
+                            <span>🎙️ تلاوة مسجلة</span>
+                          </span>
+                        )}
                       </div>
 
                       <div className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 shrink-0">
@@ -244,8 +249,16 @@ export function ParentPortalClient({ student, logs, attendance }: ParentPortalCl
                         </div>
 
                         {log?.audio_url && (
-                          <div className="pt-1">
-                            <AudioPlayer src={log.audio_url} title={`تلاوة ${log?.surah_start}`} />
+                          <div className="pt-1.5 space-y-1.5 bg-emerald-50/60 dark:bg-emerald-950/30 p-3 rounded-2xl border border-emerald-200/80 dark:border-emerald-800/80">
+                            <span className="text-xs font-black text-emerald-900 dark:text-emerald-200 flex items-center gap-1">
+                              <span>🎙️ استمع لتلاوة ابنكم المسجلة:</span>
+                            </span>
+                            <audio
+                              controls
+                              className="w-full h-9 rounded-xl shadow-xs"
+                              src={log.audio_url}
+                              preload="none"
+                            />
                           </div>
                         )}
 

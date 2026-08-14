@@ -42,6 +42,7 @@ export function LogEntryDialog({
 }: LogEntryDialogProps) {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploadingAudio, setIsUploadingAudio] = useState(false);
   const [isCrossSurah, setIsCrossSurah] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
 
@@ -202,10 +203,13 @@ export function LogEntryDialog({
 
     let audioUrl: string | null = null;
     if (audioBlob) {
+      setIsUploadingAudio(true);
       try {
         audioUrl = await uploadRecitationAudio(studentId, audioBlob);
       } catch (e) {
         console.warn("Audio upload warning:", e);
+      } finally {
+        setIsUploadingAudio(false);
       }
     }
 
@@ -647,7 +651,13 @@ export function LogEntryDialog({
               disabled={isLoading}
               className="flex-1 bg-emerald-700 hover:bg-emerald-800 active:scale-[0.98] text-white font-bold py-3 px-5 rounded-2xl shadow-md transition-all text-sm flex items-center justify-center gap-2"
             >
-              <span>{isLoading ? "جاري الحفظ..." : "حفظ التسميع 💾"}</span>
+              <span>
+                {isLoading
+                  ? isUploadingAudio
+                    ? "جاري رفع التلاوة الصوتية... 🎙️"
+                    : "جاري الحفظ..."
+                  : "حفظ التسميع 💾"}
+              </span>
             </button>
             <button
               type="button"

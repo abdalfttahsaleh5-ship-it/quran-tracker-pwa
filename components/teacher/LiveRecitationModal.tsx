@@ -70,12 +70,14 @@ export function LiveRecitationModal({
   const [notes, setNotes] = useState<string>("");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingAudio, setIsUploadingAudio] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
 
   // Sync state when active student changes
   useEffect(() => {
     setAudioBlob(null);
+    setIsUploadingAudio(false);
   }, [currentIndex]);
 
   // Safe Student Bounds & Current Selection
@@ -236,10 +238,13 @@ export function LiveRecitationModal({
 
     let audioUrl: string | null = null;
     if (audioBlob) {
+      setIsUploadingAudio(true);
       try {
         audioUrl = await uploadRecitationAudio(currentStudent.id, audioBlob);
       } catch (e) {
         console.warn("Audio upload warning:", e);
+      } finally {
+        setIsUploadingAudio(false);
       }
     }
 
@@ -724,7 +729,10 @@ export function LiveRecitationModal({
               className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl shadow-lg gap-2 text-sm"
             >
               {isSubmitting ? (
-                <RefreshCw className="w-4 h-4 animate-spin" />
+                <div className="flex items-center justify-center gap-2">
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>{isUploadingAudio ? "جاري رفع التلاوة الصوتية... 🎙️" : "جاري الحفظ..."}</span>
+                </div>
               ) : (
                 <>
                   <span>حفظ والتالي ➡️</span>
