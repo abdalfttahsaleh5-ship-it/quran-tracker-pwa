@@ -11,6 +11,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { StudentReportItem } from "./PrintReportView";
 import { useRealtimeSync, RealtimePayload } from "@/lib/hooks/useRealtimeSync";
+import {
+  calculateStudentReportItems,
+  getTimeframeDateBounds,
+  PeriodType,
+} from "@/lib/reportCalculations";
 
 const PrintReportView = dynamic(() => import("./PrintReportView").then((mod) => mod.PrintReportView), { ssr: false });
 
@@ -20,7 +25,7 @@ interface SummaryReportTableProps {
   attendance: AttendanceRecordRow[];
 }
 
-export type PeriodType = "daily" | "weekly" | "monthly";
+export type { PeriodType };
 
 export function SummaryReportTable({ students, logs, attendance }: SummaryReportTableProps) {
   const [period, setPeriod] = useState<PeriodType>("daily");
@@ -64,24 +69,7 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
 
   // Helper date calculators using local system timezone
   const dateBounds = useMemo(() => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
-    const todayStr = `${year}-${month}-${day}`;
-
-    // Start of current week (Sunday / الأحد 00:00:00)
-    const dayOfWeek = now.getDay(); // 0 is Sunday
-    const startOfWeekDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek, 0, 0, 0, 0);
-    const wYear = startOfWeekDate.getFullYear();
-    const wMonth = String(startOfWeekDate.getMonth() + 1).padStart(2, "0");
-    const wDay = String(startOfWeekDate.getDate()).padStart(2, "0");
-    const startOfWeekStr = `${wYear}-${wMonth}-${wDay}`;
-
-    // Start of current calendar month (1st of month 00:00:00)
-    const startOfMonthStr = `${year}-${month}-01`;
-
-    return { todayStr, startOfWeekStr, startOfMonthStr };
+    return getTimeframeDateBounds();
   }, []);
 
   // Map student IDs to active absence alerts
@@ -89,158 +77,10 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
     return getAttendanceAlertsMap(students, localAttendance);
   }, [students, localAttendance]);
 
-  // Total unique session dates recorded across the halaqah for the selected period
-  const totalWeeklySessionDays = useMemo(() => {
-    const dates = new Set<string>();
-    localAttendance.forEach((a) => {
-      if (a.date && a.date >= dateBounds.startOfWeekStr && a.date <= dateBounds.todayStr) {
-        dates.add(a.date);
-      }
-    });
-    return dates.size;
-  }, [localAttendance, dateBounds]);
-
-  const totalMonthlySessionDays = useMemo(() => {
-    const dates = new Set<string>();
-    localAttendance.forEach((a) => {
-      if (a.date && a.date >= dateBounds.startOfMonthStr && a.date <= dateBounds.todayStr) {
-        dates.add(a.date);
-      }
-    });
-    return dates.size;
-  }, [localAttendance, dateBounds]);
-
-  // Helper to extract local YYYY-MM-DD from log created_at
-  const getLogLocalDate = useCallback((dateStr?: string | null): string => {
-    if (!dateStr) return "";
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return "";
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
-  }, []);
-
-  // Aggregate items per student based on selected period
+  // Unified single-source-of-truth calculation for both on-screen and printable report
   const reportItems: StudentReportItem[] = useMemo(() => {
-    return students.map((student) => {
-      let filteredLogs: MemorizationLogRow[] = [];
-      let filteredAttendance: AttendanceRecordRow[] = [];
-
-      if (period === "daily") {
-        filteredLogs = logs.filter((l) => {
-          if (!l.created_at || l.student_id !== student.id) return false;
-          return getLogLocalDate(l.created_at) === dateBounds.todayStr;
-        });
-        filteredAttendance = localAttendance.filter(
-          (a) => a.student_id === student.id && a.date === dateBounds.todayStr
-        );
-      } else if (period === "weekly") {
-        filteredLogs = logs.filter((l) => {
-          if (!l.created_at || l.student_id !== student.id) return false;
-          const d = getLogLocalDate(l.created_at);
-          return d >= dateBounds.startOfWeekStr && d <= dateBounds.todayStr;
-        });
-        filteredAttendance = localAttendance.filter(
-          (a) => a.student_id === student.id && a.date >= dateBounds.startOfWeekStr && a.date <= dateBounds.todayStr
-        );
-      } else if (period === "monthly") {
-        filteredLogs = logs.filter((l) => {
-          if (!l.created_at || l.student_id !== student.id) return false;
-          const d = getLogLocalDate(l.created_at);
-          return d >= dateBounds.startOfMonthStr && d <= dateBounds.todayStr;
-        });
-        filteredAttendance = localAttendance.filter(
-          (a) => a.student_id === student.id && a.date >= dateBounds.startOfMonthStr && a.date <= dateBounds.todayStr
-        );
-      }
-
-      // Deduplicate attendance records by date to prevent double-counting
-      const uniqueAttendanceMap = new Map<string, AttendanceRecordRow>();
-      filteredAttendance.forEach((rec) => {
-        uniqueAttendanceMap.set(rec.date, rec);
-      });
-      const uniqueAttendanceList = Array.from(uniqueAttendanceMap.values());
-
-      const attendedDays = uniqueAttendanceList.filter(
-        (a) =>
-          a.status === "حاضر" ||
-          a.status === "متأخر" ||
-          (a.status as string) === "present" ||
-          (a.status as string) === "late"
-      ).length;
-
-      let attendanceText = "لم يرصد";
-      let badgeStyle = "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700";
-
-      if (period === "daily") {
-        if (uniqueAttendanceList.length > 0) {
-          const status = uniqueAttendanceList[0].status;
-          if (status === "حاضر" || (status as string) === "present") {
-            attendanceText = "حاضر";
-            badgeStyle = "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800";
-          } else if (status === "غائب" || (status as string) === "absent") {
-            attendanceText = "غائب";
-            badgeStyle = "bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-300 dark:border-rose-800";
-          } else if (status === "مستأذن" || (status as string) === "excused") {
-            attendanceText = "مستأذن";
-            badgeStyle = "bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-800";
-          } else if (status === "متأخر" || (status as string) === "late") {
-            attendanceText = "متأخر";
-            badgeStyle = "bg-teal-100 text-teal-800 dark:bg-teal-950/80 dark:text-teal-300 border border-teal-300 dark:border-teal-800";
-          } else {
-            attendanceText = String(status);
-            badgeStyle = "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700";
-          }
-        } else {
-          attendanceText = "لم يرصد";
-          badgeStyle = "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700";
-        }
-      } else if (period === "weekly") {
-        const totalSessions = Math.max(totalWeeklySessionDays, uniqueAttendanceList.length);
-        if (totalSessions > 0) {
-          attendanceText = `${attendedDays} / ${totalSessions}`;
-          if (attendedDays === totalSessions) {
-            badgeStyle = "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800";
-          } else if (attendedDays > 0) {
-            badgeStyle = "bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-800";
-          } else {
-            badgeStyle = "bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-300 dark:border-rose-800";
-          }
-        } else {
-          attendanceText = "0 / 0";
-          badgeStyle = "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700";
-        }
-      } else if (period === "monthly") {
-        const totalSessions = Math.max(totalMonthlySessionDays, uniqueAttendanceList.length);
-        if (totalSessions > 0) {
-          const percentage = Math.round((attendedDays / totalSessions) * 100);
-          attendanceText = `${attendedDays} / ${totalSessions} (${percentage}%)`;
-          if (percentage >= 85) {
-            badgeStyle = "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800";
-          } else if (percentage >= 60) {
-            badgeStyle = "bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-800";
-          } else {
-            badgeStyle = "bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-300 dark:border-rose-800";
-          }
-        } else {
-          attendanceText = "0 / 0 (0%)";
-          badgeStyle = "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700";
-        }
-      }
-
-      const pagesCount = filteredLogs.reduce((sum, l) => sum + (l.page_count || 1), 0);
-      const roundedPages = Number(pagesCount.toFixed(2));
-
-      return {
-        student,
-        attendanceText,
-        badgeStyle,
-        pagesCount: roundedPages,
-        totalPresentCount: attendedDays,
-      };
-    });
-  }, [students, logs, localAttendance, period, dateBounds, totalWeeklySessionDays, totalMonthlySessionDays, getLogLocalDate]);
+    return calculateStudentReportItems(students, logs, localAttendance, period, dateBounds);
+  }, [students, logs, localAttendance, period, dateBounds]);
 
   // Filter report items by search query
   const filteredReportItems = useMemo(() => {
@@ -412,7 +252,7 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
                             📖 {item.pagesCount} صفحة
                           </span>
                         ) : (
-                          <span className="text-slate-400">—</span>
+                          <span className="text-slate-400 font-bold">0 صفحة</span>
                         )}
                       </td>
                       <td className="p-3 text-center">

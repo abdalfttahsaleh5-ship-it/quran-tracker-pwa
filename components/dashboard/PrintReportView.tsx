@@ -103,7 +103,7 @@ export function PrintReportView({ reportItems, periodLabel }: PrintReportViewPro
                 {item.attendanceText}
               </td>
               <td className="p-2 border border-slate-300 text-center font-extrabold text-emerald-900">
-                {item.pagesCount > 0 ? `${item.pagesCount} صفحة` : "—"}
+                {item.pagesCount > 0 ? `${item.pagesCount} صفحة` : "0 صفحة"}
               </td>
               <td className="p-2 border border-slate-300 text-center font-mono dir-ltr">
                 {item.student.parent_phone || "—"}
