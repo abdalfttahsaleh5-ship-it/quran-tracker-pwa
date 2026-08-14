@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { X, Trophy, Printer } from "lucide-react";
 import { StudentRow, MemorizationLogRow } from "@/types";
-import { Button } from "@/components/ui/button";
 
 export interface TopStudentItem {
   student: StudentRow;
@@ -26,6 +25,7 @@ export function TopStudentsModal({
   logs,
 }: TopStudentsModalProps) {
   const [mounted, setMounted] = useState(false);
+  const [activeTab, setActiveTab] = useState<"all" | "weekly">("all");
 
   useEffect(() => {
     setMounted(true);
@@ -43,19 +43,37 @@ export function TopStudentsModal({
     };
   }, [isOpen]);
 
-  if (!isOpen || !mounted) return null;
+  // Calculate total pages for each student and rank top 5 according to activeTab
+  const topStudents: TopStudentItem[] = useMemo(() => {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-  // Calculate total pages for each student and rank top 5
-  const topStudents: TopStudentItem[] = students
-    .map((student) => {
-      const studentLogs = logs.filter((l) => l.student_id === student.id);
-      const totalPagesSum = studentLogs.reduce((sum, l) => sum + (l.page_count || 1), 0);
-      const totalPages = Number(totalPagesSum.toFixed(1));
-      return { student, totalPages };
-    })
-    .sort((a, b) => b.totalPages - a.totalPages)
-    .slice(0, 5)
-    .map((item, index) => ({ ...item, rank: index + 1 }));
+    return students
+      .map((student) => {
+        const studentLogs = logs.filter((l) => {
+          if (l.student_id !== student.id) return false;
+          if (activeTab === "weekly") {
+            if (!l.created_at) return false;
+            const logDate = new Date(l.created_at);
+            return !isNaN(logDate.getTime()) && logDate >= sevenDaysAgo;
+          }
+          return true;
+        });
+
+        const totalPagesSum = studentLogs.reduce(
+          (sum, l) => sum + (l.page_count || 1),
+          0
+        );
+        const totalPages = Number(totalPagesSum.toFixed(1));
+        return { student, totalPages };
+      })
+      .filter((item) => item.totalPages > 0)
+      .sort((a, b) => b.totalPages - a.totalPages)
+      .slice(0, 5)
+      .map((item, index) => ({ ...item, rank: index + 1 }));
+  }, [students, logs, activeTab]);
+
+  if (!isOpen || !mounted) return null;
 
   const handlePrint = () => {
     if (typeof window !== "undefined") {
@@ -126,9 +144,39 @@ export function TopStudentsModal({
             </div>
             <span>الطلاب الأوائل 🏆 (لوحة الشرف)</span>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-1 rounded-xl">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-xl">
             <X className="w-5 h-5" />
           </button>
+        </div>
+
+        {/* Tabbed Segmented Control Switcher */}
+        <div className="px-4 pt-3 pb-1 shrink-0 bg-white dark:bg-slate-900">
+          <div className="flex p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl text-xs font-bold">
+            <button
+              type="button"
+              onClick={() => setActiveTab("all")}
+              className={`flex-1 py-2 px-3 rounded-lg transition-all text-center flex items-center justify-center gap-1.5 ${
+                activeTab === "all"
+                  ? "bg-white dark:bg-slate-700 text-amber-800 dark:text-amber-300 shadow-sm font-black"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-semibold"
+              }`}
+            >
+              <span>🌐</span>
+              <span>العام</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("weekly")}
+              className={`flex-1 py-2 px-3 rounded-lg transition-all text-center flex items-center justify-center gap-1.5 ${
+                activeTab === "weekly"
+                  ? "bg-white dark:bg-slate-700 text-amber-800 dark:text-amber-300 shadow-sm font-black"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-semibold"
+              }`}
+            >
+              <span>📅</span>
+              <span>هذا الأسبوع</span>
+            </button>
+          </div>
         </div>
 
         {/* Scrollable Body */}
@@ -170,8 +218,10 @@ export function TopStudentsModal({
               );
             })
           ) : (
-            <p className="text-center text-slate-500 py-8 text-sm font-bold">
-              لا يوجد تسميعات مسجلة للطلاب بعد
+            <p className="text-center text-slate-500 dark:text-slate-400 py-8 text-sm font-bold">
+              {activeTab === "weekly"
+                ? "لا يوجد تسميعات مسجلة للطلاب هذا الأسبوع"
+                : "لا يوجد تسميعات مسجلة للطلاب بعد"}
             </p>
           )}
         </div>
@@ -236,11 +286,19 @@ export function TopStudentsModal({
         {/* Printable Honor Roll Header */}
         <div className="text-center border-b-4 border-amber-500 pb-3 mb-5">
           <div className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full bg-amber-100 text-amber-900 font-black text-xs mb-1.5">
-            <span>🏆 لوحة الشرف والتميز 🏆</span>
+            <span>
+              🏆 لوحة الشرف والتميز {activeTab === "weekly" ? "(هذا الأسبوع)" : "(العام)"} 🏆
+            </span>
           </div>
-          <h1 className="text-2xl font-black text-emerald-950">لوحة شرف متميزي حلقة القرآن الكريم</h1>
+          <h1 className="text-2xl font-black text-emerald-950">
+            {activeTab === "weekly"
+              ? "لوحة شرف متميزي الأسبوع في القرآن الكريم"
+              : "لوحة شرف متميزي حلقة القرآن الكريم"}
+          </h1>
           <p className="text-xs font-bold text-slate-600 mt-1">
-            الطلاب الأوائل الأكثر إنجازاً في التسميع والحفظ — <span className="text-emerald-800 font-extrabold">{currentDateFormatted}</span>
+            الطلاب الأوائل الأكثر إنجازاً في التسميع والحفظ{" "}
+            {activeTab === "weekly" ? "خلال السبعة أيام الماضية" : "إجمالياً"} —{" "}
+            <span className="text-emerald-800 font-extrabold">{currentDateFormatted}</span>
           </p>
         </div>
 
@@ -255,25 +313,35 @@ export function TopStudentsModal({
             </tr>
           </thead>
           <tbody>
-            {topStudents.map((item) => {
-              const rankInfo = getRankBadge(item.rank);
-              return (
-                <tr key={item.student.id} className="border-b border-slate-300">
-                  <td className="p-2.5 border border-slate-300 text-center font-black text-sm">
-                    {rankInfo.icon}
-                  </td>
-                  <td className="p-2.5 border border-slate-300 font-black text-sm text-slate-900">
-                    {item.student.full_name}
-                  </td>
-                  <td className="p-2.5 border border-slate-300 text-center font-bold text-slate-700">
-                    {item.student.academic_grade || "غير محدد"}
-                  </td>
-                  <td className="p-2.5 border border-slate-300 text-center font-black text-emerald-900 text-sm">
-                    📖 {item.totalPages} صفحة
-                  </td>
-                </tr>
-              );
-            })}
+            {topStudents.length > 0 ? (
+              topStudents.map((item) => {
+                const rankInfo = getRankBadge(item.rank);
+                return (
+                  <tr key={item.student.id} className="border-b border-slate-300">
+                    <td className="p-2.5 border border-slate-300 text-center font-black text-sm">
+                      {rankInfo.icon}
+                    </td>
+                    <td className="p-2.5 border border-slate-300 font-black text-sm text-slate-900">
+                      {item.student.full_name}
+                    </td>
+                    <td className="p-2.5 border border-slate-300 text-center font-bold text-slate-700">
+                      {item.student.academic_grade || "غير محدد"}
+                    </td>
+                    <td className="p-2.5 border border-slate-300 text-center font-black text-emerald-900 text-sm">
+                      📖 {item.totalPages} صفحة
+                    </td>
+                  </tr>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan={4} className="p-4 text-center text-slate-500 font-bold">
+                  {activeTab === "weekly"
+                    ? "لا يوجد تسميعات مسجلة للطلاب هذا الأسبوع"
+                    : "لا يوجد تسميعات مسجلة للطلاب بعد"}
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
 
