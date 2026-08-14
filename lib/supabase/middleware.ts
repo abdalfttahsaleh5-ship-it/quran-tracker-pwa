@@ -22,42 +22,54 @@ export async function updateSession(request: NextRequest) {
         getAll() {
           return request.cookies.getAll();
         },
-      setAll(cookiesToSet: Array<{ name: string; value: string; options?: Parameters<typeof supabaseResponse.cookies.set>[2] }>) {
-        cookiesToSet.forEach(({ name, value }) =>
-          request.cookies.set(name, value)
-        );
-        supabaseResponse = NextResponse.next({
-          request,
-        });
-        cookiesToSet.forEach(({ name, value, options }) =>
-          supabaseResponse.cookies.set(name, value, options)
-        );
-      },
+        setAll(cookiesToSet: Array<{ name: string; value: string; options?: Parameters<typeof supabaseResponse.cookies.set>[2] }>) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          );
+          supabaseResponse = NextResponse.next({
+            request,
+          });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          );
+        },
       },
     }
   );
+
+  // Helper to preserve refreshed session cookies when returning redirects
+  const createRedirectWithCookies = (url: URL) => {
+    const redirectResponse = NextResponse.redirect(url);
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
+    });
+    return redirectResponse;
+  };
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Route Protection Logic
   const path = request.nextUrl.pathname;
 
-  // Protect /(teacher) subroutes
-  if (path.startsWith("/dashboard") || path.startsWith("/students")) {
-    if (!user) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/login";
-      return NextResponse.redirect(url);
-    }
+  // Protect teacher-only private subroutes
+  const isProtectedTeacherRoute =
+    path.startsWith("/dashboard") ||
+    path.startsWith("/students") ||
+    path.startsWith("/quran") ||
+    path.startsWith("/trash");
+
+  if (isProtectedTeacherRoute && !user) {
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/login";
+    return createRedirectWithCookies(loginUrl);
   }
 
-  // Redirect authenticated user away from login page
+  // Redirect authenticated teachers from login page to dashboard
   if (path === "/login" && user) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    return NextResponse.redirect(url);
+    const dashboardUrl = request.nextUrl.clone();
+    dashboardUrl.pathname = "/dashboard";
+    return createRedirectWithCookies(dashboardUrl);
   }
 
   return supabaseResponse;
