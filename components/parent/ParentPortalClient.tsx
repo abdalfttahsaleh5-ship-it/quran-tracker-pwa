@@ -16,6 +16,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { ParentProgressPayload } from "@/types";
 import { GRADE_LABELS, ATTENDANCE_LABELS, LOG_TYPE_LABELS, formatArabicDate, formatPageCount } from "@/lib/utils";
 import { AudioPlayer } from "@/components/common/AudioPlayer";
+import { SocialLinks } from "@/components/common/SocialLinks";
 
 interface ParentPortalClientProps {
   student: NonNullable<ParentProgressPayload["student"]>;
@@ -325,13 +326,22 @@ export function ParentPortalClient({ student, logs, attendance }: ParentPortalCl
           </CardContent>
         </Card>
 
-        {/* Footer Contact Note */}
-        <div className="text-center text-xs text-slate-500 space-y-1 py-4">
-          <p className="flex items-center justify-center gap-1">
+        {/* Footer Contact & Social Links Note */}
+        <div className="text-center text-xs text-slate-500 space-y-3 py-6 border-t border-slate-200/80 dark:border-slate-800">
+          <div className="flex flex-col items-center gap-2">
+            <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400">
+              تابع أنشطة وإعلانات مسجد حذيفة بن اليمان:
+            </span>
+            <SocialLinks iconSize="md" />
+          </div>
+
+          <p className="flex items-center justify-center gap-1 text-slate-500 pt-1">
             <HeartHandshake className="w-4 h-4 text-teal-600" />
             <span>نعتز بتواصلكم ومتابعتكم المستمرة مع معلم الحلقة</span>
           </p>
-          <p>© {new Date().getFullYear()} متابع الحفظ - جميع الحقوق محفوظة</p>
+          <p className="text-[10px] text-slate-400">
+            © {new Date().getFullYear()} متابع الحفظ • مسجد حذيفة بن اليمان - طبربور
+          </p>
         </div>
       </div>
     </div>

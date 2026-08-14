@@ -2,6 +2,7 @@ import { Header } from "@/components/layout/Header";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { RoutePrefetcher } from "@/components/common/RoutePrefetcher";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
+import { AppFooter } from "@/components/common/AppFooter";
 
 export default function TeacherLayout({
   children,
@@ -18,6 +19,9 @@ export default function TeacherLayout({
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 pb-24 md:pb-8">
         <ErrorBoundary>{children}</ErrorBoundary>
       </main>
+
+      {/* Global Mosque Footer */}
+      <AppFooter />
 
       {/* Mobile Fixed Bottom Navigation Bar */}
       <BottomNav />
