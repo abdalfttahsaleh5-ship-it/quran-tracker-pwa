@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Tajawal } from "next/font/google";
 import { OfflineBanner } from "@/components/common/OfflineBanner";
-import { PwaInstallPrompt } from "@/components/common/PwaInstallPrompt";
+import { PWAInstallModal } from "@/components/common/PWAInstallModal";
 import { RoutePrefetcher } from "@/components/common/RoutePrefetcher";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import "./globals.css";
@@ -15,14 +15,14 @@ const tajawal = Tajawal({
 
 export const metadata: Metadata = {
   title: {
-    default: "متابع الحفظ - سجل تحفيظ القرآن الكريم",
+    default: "متابع الحفظ - مسجد حذيفة بن اليمان",
     template: "%s | متابع الحفظ",
   },
-  description: "تطبيق متكامل للمعلمين وأولياء الأمور لمتابعة حفظ القرآن الكريم والمراجعة والحضور اليومي",
+  description: "تطبيق متابعة تحفيظ وإتقان القرآن الكريم والحضور اليومي - حلقات مسجد حذيفة بن اليمان طبربور",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "متابع الحفظ",
   },
   formatDetection: {
@@ -31,10 +31,12 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0F766E",
+  themeColor: "#064e3b",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -44,13 +46,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl" className={tajawal.variable}>
-      <body className="antialiased selection:bg-teal-100 selection:text-teal-900 pt-6 sm:pt-0">
+      <body className="antialiased selection:bg-emerald-100 selection:text-emerald-900 pt-safe pb-safe">
         <RoutePrefetcher />
         <OfflineBanner />
         <ErrorBoundary>
           <main className="min-h-screen flex flex-col">{children}</main>
         </ErrorBoundary>
-        <PwaInstallPrompt />
+        <PWAInstallModal />
       </body>
     </html>
   );
