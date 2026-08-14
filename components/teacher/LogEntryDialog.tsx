@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { lightHaptic, successHaptic, warningHaptic } from "@/lib/haptics";
+import { queuePendingAction } from "@/lib/offlineQueue";
 
 interface LogEntryDialogProps {
   isOpen: boolean;
@@ -207,16 +208,86 @@ export function LogEntryDialog({
       surahs: [data.surah_start, ...(isCrossSurah && data.surah_end !== data.surah_start ? [data.surah_end] : [])],
     };
 
-    const res = await createMemorizationLog(payload);
-
-    if (res.success && res.data) {
+    if (typeof window !== "undefined" && !navigator.onLine) {
+      queuePendingAction("recitation", payload);
       successHaptic();
       reset();
-      onSuccess?.(res.data);
+      onSuccess?.({
+        id: `offline_${Date.now()}`,
+        teacher_id: "offline",
+        created_at: new Date().toISOString(),
+        student_id: studentId,
+        log_type: payload.log_type,
+        surah_start: payload.surah_start,
+        aya_start: payload.aya_start,
+        surah_end: payload.surah_end,
+        aya_end: payload.aya_end,
+        grade: payload.grade,
+        page_count: payload.page_count ?? null,
+        notes: payload.notes || null,
+        assistant_name: payload.assistant_name || null,
+        surahs: payload.surahs || null,
+      } as unknown as MemorizationLogRow);
       onClose();
-    } else {
-      warningHaptic();
-      setError(res.error || "فشل حفظ التسميع");
+      return;
+    }
+
+    try {
+      const res = await createMemorizationLog(payload);
+
+      if (res.success && res.data) {
+        successHaptic();
+        reset();
+        onSuccess?.(res.data);
+        onClose();
+      } else {
+        if (!navigator.onLine || res.error?.includes("fetch") || res.error?.includes("network")) {
+          queuePendingAction("recitation", payload);
+          successHaptic();
+          reset();
+          onSuccess?.({
+            id: `offline_${Date.now()}`,
+            teacher_id: "offline",
+            created_at: new Date().toISOString(),
+            student_id: studentId,
+            log_type: payload.log_type,
+            surah_start: payload.surah_start,
+            aya_start: payload.aya_start,
+            surah_end: payload.surah_end,
+            aya_end: payload.aya_end,
+            grade: payload.grade,
+            page_count: payload.page_count ?? null,
+            notes: payload.notes || null,
+            assistant_name: payload.assistant_name || null,
+            surahs: payload.surahs || null,
+          } as unknown as MemorizationLogRow);
+          onClose();
+        } else {
+          warningHaptic();
+          setError(res.error || "فشل حفظ التسميع");
+        }
+      }
+    } catch (err) {
+      queuePendingAction("recitation", payload);
+      successHaptic();
+      reset();
+      onSuccess?.({
+        id: `offline_${Date.now()}`,
+        teacher_id: "offline",
+        created_at: new Date().toISOString(),
+        student_id: studentId,
+        log_type: payload.log_type,
+        surah_start: payload.surah_start,
+        aya_start: payload.aya_start,
+        surah_end: payload.surah_end,
+        aya_end: payload.aya_end,
+        grade: payload.grade,
+        page_count: payload.page_count ?? null,
+        notes: payload.notes || null,
+        assistant_name: payload.assistant_name || null,
+        surahs: payload.surahs || null,
+      } as unknown as MemorizationLogRow);
+      onClose();
     }
     setIsLoading(false);
   };

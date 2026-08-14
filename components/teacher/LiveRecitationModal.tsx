@@ -15,6 +15,7 @@ import {
 } from "@/lib/quranMetadata";
 import { Button } from "@/components/ui/button";
 import { lightHaptic, successHaptic, warningHaptic } from "@/lib/haptics";
+import { queuePendingAction } from "@/lib/offlineQueue";
 import { useRouter } from "next/navigation";
 
 interface LiveRecitationModalProps {
@@ -222,22 +223,33 @@ export function LiveRecitationModal({
       return;
     }
 
+    const payload = {
+      student_id: currentStudent.id,
+      log_type: logType,
+      surah_start: surahStart,
+      aya_start: ayaStart,
+      surah_end: surahEnd || surahStart,
+      aya_end: ayaEnd,
+      grade: grade,
+      page_count: pageCount,
+      notes: notes.trim() || null,
+    };
+
+    // If completely offline, immediately enqueue and advance optimistically
+    if (typeof window !== "undefined" && !navigator.onLine) {
+      queuePendingAction("recitation", payload);
+      successHaptic();
+      setSessionCompletedCount((prev) => prev + 1);
+      setSessionTotalPages((prev) => Number((prev + pageCount).toFixed(2)));
+      setCurrentIndex((prev) => prev + 1);
+      return;
+    }
+
     setIsSubmitting(true);
     setErrorMessage(null);
 
     try {
-      const res = await createMemorizationLog({
-        student_id: currentStudent.id,
-        log_type: logType,
-        surah_start: surahStart,
-        aya_start: ayaStart,
-        surah_end: surahEnd || surahStart,
-        aya_end: ayaEnd,
-        grade: grade,
-        page_count: pageCount,
-        notes: notes.trim() || null,
-      });
-
+      const res = await createMemorizationLog(payload);
       setIsSubmitting(false);
 
       if (res.success) {
@@ -246,13 +258,24 @@ export function LiveRecitationModal({
         setSessionTotalPages((prev) => Number((prev + pageCount).toFixed(2)));
         setCurrentIndex((prev) => prev + 1);
       } else {
-        warningHaptic();
-        setErrorMessage(res.error || "فشل حفظ التسميع، حاول مرة أخرى");
+        if (!navigator.onLine || res.error?.includes("fetch") || res.error?.includes("network")) {
+          queuePendingAction("recitation", payload);
+          successHaptic();
+          setSessionCompletedCount((prev) => prev + 1);
+          setSessionTotalPages((prev) => Number((prev + pageCount).toFixed(2)));
+          setCurrentIndex((prev) => prev + 1);
+        } else {
+          warningHaptic();
+          setErrorMessage(res.error || "فشل حفظ التسميع، حاول مرة أخرى");
+        }
       }
     } catch (err) {
       setIsSubmitting(false);
-      warningHaptic();
-      setErrorMessage("حدث خطأ غير متوقع أثناء الحفظ");
+      queuePendingAction("recitation", payload);
+      successHaptic();
+      setSessionCompletedCount((prev) => prev + 1);
+      setSessionTotalPages((prev) => Number((prev + pageCount).toFixed(2)));
+      setCurrentIndex((prev) => prev + 1);
     }
   };
 

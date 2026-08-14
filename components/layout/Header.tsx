@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, LayoutDashboard, Users, LogOut, Trash2 } from "lucide-react";
+import { BookOpen, LayoutDashboard, Users, LogOut, Trash2, WifiOff, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { logoutTeacher } from "@/lib/actions/auth";
+import { useNetworkSync } from "@/lib/hooks/useNetworkSync";
 
 export function Header() {
   const pathname = usePathname();
+  const { isOnline, pendingCount, isSyncing } = useNetworkSync();
 
   const navItems = [
     { href: "/dashboard", label: "اللوحة الرئيسية", icon: LayoutDashboard },
@@ -60,12 +62,31 @@ export function Header() {
           </nav>
         </div>
 
-        {/* Profile / Logout Action */}
+        {/* Profile / Network Badge / Logout Action */}
         <div className="flex items-center gap-2">
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-slate-800 border border-emerald-100 dark:border-slate-700 text-xs font-bold text-emerald-900 dark:text-emerald-300">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>معلم الحلقة</span>
-          </div>
+          {/* Subtle Online / Offline Status Badge */}
+          {!isOnline ? (
+            <div
+              title={`أنت تعمل بدون اتصال. يوجد ${pendingCount} سجل محفوظ محلياً`}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-950/80 border border-amber-300 dark:border-amber-800 text-[11px] font-black text-amber-900 dark:text-amber-300 animate-pulse"
+            >
+              <WifiOff className="w-3 h-3" />
+              <span>أوفلاين {pendingCount > 0 && `(${pendingCount})`}</span>
+            </div>
+          ) : isSyncing ? (
+            <div
+              title="جارٍ المزامنة مع الخادم..."
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-teal-100 dark:bg-teal-950/80 border border-teal-300 dark:border-teal-800 text-[11px] font-black text-teal-900 dark:text-teal-300"
+            >
+              <RefreshCw className="w-3 h-3 animate-spin" />
+              <span>مزامنة...</span>
+            </div>
+          ) : (
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-slate-800 border border-emerald-100 dark:border-slate-700 text-xs font-bold text-emerald-900 dark:text-emerald-300">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>معلم الحلقة</span>
+            </div>
+          )}
 
           <form action={logoutTeacher}>
             <Button

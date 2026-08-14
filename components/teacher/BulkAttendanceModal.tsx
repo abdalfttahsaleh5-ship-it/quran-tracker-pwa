@@ -8,6 +8,7 @@ import { recordBulkAttendance } from "@/lib/actions/attendance";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { lightHaptic, successHaptic, warningHaptic } from "@/lib/haptics";
+import { queuePendingAction } from "@/lib/offlineQueue";
 
 export interface BulkAttendanceModalProps {
   isOpen: boolean;
@@ -64,16 +65,41 @@ export function BulkAttendanceModal({
       status: attendanceMap[s.id] || "حاضر",
     }));
 
-    const res = await recordBulkAttendance(records);
-
-    if (res.success) {
+    if (typeof window !== "undefined" && !navigator.onLine) {
+      queuePendingAction("attendance", records);
       successHaptic();
       router.refresh();
       onSuccess?.();
       onClose();
-    } else {
-      warningHaptic();
-      setError(res.error || "فشل حفظ الحضور الجماعي");
+      return;
+    }
+
+    try {
+      const res = await recordBulkAttendance(records);
+
+      if (res.success) {
+        successHaptic();
+        router.refresh();
+        onSuccess?.();
+        onClose();
+      } else {
+        if (!navigator.onLine || res.error?.includes("fetch") || res.error?.includes("network")) {
+          queuePendingAction("attendance", records);
+          successHaptic();
+          router.refresh();
+          onSuccess?.();
+          onClose();
+        } else {
+          warningHaptic();
+          setError(res.error || "فشل حفظ الحضور الجماعي");
+        }
+      }
+    } catch (err) {
+      queuePendingAction("attendance", records);
+      successHaptic();
+      router.refresh();
+      onSuccess?.();
+      onClose();
     }
     setIsLoading(false);
   };
