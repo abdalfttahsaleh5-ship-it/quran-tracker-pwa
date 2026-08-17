@@ -273,7 +273,35 @@ export type Database = {
       };
     };
     Views: {
-      [_ in never]: never;
+      students_with_summary: {
+        Row: {
+          id: string;
+          teacher_id: string;
+          full_name: string;
+          parent_phone: string | null;
+          parent_token: string;
+          academic_grade: string | null;
+          school_name: string | null;
+          address: string | null;
+          father_job: string | null;
+          avatar_url: string | null;
+          is_archived: boolean;
+          deleted_at: string | null;
+          created_at: string;
+          updated_at: string;
+          total_pages_memorized: number;
+          total_recitations_count: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "students_teacher_id_fkey";
+            columns: ["teacher_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Functions: {
       [_ in never]: never;

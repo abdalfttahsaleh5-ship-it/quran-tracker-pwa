@@ -27,8 +27,9 @@ export async function getStudents(): Promise<ActionResult<StudentRow[]>> {
       };
     }
 
+    // Query from students_with_summary view directly to read pre-aggregated totals
     const { data: students, error } = await supabase
-      .from("students")
+      .from("students_with_summary")
       .select("*")
       .eq("teacher_id", user.id)
       .order("full_name", { ascending: true });
@@ -40,23 +41,9 @@ export async function getStudents(): Promise<ActionResult<StudentRow[]>> {
       };
     }
 
-    // Query memorization logs to calculate total pages per student
-    const { data: logs } = await supabase
-      .from("memorization_logs")
-      .select("student_id, page_count")
-      .eq("teacher_id", user.id);
-
-    const pagesMap: Record<string, number> = {};
-    (logs || []).forEach((log) => {
-      if (log.student_id) {
-        pagesMap[log.student_id] = Number(((pagesMap[log.student_id] || 0) + (log.page_count || 1)).toFixed(2));
-      }
-    });
-
-    // Auto-patch any student missing parent_token and attach total_pages_count
+    // Auto-patch any student missing parent_token and map pre-aggregated totals
     const safeStudents: StudentRow[] = await Promise.all(
       (students || []).map(async (student) => {
-        const totalPages = pagesMap[student.id] || 0;
         let token = student.parent_token;
         if (!token) {
           token = crypto.randomUUID();
@@ -65,7 +52,15 @@ export async function getStudents(): Promise<ActionResult<StudentRow[]>> {
             .update({ parent_token: token })
             .eq("id", student.id);
         }
-        return { ...student, parent_token: token, total_pages_count: totalPages };
+        const totalPages = Number(student.total_pages_memorized || 0);
+        const recitationsCount = Number(student.total_recitations_count || 0);
+        return {
+          ...student,
+          parent_token: token,
+          total_pages_memorized: totalPages,
+          total_recitations_count: recitationsCount,
+          total_pages_count: totalPages,
+        };
       })
     );
 
@@ -450,9 +445,9 @@ export async function getTeacherReportData(options?: TeacherReportDataOptions): 
     const { startStr, endStr } = resolveDateRange(options);
     const logLimit = options?.limit ?? 50;
 
-    // 1. Fetch Students
+    // 1. Fetch Students with pre-aggregated summary
     const studentsPromise = supabase
-      .from("students")
+      .from("students_with_summary")
       .select("*")
       .eq("teacher_id", user.id)
       .order("full_name", { ascending: true });
@@ -505,7 +500,17 @@ export async function getTeacherReportData(options?: TeacherReportDataOptions): 
       statsLogsQuery,
     ]);
 
-    const students = studentsRes.data || [];
+    const rawStudents = studentsRes.data || [];
+    const students: StudentRow[] = rawStudents.map((s) => {
+      const totalPages = Number(s.total_pages_memorized || 0);
+      const recitationsCount = Number(s.total_recitations_count || 0);
+      return {
+        ...s,
+        total_pages_memorized: totalPages,
+        total_recitations_count: recitationsCount,
+        total_pages_count: totalPages,
+      };
+    });
     const attendance = attendanceRes.data || [];
     const logs = logsRes.data || [];
     const statsLogs = statsLogsRes.data || [];

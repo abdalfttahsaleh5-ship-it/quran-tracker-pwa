@@ -9,7 +9,11 @@ export type { Database, LogTypeEnum, EvaluationGradeEnum, AttendanceStatusEnum }
 
 export type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 
+export type StudentSummaryRow = Database["public"]["Views"]["students_with_summary"]["Row"];
+
 export type StudentRow = Database["public"]["Tables"]["students"]["Row"] & {
+  total_pages_memorized?: number;
+  total_recitations_count?: number;
   total_pages_count?: number;
 };
 

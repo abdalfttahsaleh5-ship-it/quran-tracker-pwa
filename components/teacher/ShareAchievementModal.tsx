@@ -58,12 +58,15 @@ export function ShareAchievementModal({
   }, [attendance, student.id]);
 
   const totalPages = useMemo(() => {
+    if (student.total_pages_memorized !== undefined) {
+      return formatCleanPageCount(student.total_pages_memorized);
+    }
     if (studentLogs.length > 0) {
       const raw = studentLogs.reduce((sum, l) => sum + (Number(l.page_count) || 1), 0);
       return formatCleanPageCount(raw);
     }
     return Number(student.total_pages_count || 0);
-  }, [studentLogs, student.total_pages_count]);
+  }, [student.total_pages_memorized, studentLogs, student.total_pages_count]);
 
   const recentSurah = useMemo(() => {
     if (studentLogs.length === 0) return null;

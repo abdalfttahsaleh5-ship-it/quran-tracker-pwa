@@ -77,19 +77,6 @@ export function StudentList({
     onPayload: handleRealtimePayload,
   });
 
-  // Dynamic pages sum map for accurate sorting
-  const studentPagesMap = useMemo(() => {
-    const map: Record<string, number> = {};
-    (logs || []).forEach((log) => {
-      const sid = String(log.student_id || "");
-      if (sid) {
-        const p = Number(log.page_count ?? 1);
-        map[sid] = (map[sid] || 0) + (isNaN(p) ? 0 : p);
-      }
-    });
-    return map;
-  }, [logs]);
-
   // Compute attendance alerts for student cards
   const alertsMap = useMemo(() => {
     return getAttendanceAlertsMap(students, initialAttendance);
@@ -125,8 +112,8 @@ export function StudentList({
     .filter((s) => s.full_name.toLowerCase().includes(searchQuery.trim().toLowerCase()))
     .sort((a, b) => {
       if (sortBy === "pages") {
-        const pagesB = studentPagesMap[b.id] ?? (b.total_pages_count || 0);
-        const pagesA = studentPagesMap[a.id] ?? (a.total_pages_count || 0);
+        const pagesB = b.total_pages_memorized ?? b.total_pages_count ?? 0;
+        const pagesA = a.total_pages_memorized ?? a.total_pages_count ?? 0;
         return pagesB - pagesA;
       }
       return a.full_name.localeCompare(b.full_name, "ar");
