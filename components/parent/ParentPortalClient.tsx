@@ -34,6 +34,8 @@ export function ParentPortalClient({ student, logs, attendance }: ParentPortalCl
   const [expandedLogIds, setExpandedLogIds] = useState<Set<string>>(new Set());
   const [expandedJuzId, setExpandedJuzId] = useState<number | null>(null);
   const [isAttendanceExpanded, setIsAttendanceExpanded] = useState(false);
+  const [showAllLogs, setShowAllLogs] = useState(false);
+  const [showAllProgress, setShowAllProgress] = useState(false);
   const [viewMode, setViewMode] = useState<"juz" | "surah">("juz");
   const [statusFilter, setStatusFilter] = useState<"all" | "in_progress" | "completed">("all");
 
@@ -316,57 +318,72 @@ export function ParentPortalClient({ student, logs, attendance }: ParentPortalCl
             {viewMode === "surah" ? (
               /* Surah Progress Grid */
               filteredSurahList.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {filteredSurahList.map((surah) => (
-                    <div
-                      key={surah.surahId}
-                      className="p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-2 shadow-xs hover:shadow-sm transition-all"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className="w-6 h-6 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold text-xs flex items-center justify-center">
-                            {surah.surahId}
-                          </span>
-                          <h4 className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100">
-                            سورة {surah.surahName}
-                          </h4>
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {(showAllProgress ? filteredSurahList : filteredSurahList.slice(0, 5)).map((surah) => (
+                      <div
+                        key={surah.surahId}
+                        className="p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-2 shadow-xs hover:shadow-sm transition-all"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold text-xs flex items-center justify-center">
+                              {surah.surahId}
+                            </span>
+                            <h4 className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100">
+                              سورة {surah.surahName}
+                            </h4>
+                          </div>
+
+                          {surah.isCompleted ? (
+                            <span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                              مكتمل 100% ✅
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                              قيد الحفظ ({surah.percentage}%) ⏳
+                            </span>
+                          )}
                         </div>
 
-                        {surah.isCompleted ? (
-                          <span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
-                            مكتمل 100% ✅
-                          </span>
-                        ) : (
-                          <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                            قيد الحفظ ({surah.percentage}%) ⏳
-                          </span>
-                        )}
-                      </div>
+                        {/* Progress Bar */}
+                        <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full transition-all duration-300 rounded-full ${
+                              surah.isCompleted
+                                ? "bg-gradient-to-r from-emerald-500 to-teal-500"
+                                : "bg-gradient-to-r from-amber-500 to-teal-500"
+                            }`}
+                            style={{ width: `${surah.percentage}%` }}
+                          />
+                        </div>
 
-                      {/* Progress Bar */}
-                      <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full transition-all duration-300 rounded-full ${
-                            surah.isCompleted
-                              ? "bg-gradient-to-r from-emerald-500 to-teal-500"
-                              : "bg-gradient-to-r from-amber-500 to-teal-500"
-                          }`}
-                          style={{ width: `${surah.percentage}%` }}
-                        />
+                        {/* Progress Detail Text */}
+                        <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                          <span>
+                            {surah.isCompleted
+                              ? `تم إتمام حفظ السورة كاملاً (${surah.totalPages} صفحة) ✅`
+                              : `تم حفظ ${surah.memorizedPages} من ${surah.totalPages} صفحات`}
+                          </span>
+                          <span className="font-mono">{surah.percentage}%</span>
+                        </div>
                       </div>
+                    ))}
+                  </div>
 
-                      {/* Progress Detail Text */}
-                      <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                        <span>
-                          {surah.isCompleted
-                            ? `تم إتمام حفظ السورة كاملاً (${surah.totalPages} صفحة) ✅`
-                            : `تم حفظ ${surah.memorizedPages} من ${surah.totalPages} صفحات`}
-                        </span>
-                        <span className="font-mono">{surah.percentage}%</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                  {filteredSurahList.length > 5 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllProgress(!showAllProgress)}
+                      className="w-full py-2.5 px-4 text-xs font-bold text-teal-700 dark:text-teal-400 bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/50 dark:hover:bg-teal-900/50 rounded-2xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer mt-2"
+                    >
+                      <span>
+                        {showAllProgress ? "طي القائمة ⌃" : `عرض كافة السور (${filteredSurahList.length} سورة) ⌄`}
+                      </span>
+                      {showAllProgress ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </button>
+                  )}
+                </>
               ) : (
                 <div className="p-6 text-center text-slate-400 text-xs font-bold">
                   لا توجد سور مطابقة للفلتر المحدد
@@ -375,97 +392,112 @@ export function ParentPortalClient({ student, logs, attendance }: ParentPortalCl
             ) : (
               /* Juz Progress Grid (Collapsible Accordion) */
               filteredJuzList.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {filteredJuzList.map((juz) => {
-                    const isExpanded = expandedJuzId === juz.juzNumber;
-                    return (
-                      <div
-                        key={juz.juzNumber}
-                        className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-xs hover:shadow-sm transition-all"
-                      >
-                        {/* Compact Single-Row Header */}
-                        <button
-                          type="button"
-                          onClick={() => toggleJuzExpand(juz.juzNumber)}
-                          className="w-full p-3 sm:p-3.5 flex items-center justify-between gap-2.5 text-right hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {(showAllProgress ? filteredJuzList : filteredJuzList.slice(0, 5)).map((juz) => {
+                      const isExpanded = expandedJuzId === juz.juzNumber;
+                      return (
+                        <div
+                          key={juz.juzNumber}
+                          className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-xs hover:shadow-sm transition-all"
                         >
-                          {/* Right: Circle Number + Juz Name */}
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <span className="w-8 h-8 rounded-xl bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-200 font-black text-xs flex items-center justify-center border border-teal-200/80 dark:border-teal-800 shrink-0">
-                              {juz.juzNumber}
-                            </span>
-                            <div className="min-w-0">
-                              <h4 className="font-black text-xs sm:text-sm text-slate-900 dark:text-slate-100 truncate">
-                                {juz.name}
-                              </h4>
-                              <span className="text-[10px] text-slate-400 font-medium sm:hidden">
-                                (ص {juz.startPage} - {juz.endPage})
+                          {/* Compact Single-Row Header */}
+                          <button
+                            type="button"
+                            onClick={() => toggleJuzExpand(juz.juzNumber)}
+                            className="w-full p-3 sm:p-3.5 flex items-center justify-between gap-2.5 text-right hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
+                          >
+                            {/* Right: Circle Number + Juz Name */}
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <span className="w-8 h-8 rounded-xl bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-200 font-black text-xs flex items-center justify-center border border-teal-200/80 dark:border-teal-800 shrink-0">
+                                {juz.juzNumber}
                               </span>
-                            </div>
-                          </div>
-
-                          {/* Middle: Badge & Left: Interactive Arrow */}
-                          <div className="flex items-center gap-2 shrink-0">
-                            {juz.isCompleted ? (
-                              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
-                                مكتمل 100% ✅
-                              </span>
-                            ) : juz.status === "in_progress" ? (
-                              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                                {juz.percentage}% ⏳
-                              </span>
-                            ) : (
-                              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700">
-                                لم يبدأ
-                              </span>
-                            )}
-
-                            <ChevronDown
-                              className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
-                                isExpanded ? "rotate-180 text-teal-600 dark:text-teal-400" : ""
-                              }`}
-                            />
-                          </div>
-                        </button>
-
-                        {/* Expandable Details (Opened View) */}
-                        {isExpanded && (
-                          <div className="px-3.5 pb-3.5 pt-1 space-y-2 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/50 animate-in fade-in duration-200">
-                            <div className="flex items-center justify-between text-[11px] text-slate-500 font-bold">
-                              <span>نطاق الصفحات: (الصفحات {juz.startPage} - {juz.endPage})</span>
-                              <span className="font-mono">{juz.percentage}%</span>
+                              <div className="min-w-0">
+                                <h4 className="font-black text-xs sm:text-sm text-slate-900 dark:text-slate-100 truncate">
+                                  {juz.name}
+                                </h4>
+                                <span className="text-[10px] text-slate-400 font-medium sm:hidden">
+                                  (ص {juz.startPage} - {juz.endPage})
+                                </span>
+                              </div>
                             </div>
 
-                            {/* Full Progress Bar */}
-                            <div className="w-full bg-slate-200 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
-                              <div
-                                className={`h-full transition-all duration-300 rounded-full ${
-                                  juz.isCompleted
-                                    ? "bg-gradient-to-r from-emerald-500 to-teal-500"
-                                    : juz.status === "in_progress"
-                                    ? "bg-gradient-to-r from-amber-500 to-teal-500"
-                                    : "bg-slate-300 dark:bg-slate-600"
+                            {/* Middle: Badge & Left: Interactive Arrow */}
+                            <div className="flex items-center gap-2 shrink-0">
+                              {juz.isCompleted ? (
+                                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                                  مكتمل 100% ✅
+                                </span>
+                              ) : juz.status === "in_progress" ? (
+                                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                                  {juz.percentage}% ⏳
+                                </span>
+                              ) : (
+                                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700">
+                                  لم يبدأ
+                                </span>
+                              )}
+
+                              <ChevronDown
+                                className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
+                                  isExpanded ? "rotate-180 text-teal-600 dark:text-teal-400" : ""
                                 }`}
-                                style={{ width: `${juz.percentage}%` }}
                               />
                             </div>
+                          </button>
 
-                            {/* Exact Page Count Text */}
-                            <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 pt-0.5">
-                              <span>
-                                {juz.isCompleted
-                                  ? `تم إتمام حفظ الجزء كاملاً (${juz.totalPages} صفحة) ✅`
-                                  : juz.status === "in_progress"
-                                  ? `تم حفظ ${juz.memorizedPages} من ${juz.totalPages} صفحة ⏳`
-                                  : `لم يبدأ بعد (0 من ${juz.totalPages} صفحة)`}
-                              </span>
+                          {/* Expandable Details (Opened View) */}
+                          {isExpanded && (
+                            <div className="px-3.5 pb-3.5 pt-1 space-y-2 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/50 animate-in fade-in duration-200">
+                              <div className="flex items-center justify-between text-[11px] text-slate-500 font-bold">
+                                <span>نطاق الصفحات: (الصفحات {juz.startPage} - {juz.endPage})</span>
+                                <span className="font-mono">{juz.percentage}%</span>
+                              </div>
+
+                              {/* Full Progress Bar */}
+                              <div className="w-full bg-slate-200 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full transition-all duration-300 rounded-full ${
+                                    juz.isCompleted
+                                      ? "bg-gradient-to-r from-emerald-500 to-teal-500"
+                                      : juz.status === "in_progress"
+                                      ? "bg-gradient-to-r from-amber-500 to-teal-500"
+                                      : "bg-slate-300 dark:bg-slate-600"
+                                  }`}
+                                  style={{ width: `${juz.percentage}%` }}
+                                />
+                              </div>
+
+                              {/* Exact Page Count Text */}
+                              <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 pt-0.5">
+                                <span>
+                                  {juz.isCompleted
+                                    ? `تم إتمام حفظ الجزء كاملاً (${juz.totalPages} صفحة) ✅`
+                                    : juz.status === "in_progress"
+                                    ? `تم حفظ ${juz.memorizedPages} من ${juz.totalPages} صفحة ⏳`
+                                    : `لم يبدأ بعد (0 من ${juz.totalPages} صفحة)`}
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {filteredJuzList.length > 5 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllProgress(!showAllProgress)}
+                      className="w-full py-2.5 px-4 text-xs font-bold text-teal-700 dark:text-teal-400 bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/50 dark:hover:bg-teal-900/50 rounded-2xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer mt-2"
+                    >
+                      <span>
+                        {showAllProgress ? "طي القائمة ⌃" : `عرض كافة الأجزاء (${filteredJuzList.length} جزء) ⌄`}
+                      </span>
+                      {showAllProgress ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </button>
+                  )}
+                </>
               ) : (
                 <div className="p-6 text-center text-slate-400 text-xs font-bold">
                   لا توجد أجزاء مطابقة للفلتر المحدد
@@ -489,92 +521,107 @@ export function ParentPortalClient({ student, logs, attendance }: ParentPortalCl
 
           <CardContent className="p-5 pt-0 space-y-2.5">
             {safeLogs.length > 0 ? (
-              safeLogs.map((log) => {
-                const isExpanded = expandedLogIds.has(log.id);
-                const gradeInfo = (log?.grade && GRADE_LABELS[log.grade]) || { label: log?.grade || "غير محدد", color: "" };
-                const typeInfo = (log?.log_type && LOG_TYPE_LABELS[log.log_type]) || { label: log?.log_type || "تسميع", color: "" };
+              <>
+                {(showAllLogs ? safeLogs : safeLogs.slice(0, 5)).map((log) => {
+                  const isExpanded = expandedLogIds.has(log.id);
+                  const gradeInfo = (log?.grade && GRADE_LABELS[log.grade]) || { label: log?.grade || "غير محدد", color: "" };
+                  const typeInfo = (log?.log_type && LOG_TYPE_LABELS[log.log_type]) || { label: log?.log_type || "تسميع", color: "" };
 
-                return (
-                  <div
-                    key={log.id}
-                    className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden transition-all shadow-xs"
-                  >
-                    {/* Collapsed Row Header */}
-                    <button
-                      type="button"
-                      onClick={() => toggleLogExpansion(log.id)}
-                      className="w-full p-3.5 flex items-center justify-between gap-3 text-right hover:bg-slate-50 dark:hover:bg-slate-850 transition-colors cursor-pointer"
+                  return (
+                    <div
+                      key={log.id}
+                      className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden transition-all shadow-xs"
                     >
-                      <div className="flex items-center gap-2 flex-wrap min-w-0">
-                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-lg">
-                          {log?.created_at ? formatArabicDate(log.created_at) : ""}
-                        </span>
-                        <span className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-slate-100">
-                          {log.surah_start === log.surah_end
-                            ? `سورة ${log.surah_start}`
-                            : `سورة ${log.surah_start} ➔ ${log.surah_end}`}
-                        </span>
-                        <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-200/80">
-                          📖 {formatPageCount(log?.page_count)}
-                        </span>
-                        {log?.audio_url && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 animate-pulse">
-                            <span>🎙️ تلاوة مسجلة</span>
+                      {/* Collapsed Row Header */}
+                      <button
+                        type="button"
+                        onClick={() => toggleLogExpansion(log.id)}
+                        className="w-full p-3.5 flex items-center justify-between gap-3 text-right hover:bg-slate-50 dark:hover:bg-slate-850 transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2 flex-wrap min-w-0">
+                          <span className="text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-lg">
+                            {log?.created_at ? formatArabicDate(log.created_at) : ""}
                           </span>
-                        )}
-                      </div>
-
-                      <div className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 shrink-0">
-                        {isExpanded ? <ChevronUp className="w-5 h-5 text-teal-600" /> : <ChevronDown className="w-5 h-5" />}
-                      </div>
-                    </button>
-
-                    {/* Expanded Details Body */}
-                    {isExpanded && (
-                      <div className="p-4 bg-slate-50/70 dark:bg-slate-800/40 border-t border-slate-100 dark:border-slate-800 space-y-3 animate-in fade-in duration-200">
-                        <div className="flex items-center gap-2 flex-wrap text-xs">
-                          <span className={`px-2.5 py-0.5 rounded-full font-bold ${typeInfo.color}`}>
-                            {typeInfo.label}
+                          <span className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                            {log.surah_start === log.surah_end
+                              ? `سورة ${log.surah_start}`
+                              : `سورة ${log.surah_start} ➔ ${log.surah_end}`}
                           </span>
-                          <span className={`px-2.5 py-0.5 rounded-full font-bold border ${gradeInfo.color}`}>
-                            {gradeInfo.label}
+                          <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-200/80">
+                            📖 {formatPageCount(log?.page_count)}
                           </span>
-                          {log?.assistant_name && (
-                            <span className="px-2.5 py-0.5 rounded-full font-semibold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                              👤 المسمّع: {log.assistant_name}
+                          {log?.audio_url && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 animate-pulse">
+                              <span>🎙️ تلاوة مسجلة</span>
                             </span>
                           )}
                         </div>
 
-                        <div className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200">
-                          من سورة <span className="text-teal-700 dark:text-teal-400">{log?.surah_start || "-"}</span> (آية {log?.aya_start || 1}) إلى سورة{" "}
-                          <span className="text-teal-700 dark:text-teal-400">{log?.surah_end || "-"}</span> (آية {log?.aya_end || 1})
+                        <div className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 shrink-0">
+                          {isExpanded ? <ChevronUp className="w-5 h-5 text-teal-600" /> : <ChevronDown className="w-5 h-5" />}
                         </div>
+                      </button>
 
-                        {log?.audio_url && (
-                          <div className="pt-1.5 space-y-1.5 bg-emerald-50/60 dark:bg-emerald-950/30 p-3 rounded-2xl border border-emerald-200/80 dark:border-emerald-800/80">
-                            <span className="text-xs font-black text-emerald-900 dark:text-emerald-200 flex items-center gap-1">
-                              <span>🎙️ استمع لتلاوة ابنكم المسجلة:</span>
+                      {/* Expanded Details Body */}
+                      {isExpanded && (
+                        <div className="p-4 bg-slate-50/70 dark:bg-slate-800/40 border-t border-slate-100 dark:border-slate-800 space-y-3 animate-in fade-in duration-200">
+                          <div className="flex items-center gap-2 flex-wrap text-xs">
+                            <span className={`px-2.5 py-0.5 rounded-full font-bold ${typeInfo.color}`}>
+                              {typeInfo.label}
                             </span>
-                            <audio
-                              controls
-                              className="w-full h-9 rounded-xl shadow-xs"
-                              src={log.audio_url}
-                              preload="none"
-                            />
+                            <span className={`px-2.5 py-0.5 rounded-full font-bold border ${gradeInfo.color}`}>
+                              {gradeInfo.label}
+                            </span>
+                            {log?.assistant_name && (
+                              <span className="px-2.5 py-0.5 rounded-full font-semibold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                                👤 المسمّع: {log.assistant_name}
+                              </span>
+                            )}
                           </div>
-                        )}
 
-                        {log?.notes && (
-                          <div className="text-xs text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200/80 dark:border-slate-800">
-                            <strong>ملاحظة المعلم:</strong> {log.notes}
+                          <div className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200">
+                            من سورة <span className="text-teal-700 dark:text-teal-400">{log?.surah_start || "-"}</span> (آية {log?.aya_start || 1}) إلى سورة{" "}
+                            <span className="text-teal-700 dark:text-teal-400">{log?.surah_end || "-"}</span> (آية {log?.aya_end || 1})
                           </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })
+
+                          {log?.audio_url && (
+                            <div className="pt-1.5 space-y-1.5 bg-emerald-50/60 dark:bg-emerald-950/30 p-3 rounded-2xl border border-emerald-200/80 dark:border-emerald-800/80">
+                              <span className="text-xs font-black text-emerald-900 dark:text-emerald-200 flex items-center gap-1">
+                                <span>🎙️ استمع لتلاوة ابنكم المسجلة:</span>
+                              </span>
+                              <audio
+                                controls
+                                className="w-full h-9 rounded-xl shadow-xs"
+                                src={log.audio_url}
+                                preload="none"
+                              />
+                            </div>
+                          )}
+
+                          {log?.notes && (
+                            <div className="text-xs text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200/80 dark:border-slate-800">
+                              <strong>ملاحظة المعلم:</strong> {log.notes}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {safeLogs.length > 5 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllLogs(!showAllLogs)}
+                    className="w-full py-2.5 px-4 text-xs font-bold text-teal-700 dark:text-teal-400 bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/50 dark:hover:bg-teal-900/50 rounded-2xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <span>
+                      {showAllLogs ? "طي السجلات ⌃" : `عرض كافة التسميعات (${safeLogs.length} تسميع) ⌄`}
+                    </span>
+                    {showAllLogs ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </button>
+                )}
+              </>
             ) : (
               <div className="text-center py-10 space-y-2">
                 <BookOpen className="w-10 h-10 text-slate-300 mx-auto" />
