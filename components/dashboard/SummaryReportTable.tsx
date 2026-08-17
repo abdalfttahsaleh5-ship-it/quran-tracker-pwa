@@ -11,6 +11,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { StudentReportItem } from "./PrintReportView";
 import { useRealtimeSync, RealtimePayload } from "@/lib/hooks/useRealtimeSync";
+import { recordAttendance } from "@/lib/actions/attendance";
+import { lightHaptic, successHaptic } from "@/lib/haptics";
+import { queuePendingAction } from "@/lib/offlineQueue";
 import {
   calculateStudentReportItems,
   getTimeframeDateBounds,
@@ -99,6 +102,60 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
     if (typeof window !== "undefined") {
       window.print();
     }
+  };
+
+  // Instant 0ms toggle attendance handler for daily view
+  const handleToggleAttendance = (studentId: string) => {
+    lightHaptic();
+    const dateStr = dateBounds.todayStr;
+
+    const todayRecord = localAttendance.find(
+      (a) => a.student_id === studentId && a.date === dateStr
+    );
+    const currentStatus = todayRecord?.status;
+    const isCurrentlyPresent = currentStatus === "حاضر" || (currentStatus as string) === "present";
+    const nextStatus = isCurrentlyPresent ? "غائب" : "حاضر";
+
+    // 1. Optimistic 0ms instant local state update
+    setLocalAttendance((prev) => {
+      const existingIdx = prev.findIndex(
+        (a) => a.student_id === studentId && a.date === dateStr
+      );
+      if (existingIdx >= 0) {
+        const copy = [...prev];
+        copy[existingIdx] = {
+          ...copy[existingIdx],
+          status: nextStatus,
+        };
+        return copy;
+      }
+      return [
+        {
+          id: `temp_${Date.now()}_${studentId}`,
+          student_id: studentId,
+          teacher_id: "current",
+          date: dateStr,
+          status: nextStatus,
+          notes: null,
+          created_at: new Date().toISOString(),
+        },
+        ...prev,
+      ];
+    });
+
+    // 2. Fire async background upsert call without blocking UI
+    if (typeof window !== "undefined" && !navigator.onLine) {
+      queuePendingAction("attendance", [{ student_id: studentId, date: dateStr, status: nextStatus }]);
+      return;
+    }
+
+    recordAttendance({
+      student_id: studentId,
+      date: dateStr,
+      status: nextStatus,
+    }).catch((err) => {
+      console.warn("Background attendance toggle error:", err);
+    });
   };
 
   return (
@@ -236,15 +293,63 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
                         {item.student.academic_grade || "غير محدد"}
                       </td>
                       <td className="p-3 text-center font-bold">
-                        <span
-                          className={`inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full text-xs font-black ${
-                            item.attendanceText.includes("/") ? "dir-ltr" : "dir-rtl"
-                          } ${
-                            item.badgeStyle || "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
-                          }`}
-                        >
-                          {item.attendanceText}
-                        </span>
+                        {period === "daily" ? (
+                          (() => {
+                            const todayRecord = localAttendance.find(
+                              (a) => a.student_id === item.student.id && a.date === dateBounds.todayStr
+                            );
+                            const status = todayRecord?.status;
+                            const isPresent = status === "حاضر" || (status as string) === "present";
+                            const isAbsent = status === "غائب" || (status as string) === "absent";
+
+                            if (isPresent) {
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleAttendance(item.student.id)}
+                                  className="inline-flex items-center justify-center gap-1 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-medium text-xs px-3 py-1.5 rounded-full shadow-sm transition-all cursor-pointer select-none"
+                                  title="حاضر - انقر للتبديل إلى غائب"
+                                >
+                                  <span>🟢 حاضر</span>
+                                </button>
+                              );
+                            }
+
+                            if (isAbsent) {
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleAttendance(item.student.id)}
+                                  className="inline-flex items-center justify-center gap-1 bg-rose-500 hover:bg-rose-600 active:scale-95 text-white font-medium text-xs px-3 py-1.5 rounded-full shadow-sm transition-all cursor-pointer select-none"
+                                  title="غائب - انقر للتبديل إلى حاضر"
+                                >
+                                  <span>🔴 غائب</span>
+                                </button>
+                              );
+                            }
+
+                            return (
+                              <button
+                                type="button"
+                                onClick={() => handleToggleAttendance(item.student.id)}
+                                className="inline-flex items-center justify-center gap-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 active:scale-95 text-slate-700 dark:text-slate-300 text-xs px-3 py-1.5 rounded-full transition-all cursor-pointer select-none font-medium"
+                                title="لم يرصد - انقر للتبديل إلى حاضر"
+                              >
+                                <span>⚪ لم يرصد</span>
+                              </button>
+                            );
+                          })()
+                        ) : (
+                          <span
+                            className={`inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full text-xs font-black ${
+                              item.attendanceText.includes("/") ? "dir-ltr" : "dir-rtl"
+                            } ${
+                              item.badgeStyle || "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
+                            }`}
+                          >
+                            {item.attendanceText}
+                          </span>
+                        )}
                       </td>
                       <td className="p-3 text-center font-black text-emerald-700 dark:text-emerald-400">
                         {item.pagesCount > 0 ? (
