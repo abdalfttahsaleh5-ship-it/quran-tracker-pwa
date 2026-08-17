@@ -3,7 +3,6 @@ import { Tajawal } from "next/font/google";
 import { OfflineBanner } from "@/components/common/OfflineBanner";
 import { PWAInstallModal } from "@/components/common/PWAInstallModal";
 import { PWAProvider } from "@/components/common/PWAProvider";
-import { RoutePrefetcher } from "@/components/common/RoutePrefetcher";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import "./globals.css";
 
@@ -49,7 +48,6 @@ export default function RootLayout({
     <html lang="ar" dir="rtl" className={tajawal.variable}>
       <body className="antialiased selection:bg-emerald-100 selection:text-emerald-900 pt-safe pb-safe">
         <PWAProvider />
-        <RoutePrefetcher />
         <OfflineBanner />
         <ErrorBoundary>
           <main className="min-h-screen flex flex-col">{children}</main>

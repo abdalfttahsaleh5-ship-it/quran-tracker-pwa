@@ -37,6 +37,16 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
+  let user = null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    user = data?.user || null;
+  } catch {
+    user = null;
+  }
+
+  const path = request.nextUrl.pathname;
+
   // Helper to preserve refreshed session cookies when returning redirects
   const createRedirectWithCookies = (url: URL) => {
     const redirectResponse = NextResponse.redirect(url);
@@ -46,12 +56,6 @@ export async function updateSession(request: NextRequest) {
     return redirectResponse;
   };
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const path = request.nextUrl.pathname;
-
   // Protect teacher-only private subroutes
   const isProtectedTeacherRoute =
     path.startsWith("/dashboard") ||
@@ -59,6 +63,7 @@ export async function updateSession(request: NextRequest) {
     path.startsWith("/quran") ||
     path.startsWith("/trash");
 
+  // If unauthenticated user tries to access protected teacher routes -> redirect to /login
   if (isProtectedTeacherRoute && !user) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
