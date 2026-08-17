@@ -46,6 +46,7 @@ export const ATTENDANCE_LABELS: Record<AttendanceStatusEnum, { label: string; co
   غائب: { label: "غائب", color: "text-rose-700 bg-rose-50 border-rose-200" },
   مستأذن: { label: "مستأذن", color: "text-amber-700 bg-amber-50 border-amber-200" },
   متأخر: { label: "متأخر", color: "text-orange-700 bg-orange-50 border-orange-200" },
+  "لم يرصد": { label: "لم يرصد", color: "text-slate-600 bg-slate-100 border-slate-200" },
 };
 
 export const LOG_TYPE_LABELS: Record<LogTypeEnum, { label: string; color: string }> = {

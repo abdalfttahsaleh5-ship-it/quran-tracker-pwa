@@ -3,53 +3,30 @@ import {
   LogTypeEnum,
   EvaluationGradeEnum,
   AttendanceStatusEnum,
-} from "./database";
+} from "./database.types";
 
 export type { Database, LogTypeEnum, EvaluationGradeEnum, AttendanceStatusEnum };
 
 export type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 
 export type StudentRow = Database["public"]["Tables"]["students"]["Row"] & {
-  academic_grade?: string | null;
-  school_name?: string | null;
-  address?: string | null;
-  father_job?: string | null;
-  avatar_url?: string | null;
   total_pages_count?: number;
 };
 
-export type StudentInsert = Database["public"]["Tables"]["students"]["Insert"] & {
-  academic_grade?: string | null;
-  school_name?: string | null;
-  address?: string | null;
-  father_job?: string | null;
-  avatar_url?: string | null;
-};
+export type StudentInsert = Database["public"]["Tables"]["students"]["Insert"];
+export type StudentUpdate = Database["public"]["Tables"]["students"]["Update"];
 
-export type StudentUpdate = Database["public"]["Tables"]["students"]["Update"] & {
-  academic_grade?: string | null;
-  school_name?: string | null;
-  address?: string | null;
-  father_job?: string | null;
-  avatar_url?: string | null;
-};
+export type MemorizationLogRow = Database["public"]["Tables"]["memorization_logs"]["Row"];
+export type MemorizationLogInsert = Database["public"]["Tables"]["memorization_logs"]["Insert"];
+export type MemorizationLogUpdate = Database["public"]["Tables"]["memorization_logs"]["Update"];
 
-export type MemorizationLogRow = Database["public"]["Tables"]["memorization_logs"]["Row"] & {
-  assistant_name?: string | null;
-  page_count?: number | null;
-  surahs?: string[] | null;
-  audio_url?: string | null;
-};
-
-export type MemorizationLogInsert = Database["public"]["Tables"]["memorization_logs"]["Insert"] & {
-  assistant_name?: string | null;
-  page_count?: number | null;
-  surahs?: string[] | null;
-  audio_url?: string | null;
-};
+export type AttendanceRow = Database["public"]["Tables"]["attendance"]["Row"];
+export type AttendanceInsert = Database["public"]["Tables"]["attendance"]["Insert"];
+export type AttendanceUpdate = Database["public"]["Tables"]["attendance"]["Update"];
 
 export type AttendanceRecordRow = Database["public"]["Tables"]["attendance_records"]["Row"];
 export type AttendanceRecordInsert = Database["public"]["Tables"]["attendance_records"]["Insert"];
+export type AttendanceRecordUpdate = Database["public"]["Tables"]["attendance_records"]["Update"];
 
 export interface StudentWithProgress extends StudentRow {
   latest_log?: MemorizationLogRow | null;

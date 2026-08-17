@@ -31,7 +31,7 @@ export function RecitationLogCard({
     color: "",
   };
 
-  const audioUrl = log.audio_url || log.audioUrl || null;
+  const audioUrl = log.audio_url || null;
 
   return (
     <Card className={`hover:shadow-md transition-all border-slate-200 dark:border-slate-800 rounded-2xl ${className}`}>
@@ -46,7 +46,7 @@ export function RecitationLogCard({
               {gradeInfo.label}
             </span>
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-200">
-              📖 {formatPageCount(log.page_count ?? log.pageCount)}
+              📖 {formatPageCount(log.page_count ?? 0)}
             </span>
             {log.assistant_name && (
               <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
