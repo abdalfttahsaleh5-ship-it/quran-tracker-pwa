@@ -480,3 +480,157 @@ export function getStudentMemorizedSurahsMap(
   return map;
 }
 
+export interface JuzMeta {
+  juzNumber: number;
+  name: string;
+  startPage: number;
+  endPage: number;
+  totalPages: number;
+}
+
+export const JUZ_NAMES = [
+  "الجزء الأول (الم)",
+  "الجزء الثاني (سيقول)",
+  "الجزء الثالث (تلك الرسل)",
+  "الجزء الرابع (لن تنالوا)",
+  "الجزء الخامس (والمحصنات)",
+  "الجزء السادس (لا يحب الله)",
+  "الجزء السابع (وإذا سمعوا)",
+  "الجزء الثامن (ولو أننا)",
+  "الجزء التاسع (قال الملأ)",
+  "الجزء العاشر (واعلموا)",
+  "الجزء الحادي عشر (يعتذرون)",
+  "الجزء الثاني عشر (وما من دابة)",
+  "الجزء الثالث عشر (وما أبرئ)",
+  "الجزء الرابع عشر (ربما)",
+  "الجزء الخامس عشر (سبحان)",
+  "الجزء السادس عشر (قال ألم)",
+  "الجزء السابع عشر (اقترب)",
+  "الجزء الثامن عشر (قد أفلح)",
+  "الجزء التاسع عشر (وقال الذين)",
+  "الجزء العشرون (أمن خلق)",
+  "الجزء الحادي والعشرون (اتل ما أوحي)",
+  "الجزء الثاني والعشرون (ومن يقنت)",
+  "الجزء الثالث والعشرون (وما لي)",
+  "الجزء الرابع والعشرون (فمن أظلم)",
+  "الجزء الخامس والعشرون (إليه يرد)",
+  "الجزء السادس والعشرون (حم)",
+  "الجزء السابع والعشرون (قال فما خطبكم)",
+  "الجزء الثامن والعشرون (قد سمع)",
+  "الجزء التاسع والعشرون (تبارك)",
+  "الجزء الثلاثون (عمّ)",
+];
+
+export const JUZ_METADATA: JuzMeta[] = Array.from({ length: 30 }, (_, idx) => {
+  const juzNumber = idx + 1;
+  let startPage = 1;
+  let endPage = 21;
+  let totalPages = 21;
+
+  if (juzNumber === 1) {
+    startPage = 1;
+    endPage = 21;
+    totalPages = 21;
+  } else if (juzNumber === 30) {
+    startPage = 582;
+    endPage = 604;
+    totalPages = 23;
+  } else {
+    startPage = 22 + (juzNumber - 2) * 20;
+    endPage = startPage + 19;
+    totalPages = 20;
+  }
+
+  return {
+    juzNumber,
+    name: JUZ_NAMES[idx] || `الجزء ${juzNumber}`,
+    startPage,
+    endPage,
+    totalPages,
+  };
+});
+
+export interface JuzProgressRecord {
+  juzNumber: number;
+  name: string;
+  startPage: number;
+  endPage: number;
+  totalPages: number;
+  memorizedPages: number;
+  isCompleted: boolean;
+  percentage: number;
+  status: "completed" | "in_progress" | "not_started";
+}
+
+/**
+ * Calculates accurate memorization progress for all 30 Juz based on student's recitation logs.
+ */
+export function getStudentJuzProgressMap(
+  logs?: Array<{
+    student_id?: string;
+    log_type?: string;
+    surah_start?: string | null;
+    surah_end?: string | null;
+    surahs?: string[] | null;
+    created_at?: string;
+    id?: string;
+    page_count?: number | null;
+    aya_start?: number | null;
+    aya_end?: number | null;
+  }> | null,
+  studentId?: string
+): Map<number, JuzProgressRecord> {
+  const surahProgressMap = getStudentSurahProgressMap(logs, studentId);
+  const result = new Map<number, JuzProgressRecord>();
+
+  for (const juz of JUZ_METADATA) {
+    let memorizedSum = 0;
+
+    for (const surah of SURAH_METADATA) {
+      const overlapStart = Math.max(surah.startPage, juz.startPage);
+      const overlapEnd = Math.min(surah.endPage, juz.endPage);
+
+      if (overlapStart <= overlapEnd) {
+        const surahSpan = surah.endPage - surah.startPage + 1;
+        const overlapSpan = overlapEnd - overlapStart + 1;
+        const proportion = surahSpan > 0 ? overlapSpan / surahSpan : 1;
+        const surahTotalInJuz = surah.standardPages * proportion;
+
+        const surahProg = surahProgressMap.get(normalizeSurahName(surah.name));
+        if (surahProg && surahProg.totalPages > 0) {
+          const surahRatio = Math.min(1, surahProg.rawRecitedPages / surahProg.totalPages);
+          memorizedSum += surahTotalInJuz * surahRatio;
+        }
+      }
+    }
+
+    const cleanMemorized = Number(Math.min(juz.totalPages, Math.max(0, memorizedSum)).toFixed(2));
+    const isCompleted = cleanMemorized >= (juz.totalPages - 0.05);
+    const percentage = isCompleted
+      ? 100
+      : Math.min(99, Math.round((cleanMemorized / juz.totalPages) * 100));
+
+    let status: "completed" | "in_progress" | "not_started" = "not_started";
+    if (isCompleted) {
+      status = "completed";
+    } else if (cleanMemorized > 0) {
+      status = "in_progress";
+    }
+
+    result.set(juz.juzNumber, {
+      juzNumber: juz.juzNumber,
+      name: juz.name,
+      startPage: juz.startPage,
+      endPage: juz.endPage,
+      totalPages: juz.totalPages,
+      memorizedPages: isCompleted ? juz.totalPages : cleanMemorized,
+      isCompleted,
+      percentage,
+      status,
+    });
+  }
+
+  return result;
+}
+
+
