@@ -28,7 +28,12 @@ import { lightHaptic } from "@/lib/haptics";
 import { ShareAchievementModal } from "./ShareAchievementModal";
 import { AudioPlayer } from "@/components/common/AudioPlayer";
 import { RecitationLogCard } from "./RecitationLogCard";
-import { getStudentSurahProgressMap, SurahProgressRecord } from "@/lib/quranMetadata";
+import {
+  getStudentSurahProgressMap,
+  getStudentJuzProgressMap,
+  SurahProgressRecord,
+  JuzProgressRecord,
+} from "@/lib/quranMetadata";
 
 const LogEntryDialog = dynamic(() => import("./LogEntryDialog").then((mod) => mod.LogEntryDialog), { ssr: false });
 const AttendanceDialog = dynamic(() => import("./AttendanceDialog").then((mod) => mod.AttendanceDialog), { ssr: false });
@@ -46,7 +51,8 @@ export function StudentDetailClient({
 }: StudentDetailClientProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"logs" | "attendance" | "progress">("logs");
-  const [surahFilter, setSurahFilter] = useState<"all" | "in_progress" | "completed">("all");
+  const [viewMode, setViewMode] = useState<"juz" | "surah">("juz");
+  const [statusFilter, setStatusFilter] = useState<"all" | "in_progress" | "completed">("all");
   const [logs, setLogs] = useState<MemorizationLogRow[]>(initialLogs);
   const [attendance, setAttendance] = useState<AttendanceRecordRow[]>(initialAttendance);
   const [isLogDialogOpen, setIsLogDialogOpen] = useState(false);
@@ -64,15 +70,38 @@ export function StudentDetailClient({
     });
   }, [logs, student.id]);
 
+  const juzProgressList = useMemo(() => {
+    const map = getStudentJuzProgressMap(logs, student.id);
+    return Array.from(map.values());
+  }, [logs, student.id]);
+
   const filteredSurahList = useMemo(() => {
-    if (surahFilter === "in_progress") {
-      return surahProgressList.filter((s) => !s.isCompleted);
+    if (statusFilter === "in_progress") {
+      return surahProgressList.filter((s) => !s.isCompleted && s.rawRecitedPages > 0);
     }
-    if (surahFilter === "completed") {
+    if (statusFilter === "completed") {
       return surahProgressList.filter((s) => s.isCompleted);
     }
     return surahProgressList;
-  }, [surahProgressList, surahFilter]);
+  }, [surahProgressList, statusFilter]);
+
+  const filteredJuzList = useMemo(() => {
+    if (statusFilter === "in_progress") {
+      return juzProgressList.filter((j) => j.status === "in_progress");
+    }
+    if (statusFilter === "completed") {
+      return juzProgressList.filter((j) => j.isCompleted);
+    }
+    return juzProgressList;
+  }, [juzProgressList, statusFilter]);
+
+  const activeAllCount = viewMode === "juz" ? juzProgressList.length : surahProgressList.length;
+  const activeInProgressCount = viewMode === "juz"
+    ? juzProgressList.filter((j) => j.status === "in_progress").length
+    : surahProgressList.filter((s) => !s.isCompleted && s.rawRecitedPages > 0).length;
+  const activeCompletedCount = viewMode === "juz"
+    ? juzProgressList.filter((j) => j.isCompleted).length
+    : surahProgressList.filter((s) => s.isCompleted).length;
 
   // Realtime Payload Handler for Instant Client State Update
   const handleRealtimePayload = useCallback(
@@ -423,125 +452,236 @@ export function StudentDetailClient({
         </div>
       )}
 
-      {/* Tab 2: Surahs Memorization Progress Bars */}
+      {/* Tab 2: Surahs & Juz Memorization Progress Bars */}
       {activeTab === "progress" && (
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            {/* Row 1: Title & View Switcher */}
             <div>
               <h3 className="text-base font-black text-slate-900 dark:text-slate-50">
-                متابعة تقدم حفظ السور القرآنية 📊
+                {viewMode === "juz" ? "متابعة تقدم حفظ الأجزاء القرآنية 📑" : "متابعة تقدم حفظ السور القرآنية 📊"}
               </h3>
               <p className="text-xs text-slate-500 mt-0.5">
-                متابعة دقيقة لنسبة إنجاز صفحات كل سورة
+                {viewMode === "juz"
+                  ? "متابعة دقيقة لنسبة إنجاز صفحات الأجزاء الثلاثين"
+                  : "متابعة دقيقة لنسبة إنجاز صفحات كل سورة"}
               </p>
             </div>
 
-            {/* Filter Tabs */}
-            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-bold shrink-0">
+            {/* View Switcher: ["📖 عرض الأجزاء" | "📜 عرض السور"] */}
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200/80 dark:border-slate-700/60 shrink-0">
               <button
                 type="button"
-                onClick={() => setSurahFilter("all")}
-                className={`px-3 py-1 rounded-lg transition-all ${
-                  surahFilter === "all"
-                    ? "bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-xs"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                onClick={() => setViewMode("juz")}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${
+                  viewMode === "juz"
+                    ? "bg-white dark:bg-slate-900 text-teal-800 dark:text-teal-300 shadow-xs"
+                    : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                 }`}
               >
-                الكل ({surahProgressList.length})
+                📖 عرض الأجزاء
               </button>
               <button
                 type="button"
-                onClick={() => setSurahFilter("in_progress")}
-                className={`px-3 py-1 rounded-lg transition-all ${
-                  surahFilter === "in_progress"
-                    ? "bg-white dark:bg-slate-900 text-amber-700 dark:text-amber-400 shadow-xs"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                onClick={() => setViewMode("surah")}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${
+                  viewMode === "surah"
+                    ? "bg-white dark:bg-slate-900 text-teal-800 dark:text-teal-300 shadow-xs"
+                    : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                 }`}
               >
-                قيد الحفظ ({surahProgressList.filter((s) => !s.isCompleted).length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setSurahFilter("completed")}
-                className={`px-3 py-1 rounded-lg transition-all ${
-                  surahFilter === "completed"
-                    ? "bg-white dark:bg-slate-900 text-teal-700 dark:text-teal-400 shadow-xs"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                }`}
-              >
-                مكتملة ({surahProgressList.filter((s) => s.isCompleted).length})
+                📜 عرض السور
               </button>
             </div>
           </div>
 
-          {surahProgressList.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {filteredSurahList.map((surah) => (
-                <Card
-                  key={surah.surahId}
-                  className="p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-2.5 shadow-xs hover:shadow-sm transition-all"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="w-7 h-7 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-200 font-black text-xs flex items-center justify-center border border-emerald-200 dark:border-emerald-800">
-                        {surah.surahId}
-                      </span>
-                      <div>
-                        <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">
-                          سورة {surah.surahName}
-                        </h4>
-                        <span className="text-[10px] text-slate-400">
-                          إجمالي صفحات السورة: {surah.totalPages} صفحة
+          {/* Row 2: Status Filters (Retained & Dynamic) */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pt-1">
+            <button
+              type="button"
+              onClick={() => setStatusFilter("all")}
+              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                statusFilter === "all"
+                  ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
+                  : "bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 hover:text-slate-900"
+              }`}
+            >
+              الكل ({activeAllCount})
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter("in_progress")}
+              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                statusFilter === "in_progress"
+                  ? "bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800"
+                  : "bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 hover:text-slate-900"
+              }`}
+            >
+              قيد الحفظ ({activeInProgressCount})
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter("completed")}
+              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                statusFilter === "completed"
+                  ? "bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 border border-teal-300 dark:border-teal-800"
+                  : "bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 hover:text-slate-900"
+              }`}
+            >
+              مكتملة ({activeCompletedCount})
+            </button>
+          </div>
+
+          {viewMode === "surah" ? (
+            /* Surah Progress Grid */
+            filteredSurahList.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {filteredSurahList.map((surah) => (
+                  <Card
+                    key={surah.surahId}
+                    className="p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-2.5 shadow-xs hover:shadow-sm transition-all"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-7 h-7 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-200 font-black text-xs flex items-center justify-center border border-emerald-200 dark:border-emerald-800">
+                          {surah.surahId}
                         </span>
+                        <div>
+                          <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">
+                            سورة {surah.surahName}
+                          </h4>
+                          <span className="text-[10px] text-slate-400">
+                            إجمالي صفحات السورة: {surah.totalPages} صفحة
+                          </span>
+                        </div>
                       </div>
+
+                      {surah.isCompleted ? (
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                          مكتمل 100% ✅
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                          قيد الحفظ ({surah.percentage}%) ⏳
+                        </span>
+                      )}
                     </div>
 
-                    {surah.isCompleted ? (
-                      <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
-                        مكتمل 100% ✅
-                      </span>
-                    ) : (
-                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                        قيد الحفظ ({surah.percentage}%)
-                      </span>
-                    )}
-                  </div>
+                    {/* Progress Bar */}
+                    <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full transition-all duration-300 rounded-full ${
+                          surah.isCompleted
+                            ? "bg-gradient-to-r from-emerald-500 to-teal-500"
+                            : "bg-gradient-to-r from-amber-500 to-teal-500"
+                        }`}
+                        style={{ width: `${surah.percentage}%` }}
+                      />
+                    </div>
 
-                  {/* Progress Bar */}
-                  <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full transition-all duration-300 rounded-full ${
-                        surah.isCompleted
-                          ? "bg-gradient-to-r from-emerald-500 to-teal-500"
-                          : "bg-gradient-to-r from-amber-500 to-teal-500"
-                      }`}
-                      style={{ width: `${surah.percentage}%` }}
-                    />
-                  </div>
-
-                  {/* Progress Detail Text: "تم حفظ 1 من 3 صفحات" */}
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400 pt-0.5">
-                    <span>
-                      {surah.isCompleted
-                        ? `تم إتمام حفظ السورة كاملاً (${surah.totalPages} صفحة)`
-                        : `تم حفظ ${surah.memorizedPages} من ${surah.totalPages} صفحات`}
-                    </span>
-                    <span className="font-mono">{surah.percentage}%</span>
-                  </div>
-                </Card>
-              ))}
-            </div>
+                    {/* Progress Detail Text */}
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400 pt-0.5">
+                      <span>
+                        {surah.isCompleted
+                          ? `تم إتمام حفظ السورة كاملاً (${surah.totalPages} صفحة) ✅`
+                          : `تم حفظ ${surah.memorizedPages} من ${surah.totalPages} صفحات`}
+                      </span>
+                      <span className="font-mono">{surah.percentage}%</span>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card className="p-8 text-center border-dashed rounded-3xl">
+                <CardContent className="space-y-3">
+                  <BookCheck className="w-10 h-10 text-slate-300 mx-auto" />
+                  <p className="text-slate-600 font-bold text-sm">لا توجد سور مطابقة للفلتر المحدد</p>
+                  <Button variant="outline" onClick={() => setIsLogDialogOpen(true)} className="gap-2 rounded-xl">
+                    <Plus className="w-4 h-4 text-emerald-600" />
+                    <span>سجل حفظ جديد الآن</span>
+                  </Button>
+                </CardContent>
+              </Card>
+            )
           ) : (
-            <Card className="p-8 text-center border-dashed rounded-3xl">
-              <CardContent className="space-y-3">
-                <BookCheck className="w-10 h-10 text-slate-300 mx-auto" />
-                <p className="text-slate-600 font-bold text-sm">لا يوجد تقدم حفظ مسجل بعد لهذا الطالب</p>
-                <Button variant="outline" onClick={() => setIsLogDialogOpen(true)} className="gap-2 rounded-xl">
-                  <Plus className="w-4 h-4 text-emerald-600" />
-                  <span>سجل حفظ جديد الآن</span>
-                </Button>
-              </CardContent>
-            </Card>
+            /* Juz Progress Grid */
+            filteredJuzList.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {filteredJuzList.map((juz) => (
+                  <Card
+                    key={juz.juzNumber}
+                    className="p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-2.5 shadow-xs hover:shadow-sm transition-all"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-7 h-7 rounded-xl bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-200 font-black text-xs flex items-center justify-center border border-teal-200 dark:border-teal-800">
+                          {juz.juzNumber}
+                        </span>
+                        <div>
+                          <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">
+                            {juz.name}
+                          </h4>
+                          <span className="text-[10px] text-slate-400">
+                            (الصفحات {juz.startPage} - {juz.endPage})
+                          </span>
+                        </div>
+                      </div>
+
+                      {juz.isCompleted ? (
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                          مكتمل ✅
+                        </span>
+                      ) : juz.status === "in_progress" ? (
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                          قيد الحفظ ({juz.percentage}%) ⏳
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700">
+                          لم يبدأ بعد
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full transition-all duration-300 rounded-full ${
+                          juz.isCompleted
+                            ? "bg-gradient-to-r from-emerald-500 to-teal-500"
+                            : juz.status === "in_progress"
+                            ? "bg-gradient-to-r from-amber-500 to-teal-500"
+                            : "bg-slate-200 dark:bg-slate-700"
+                        }`}
+                        style={{ width: `${juz.percentage}%` }}
+                      />
+                    </div>
+
+                    {/* Progress Detail Text */}
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400 pt-0.5">
+                      <span>
+                        {juz.isCompleted
+                          ? `تم إتمام حفظ الجزء كاملاً (${juz.totalPages} صفحة) ✅`
+                          : juz.status === "in_progress"
+                          ? `تم حفظ ${juz.memorizedPages} من ${juz.totalPages} صفحة ⏳`
+                          : "لم يبدأ بعد"}
+                      </span>
+                      <span className="font-mono">{juz.percentage}%</span>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card className="p-8 text-center border-dashed rounded-3xl">
+                <CardContent className="space-y-3">
+                  <BookCheck className="w-10 h-10 text-slate-300 mx-auto" />
+                  <p className="text-slate-600 font-bold text-sm">لا توجد أجزاء مطابقة للفلتر المحدد</p>
+                  <Button variant="outline" onClick={() => setIsLogDialogOpen(true)} className="gap-2 rounded-xl">
+                    <Plus className="w-4 h-4 text-emerald-600" />
+                    <span>سجل حفظ جديد الآن</span>
+                  </Button>
+                </CardContent>
+              </Card>
+            )
           )}
         </div>
       )}

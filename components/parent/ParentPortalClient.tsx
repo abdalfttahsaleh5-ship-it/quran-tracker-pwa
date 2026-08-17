@@ -33,9 +33,8 @@ interface ParentPortalClientProps {
 export function ParentPortalClient({ student, logs, attendance }: ParentPortalClientProps) {
   const [expandedLogIds, setExpandedLogIds] = useState<Set<string>>(new Set());
   const [isAttendanceExpanded, setIsAttendanceExpanded] = useState(false);
-  const [progressViewMode, setProgressViewMode] = useState<"surahs" | "juz">("surahs");
-  const [surahFilter, setSurahFilter] = useState<"all" | "in_progress" | "completed">("all");
-  const [juzFilter, setJuzFilter] = useState<"all" | "completed" | "in_progress">("all");
+  const [viewMode, setViewMode] = useState<"juz" | "surah">("juz");
+  const [statusFilter, setStatusFilter] = useState<"all" | "in_progress" | "completed">("all");
 
   const safeLogs = Array.isArray(logs) ? logs : [];
   const safeAttendance = Array.isArray(attendance) ? attendance : [];
@@ -61,30 +60,38 @@ export function ParentPortalClient({ student, logs, attendance }: ParentPortalCl
     });
   }, [safeLogs, student?.id]);
 
-  const filteredSurahList = useMemo(() => {
-    if (surahFilter === "in_progress") {
-      return surahProgressList.filter((s) => !s.isCompleted);
-    }
-    if (surahFilter === "completed") {
-      return surahProgressList.filter((s) => s.isCompleted);
-    }
-    return surahProgressList;
-  }, [surahProgressList, surahFilter]);
-
   const juzProgressList = useMemo(() => {
     const map = getStudentJuzProgressMap(safeLogs, student?.id);
     return Array.from(map.values());
   }, [safeLogs, student?.id]);
 
-  const filteredJuzList = useMemo(() => {
-    if (juzFilter === "completed") {
-      return juzProgressList.filter((j) => j.isCompleted);
+  const filteredSurahList = useMemo(() => {
+    if (statusFilter === "in_progress") {
+      return surahProgressList.filter((s) => !s.isCompleted && s.rawRecitedPages > 0);
     }
-    if (juzFilter === "in_progress") {
+    if (statusFilter === "completed") {
+      return surahProgressList.filter((s) => s.isCompleted);
+    }
+    return surahProgressList;
+  }, [surahProgressList, statusFilter]);
+
+  const filteredJuzList = useMemo(() => {
+    if (statusFilter === "in_progress") {
       return juzProgressList.filter((j) => j.status === "in_progress");
     }
+    if (statusFilter === "completed") {
+      return juzProgressList.filter((j) => j.isCompleted);
+    }
     return juzProgressList;
-  }, [juzProgressList, juzFilter]);
+  }, [juzProgressList, statusFilter]);
+
+  const activeAllCount = viewMode === "juz" ? juzProgressList.length : surahProgressList.length;
+  const activeInProgressCount = viewMode === "juz"
+    ? juzProgressList.filter((j) => j.status === "in_progress").length
+    : surahProgressList.filter((s) => !s.isCompleted && s.rawRecitedPages > 0).length;
+  const activeCompletedCount = viewMode === "juz"
+    ? juzProgressList.filter((j) => j.isCompleted).length
+    : surahProgressList.filter((s) => s.isCompleted).length;
 
   const toggleLogExpansion = (id: string) => {
     setExpandedLogIds((prev) => {
@@ -219,128 +226,89 @@ export function ParentPortalClient({ student, logs, attendance }: ParentPortalCl
         {/* Quranic Surahs & Juz Memorization Progress Card */}
         <Card className="border-slate-200 dark:border-slate-800 shadow-sm rounded-3xl overflow-hidden">
           <CardHeader className="p-5 pb-3 space-y-3">
+            {/* Row 1: Header Title & View Toggle Switch */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div>
                 <CardTitle className="text-base sm:text-lg flex items-center gap-2 font-black text-slate-900 dark:text-slate-50">
                   <BookCheck className="w-5 h-5 text-emerald-600" />
                   <span>
-                    {progressViewMode === "surahs" ? "تقدم حفظ السور القرآنية 📊" : "تقدم حفظ الأجزاء القرآنية 📑"}
+                    {viewMode === "juz" ? "تقدم حفظ الأجزاء القرآنية 📑" : "تقدم حفظ السور القرآنية 📊"}
                   </span>
                 </CardTitle>
                 <CardDescription className="text-xs text-slate-500 mt-0.5">
-                  {progressViewMode === "surahs"
-                    ? "متابعة دقيقة لمقدار الحفظ المنجز من صفحات كل سورة"
-                    : "متابعة دقيقة لنسبة إنجاز صفحات الأجزاء الثلاثين"}
+                  {viewMode === "juz"
+                    ? "متابعة دقيقة لنسبة إنجاز صفحات الأجزاء الثلاثين"
+                    : "متابعة دقيقة لمقدار الحفظ المنجز من صفحات كل سورة"}
                 </CardDescription>
               </div>
 
-              {/* View Switcher: ["عرض السور" | "عرض الأجزاء"] */}
+              {/* View Switcher: ["📖 عرض الأجزاء" | "📜 عرض السور"] */}
               <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200/80 dark:border-slate-700/60 shrink-0">
                 <button
                   type="button"
-                  onClick={() => setProgressViewMode("surahs")}
+                  onClick={() => setViewMode("juz")}
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${
-                    progressViewMode === "surahs"
+                    viewMode === "juz"
                       ? "bg-white dark:bg-slate-900 text-teal-800 dark:text-teal-300 shadow-xs"
                       : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                   }`}
                 >
-                  عرض السور 📖
+                  📖 عرض الأجزاء
                 </button>
                 <button
                   type="button"
-                  onClick={() => setProgressViewMode("juz")}
+                  onClick={() => setViewMode("surah")}
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${
-                    progressViewMode === "juz"
+                    viewMode === "surah"
                       ? "bg-white dark:bg-slate-900 text-teal-800 dark:text-teal-300 shadow-xs"
                       : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                   }`}
                 >
-                  عرض الأجزاء 📑
+                  📜 عرض السور
                 </button>
               </div>
             </div>
 
-            {/* Filter Chips */}
+            {/* Row 2: Status Filters (Retained & Dynamic) */}
             <div className="flex items-center gap-1.5 overflow-x-auto pt-1">
-              {progressViewMode === "surahs" ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setSurahFilter("all")}
-                    className={`px-3 py-1 rounded-xl text-xs font-bold transition-all shrink-0 ${
-                      surahFilter === "all"
-                        ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
-                        : "bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                    }`}
-                  >
-                    الكل ({surahProgressList.length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSurahFilter("in_progress")}
-                    className={`px-3 py-1 rounded-xl text-xs font-bold transition-all shrink-0 ${
-                      surahFilter === "in_progress"
-                        ? "bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800"
-                        : "bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                    }`}
-                  >
-                    قيد الحفظ ({surahProgressList.filter((s) => !s.isCompleted).length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSurahFilter("completed")}
-                    className={`px-3 py-1 rounded-xl text-xs font-bold transition-all shrink-0 ${
-                      surahFilter === "completed"
-                        ? "bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 border border-teal-300 dark:border-teal-800"
-                        : "bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                    }`}
-                  >
-                    المكتملة ({surahProgressList.filter((s) => s.isCompleted).length})
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setJuzFilter("all")}
-                    className={`px-3 py-1 rounded-xl text-xs font-bold transition-all shrink-0 ${
-                      juzFilter === "all"
-                        ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
-                        : "bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                    }`}
-                  >
-                    الكل ({juzProgressList.length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setJuzFilter("completed")}
-                    className={`px-3 py-1 rounded-xl text-xs font-bold transition-all shrink-0 ${
-                      juzFilter === "completed"
-                        ? "bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 border border-teal-300 dark:border-teal-800"
-                        : "bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                    }`}
-                  >
-                    المكتملة ({juzProgressList.filter((j) => j.isCompleted).length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setJuzFilter("in_progress")}
-                    className={`px-3 py-1 rounded-xl text-xs font-bold transition-all shrink-0 ${
-                      juzFilter === "in_progress"
-                        ? "bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800"
-                        : "bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                    }`}
-                  >
-                    قيد الحفظ ({juzProgressList.filter((j) => j.status === "in_progress").length})
-                  </button>
-                </>
-              )}
+              <button
+                type="button"
+                onClick={() => setStatusFilter("all")}
+                className={`px-3 py-1 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                  statusFilter === "all"
+                    ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
+                    : "bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                }`}
+              >
+                الكل ({activeAllCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter("in_progress")}
+                className={`px-3 py-1 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                  statusFilter === "in_progress"
+                    ? "bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800"
+                    : "bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                }`}
+              >
+                قيد الحفظ ({activeInProgressCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter("completed")}
+                className={`px-3 py-1 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                  statusFilter === "completed"
+                    ? "bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 border border-teal-300 dark:border-teal-800"
+                    : "bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                }`}
+              >
+                مكتملة ({activeCompletedCount})
+              </button>
             </div>
           </CardHeader>
 
           <CardContent className="p-5 pt-0 space-y-3">
-            {progressViewMode === "surahs" ? (
+            {viewMode === "surah" ? (
               /* Surah Progress Grid */
               filteredSurahList.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -365,7 +333,7 @@ export function ParentPortalClient({ student, logs, attendance }: ParentPortalCl
                           </span>
                         ) : (
                           <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                            قيد الحفظ ({surah.percentage}%)
+                            قيد الحفظ ({surah.percentage}%) ⏳
                           </span>
                         )}
                       </div>
@@ -386,10 +354,10 @@ export function ParentPortalClient({ student, logs, attendance }: ParentPortalCl
                       <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400">
                         <span>
                           {surah.isCompleted
-                            ? `تم إتمام حفظ السورة كاملاً (${surah.totalPages} صفحة)`
+                            ? `تم إتمام حفظ السورة كاملاً (${surah.totalPages} صفحة) ✅`
                             : `تم حفظ ${surah.memorizedPages} من ${surah.totalPages} صفحات`}
                         </span>
-                        <span>{surah.percentage}%</span>
+                        <span className="font-mono">{surah.percentage}%</span>
                       </div>
                     </div>
                   ))}
@@ -456,10 +424,10 @@ export function ParentPortalClient({ student, logs, attendance }: ParentPortalCl
                       <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400">
                         <span>
                           {juz.isCompleted
-                            ? `تم إتمام حفظ الجزء كاملاً (${juz.totalPages} صفحة)`
+                            ? `تم إتمام حفظ الجزء كاملاً (${juz.totalPages} صفحة) ✅`
                             : juz.status === "in_progress"
-                            ? `تم حفظ ${juz.memorizedPages} من ${juz.totalPages} صفحة`
-                            : `0 من ${juz.totalPages} صفحة`}
+                            ? `تم حفظ ${juz.memorizedPages} من ${juz.totalPages} صفحة ⏳`
+                            : "لم يبدأ بعد"}
                         </span>
                         <span className="font-mono">{juz.percentage}%</span>
                       </div>
