@@ -16,6 +16,7 @@ import {
   BookCheck,
   Sparkles,
   BarChart3,
+  ChevronDown,
 } from "lucide-react";
 import { StudentRow, MemorizationLogRow, AttendanceRecordRow } from "@/types";
 import { GRADE_LABELS, ATTENDANCE_LABELS, LOG_TYPE_LABELS, formatArabicDate, formatPageCount } from "@/lib/utils";
@@ -52,7 +53,12 @@ export function StudentDetailClient({
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"logs" | "attendance" | "progress">("logs");
   const [viewMode, setViewMode] = useState<"juz" | "surah">("juz");
+  const [expandedJuzId, setExpandedJuzId] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "in_progress" | "completed">("all");
+
+  const toggleJuzExpand = (juzNumber: number) => {
+    setExpandedJuzId((prev) => (prev === juzNumber ? null : juzNumber));
+  };
   const [logs, setLogs] = useState<MemorizationLogRow[]>(initialLogs);
   const [attendance, setAttendance] = useState<AttendanceRecordRow[]>(initialAttendance);
   const [isLogDialogOpen, setIsLogDialogOpen] = useState(false);
@@ -604,71 +610,98 @@ export function StudentDetailClient({
               </Card>
             )
           ) : (
-            /* Juz Progress Grid */
+            /* Juz Progress Grid (Collapsible Accordion) */
             filteredJuzList.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {filteredJuzList.map((juz) => (
-                  <Card
-                    key={juz.juzNumber}
-                    className="p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-2.5 shadow-xs hover:shadow-sm transition-all"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="w-7 h-7 rounded-xl bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-200 font-black text-xs flex items-center justify-center border border-teal-200 dark:border-teal-800">
-                          {juz.juzNumber}
-                        </span>
-                        <div>
-                          <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">
-                            {juz.name}
-                          </h4>
-                          <span className="text-[10px] text-slate-400">
-                            (الصفحات {juz.startPage} - {juz.endPage})
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {filteredJuzList.map((juz) => {
+                  const isExpanded = expandedJuzId === juz.juzNumber;
+                  return (
+                    <div
+                      key={juz.juzNumber}
+                      className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-xs hover:shadow-sm transition-all"
+                    >
+                      {/* Compact Single-Row Header */}
+                      <button
+                        type="button"
+                        onClick={() => toggleJuzExpand(juz.juzNumber)}
+                        className="w-full p-3 sm:p-3.5 flex items-center justify-between gap-2.5 text-right hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
+                      >
+                        {/* Right: Circle Number + Juz Name */}
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className="w-8 h-8 rounded-xl bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-200 font-black text-xs flex items-center justify-center border border-teal-200/80 dark:border-teal-800 shrink-0">
+                            {juz.juzNumber}
                           </span>
+                          <div className="min-w-0">
+                            <h4 className="font-black text-xs sm:text-sm text-slate-900 dark:text-slate-100 truncate">
+                              {juz.name}
+                            </h4>
+                            <span className="text-[10px] text-slate-400 font-medium sm:hidden">
+                              (ص {juz.startPage} - {juz.endPage})
+                            </span>
+                          </div>
                         </div>
-                      </div>
 
-                      {juz.isCompleted ? (
-                        <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
-                          مكتمل ✅
-                        </span>
-                      ) : juz.status === "in_progress" ? (
-                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                          قيد الحفظ ({juz.percentage}%) ⏳
-                        </span>
-                      ) : (
-                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700">
-                          لم يبدأ بعد
-                        </span>
+                        {/* Middle: Badge & Left: Interactive Arrow */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          {juz.isCompleted ? (
+                            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                              مكتمل 100% ✅
+                            </span>
+                          ) : juz.status === "in_progress" ? (
+                            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                              {juz.percentage}% ⏳
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700">
+                              لم يبدأ
+                            </span>
+                          )}
+
+                          <ChevronDown
+                            className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
+                              isExpanded ? "rotate-180 text-teal-600 dark:text-teal-400" : ""
+                            }`}
+                          />
+                        </div>
+                      </button>
+
+                      {/* Expandable Details (Opened View) */}
+                      {isExpanded && (
+                        <div className="px-3.5 pb-3.5 pt-1 space-y-2 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/50 animate-in fade-in duration-200">
+                          <div className="flex items-center justify-between text-[11px] text-slate-500 font-bold">
+                            <span>نطاق الصفحات: (الصفحات {juz.startPage} - {juz.endPage})</span>
+                            <span className="font-mono">{juz.percentage}%</span>
+                          </div>
+
+                          {/* Full Progress Bar */}
+                          <div className="w-full bg-slate-200 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full transition-all duration-300 rounded-full ${
+                                juz.isCompleted
+                                  ? "bg-gradient-to-r from-emerald-500 to-teal-500"
+                                  : juz.status === "in_progress"
+                                  ? "bg-gradient-to-r from-amber-500 to-teal-500"
+                                  : "bg-slate-300 dark:bg-slate-600"
+                              }`}
+                              style={{ width: `${juz.percentage}%` }}
+                            />
+                          </div>
+
+                          {/* Exact Page Count Text */}
+                          <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 pt-0.5">
+                            <span>
+                              {juz.isCompleted
+                                ? `تم إتمام حفظ الجزء كاملاً (${juz.totalPages} صفحة) ✅`
+                                : juz.status === "in_progress"
+                                ? `تم حفظ ${juz.memorizedPages} من ${juz.totalPages} صفحة ⏳`
+                                : `لم يبدأ بعد (0 من ${juz.totalPages} صفحة)`}
+                            </span>
+                          </div>
+                        </div>
                       )}
                     </div>
-
-                    {/* Progress Bar */}
-                    <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full transition-all duration-300 rounded-full ${
-                          juz.isCompleted
-                            ? "bg-gradient-to-r from-emerald-500 to-teal-500"
-                            : juz.status === "in_progress"
-                            ? "bg-gradient-to-r from-amber-500 to-teal-500"
-                            : "bg-slate-200 dark:bg-slate-700"
-                        }`}
-                        style={{ width: `${juz.percentage}%` }}
-                      />
-                    </div>
-
-                    {/* Progress Detail Text */}
-                    <div className="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400 pt-0.5">
-                      <span>
-                        {juz.isCompleted
-                          ? `تم إتمام حفظ الجزء كاملاً (${juz.totalPages} صفحة) ✅`
-                          : juz.status === "in_progress"
-                          ? `تم حفظ ${juz.memorizedPages} من ${juz.totalPages} صفحة ⏳`
-                          : "لم يبدأ بعد"}
-                      </span>
-                      <span className="font-mono">{juz.percentage}%</span>
-                    </div>
-                  </Card>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <Card className="p-8 text-center border-dashed rounded-3xl">
