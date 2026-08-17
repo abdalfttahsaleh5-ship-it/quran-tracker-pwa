@@ -277,13 +277,15 @@ export async function getStudentProgressByToken(token: string): Promise<ParentPr
       .from("memorization_logs")
       .select("*")
       .eq("student_id", student.id)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(50);
 
     const { data: attendance } = await supabase
       .from("attendance_records")
       .select("*")
       .eq("student_id", student.id)
-      .order("date", { ascending: false });
+      .order("date", { ascending: false })
+      .limit(50);
 
     return {
       success: true,
@@ -351,15 +353,89 @@ export async function findStudentByPhoneOrCode(input: string): Promise<ParentSea
 export const getStudentsCached = cache(getStudents);
 export const getStudentProgressByTokenCached = cache(getStudentProgressByToken);
 
+export type TimeframeFilter = "today" | "this_week" | "this_month" | "last_30_days" | "all";
+
+export interface TeacherReportDataOptions {
+  timeframe?: TimeframeFilter;
+  startDate?: string;
+  endDate?: string;
+  limit?: number;
+}
+
+export interface TeacherReportStats {
+  totalStudents: number;
+  activeStudents: number;
+  totalMemorizedPages: number;
+  overallAttendanceRate: number;
+  totalPresent: number;
+  totalAbsent: number;
+  totalLate: number;
+  totalExcused: number;
+}
+
 export interface TeacherReportDataResult {
   success: boolean;
   students?: StudentRow[];
   logs?: MemorizationLogRow[];
   attendance?: AttendanceRecordRow[];
+  stats?: TeacherReportStats;
   error?: string;
 }
 
-export async function getTeacherReportData(): Promise<TeacherReportDataResult> {
+function resolveDateRange(options?: TeacherReportDataOptions): { startStr: string; endStr: string } {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const todayStr = `${year}-${month}-${day}`;
+
+  if (options?.startDate && options?.endDate) {
+    return { startStr: options.startDate, endStr: options.endDate };
+  }
+
+  const timeframe = options?.timeframe || "this_month";
+
+  if (timeframe === "today") {
+    return { startStr: todayStr, endStr: todayStr };
+  }
+
+  if (timeframe === "this_week") {
+    const dayOfWeek = now.getDay(); // 0 is Sunday
+    const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek);
+    const wYear = startOfWeek.getFullYear();
+    const wMonth = String(startOfWeek.getMonth() + 1).padStart(2, "0");
+    const wDay = String(startOfWeek.getDate()).padStart(2, "0");
+    return { startStr: `${wYear}-${wMonth}-${wDay}`, endStr: todayStr };
+  }
+
+  if (timeframe === "last_30_days") {
+    const start30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const sYear = start30.getFullYear();
+    const sMonth = String(start30.getMonth() + 1).padStart(2, "0");
+    const sDay = String(start30.getDate()).padStart(2, "0");
+    return { startStr: `${sYear}-${sMonth}-${sDay}`, endStr: todayStr };
+  }
+
+  if (timeframe === "all") {
+    return { startStr: "", endStr: todayStr };
+  }
+
+  // Default: "this_month"
+  // For early days in the month (first 7 days), extend window back 30 days so streak/absence alerts retain full historical context
+  const dayOfMonth = now.getDate();
+  if (dayOfMonth < 7) {
+    const start30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const sYear = start30.getFullYear();
+    const sMonth = String(start30.getMonth() + 1).padStart(2, "0");
+    const sDay = String(start30.getDate()).padStart(2, "0");
+    return { startStr: `${sYear}-${sMonth}-${sDay}`, endStr: todayStr };
+  }
+
+  const startOfMonthStr = `${year}-${month}-01`;
+  return { startStr: startOfMonthStr, endStr: todayStr };
+}
+
+export async function getTeacherReportData(options?: TeacherReportDataOptions): Promise<TeacherReportDataResult> {
   try {
     const supabase = createClient();
     const {
@@ -371,17 +447,115 @@ export async function getTeacherReportData(): Promise<TeacherReportDataResult> {
       return { success: false, error: "غير مصرح لك للوصول، يرجى تسجيل الدخول أولاً" };
     }
 
-    const [studentsRes, logsRes, attendanceRes] = await Promise.all([
-      supabase.from("students").select("*").eq("teacher_id", user.id).order("full_name", { ascending: true }),
-      supabase.from("memorization_logs").select("*").eq("teacher_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("attendance_records").select("*").eq("teacher_id", user.id).order("date", { ascending: false }),
+    const { startStr, endStr } = resolveDateRange(options);
+    const logLimit = options?.limit ?? 50;
+
+    // 1. Fetch Students
+    const studentsPromise = supabase
+      .from("students")
+      .select("*")
+      .eq("teacher_id", user.id)
+      .order("full_name", { ascending: true });
+
+    // 2. Fetch Time-scoped Attendance Records
+    let attendanceQuery = supabase
+      .from("attendance_records")
+      .select("*")
+      .eq("teacher_id", user.id);
+
+    if (startStr) {
+      attendanceQuery = attendanceQuery.gte("date", startStr);
+    }
+    if (endStr) {
+      attendanceQuery = attendanceQuery.lte("date", endStr);
+    }
+    const attendancePromise = attendanceQuery.order("date", { ascending: false });
+
+    // 3. Fetch Time-scoped and Paginated Recent Logs
+    let logsQuery = supabase
+      .from("memorization_logs")
+      .select("*")
+      .eq("teacher_id", user.id);
+
+    if (startStr) {
+      logsQuery = logsQuery.gte("date", startStr);
+    }
+    if (endStr) {
+      logsQuery = logsQuery.lte("date", endStr);
+    }
+    const logsPromise = logsQuery.order("created_at", { ascending: false }).limit(logLimit);
+
+    // 4. Lightweight Aggregated Logs Query for accurate totals without hydrating full row objects
+    let statsLogsQuery = supabase
+      .from("memorization_logs")
+      .select("student_id, page_count")
+      .eq("teacher_id", user.id);
+
+    if (startStr) {
+      statsLogsQuery = statsLogsQuery.gte("date", startStr);
+    }
+    if (endStr) {
+      statsLogsQuery = statsLogsQuery.lte("date", endStr);
+    }
+
+    const [studentsRes, attendanceRes, logsRes, statsLogsRes] = await Promise.all([
+      studentsPromise,
+      attendancePromise,
+      logsPromise,
+      statsLogsQuery,
     ]);
+
+    const students = studentsRes.data || [];
+    const attendance = attendanceRes.data || [];
+    const logs = logsRes.data || [];
+    const statsLogs = statsLogsRes.data || [];
+
+    // Calculate Summary Statistics
+    let totalMemorizedPages = 0;
+    const activeStudentIds = new Set<string>();
+
+    statsLogs.forEach((l) => {
+      if (l.student_id) {
+        activeStudentIds.add(l.student_id);
+      }
+      totalMemorizedPages += Number(l.page_count) || 1;
+    });
+    totalMemorizedPages = Number(totalMemorizedPages.toFixed(2));
+
+    let totalPresent = 0;
+    let totalAbsent = 0;
+    let totalLate = 0;
+    let totalExcused = 0;
+
+    attendance.forEach((a) => {
+      if (a.status === "حاضر") totalPresent++;
+      else if (a.status === "غائب") totalAbsent++;
+      else if (a.status === "متأخر") totalLate++;
+      else if (a.status === "مستأذن") totalExcused++;
+    });
+
+    const totalRecorded = totalPresent + totalAbsent + totalLate + totalExcused;
+    const overallAttendanceRate = totalRecorded > 0
+      ? Math.round(((totalPresent + totalLate) / totalRecorded) * 100)
+      : 100;
+
+    const stats: TeacherReportStats = {
+      totalStudents: students.length,
+      activeStudents: activeStudentIds.size,
+      totalMemorizedPages,
+      overallAttendanceRate,
+      totalPresent,
+      totalAbsent,
+      totalLate,
+      totalExcused,
+    };
 
     return {
       success: true,
-      students: studentsRes.data || [],
-      logs: logsRes.data || [],
-      attendance: attendanceRes.data || [],
+      students,
+      logs,
+      attendance,
+      stats,
     };
   } catch (err) {
     return {

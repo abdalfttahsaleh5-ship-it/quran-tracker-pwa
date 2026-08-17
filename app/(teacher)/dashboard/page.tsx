@@ -13,13 +13,14 @@ export default async function TeacherDashboardPage() {
   const students = reportRes.success && reportRes.students ? reportRes.students : [];
   const logs = reportRes.success && reportRes.logs ? reportRes.logs : [];
   const attendance = reportRes.success && reportRes.attendance ? reportRes.attendance : [];
+  const stats = reportRes.success ? reportRes.stats : undefined;
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-300">
       <TeacherDashboardClient students={students} logs={logs} />
 
       {/* Unified Single-Row 3-Column KPI Stats Cards */}
-      <StatsCards students={students} logs={logs} />
+      <StatsCards students={students} logs={logs} stats={stats} />
 
       {/* Prominent Attendance Alerts & Urgent Follow-up Card */}
       <AttendanceAlertsCard students={students} attendance={attendance} />

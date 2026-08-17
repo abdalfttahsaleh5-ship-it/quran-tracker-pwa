@@ -4,18 +4,21 @@ import React, { useState } from "react";
 import { Users, Trophy, Award } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { StudentRow, MemorizationLogRow } from "@/types";
+import { TeacherReportStats } from "@/lib/actions/student";
 import { TopStudentsModal } from "./TopStudentsModal";
 
 interface StatsCardsProps {
   students: StudentRow[];
   logs: MemorizationLogRow[];
+  stats?: TeacherReportStats;
 }
 
-export function StatsCards({ students, logs }: StatsCardsProps) {
+export function StatsCards({ students, logs, stats }: StatsCardsProps) {
   const [isTopModalOpen, setIsTopModalOpen] = useState(false);
 
-  const totalStudents = students.length;
-  const activeStudentsCount = students.filter((s) => logs.some((l) => l.student_id === s.id)).length;
+  const totalStudents = stats?.totalStudents ?? students.length;
+  const activeStudentsCount =
+    stats?.activeStudents ?? students.filter((s) => logs.some((l) => l.student_id === s.id)).length;
 
   return (
     <>
