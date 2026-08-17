@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, BookOpen, Trash2 } from "lucide-react";
+import { LayoutDashboard, Users, Trash2 } from "lucide-react";
 
 export function BottomNav() {
   const pathname = usePathname();
@@ -17,11 +17,6 @@ export function BottomNav() {
       href: "/students",
       label: "الطلاب",
       icon: Users,
-    },
-    {
-      href: "/quran",
-      label: "المصحف",
-      icon: BookOpen,
     },
     {
       href: "/trash",

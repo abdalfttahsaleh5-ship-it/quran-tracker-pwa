@@ -15,7 +15,6 @@ export function Header() {
   const navItems = [
     { href: "/dashboard", label: "اللوحة الرئيسية", icon: LayoutDashboard },
     { href: "/students", label: "قائمة الطلاب", icon: Users },
-    { href: "/quran", label: "المصحف الشريف 📖", icon: BookOpen },
     { href: "/trash", label: "الأرشيف", icon: Trash2 },
   ];
 
