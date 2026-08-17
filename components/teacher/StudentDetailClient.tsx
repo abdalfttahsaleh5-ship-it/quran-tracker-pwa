@@ -18,6 +18,8 @@ import {
   BarChart3,
   ChevronDown,
   ChevronUp,
+  CheckCircle2,
+  Pencil,
 } from "lucide-react";
 import { StudentRow, MemorizationLogRow, AttendanceRecordRow } from "@/types";
 import { GRADE_LABELS, ATTENDANCE_LABELS, LOG_TYPE_LABELS, formatArabicDate, formatPageCount } from "@/lib/utils";
@@ -57,6 +59,15 @@ export function StudentDetailClient({
   const [expandedJuzId, setExpandedJuzId] = useState<number | null>(null);
   const [showAllProgress, setShowAllProgress] = useState(false);
   const [statusFilter, setStatusFilter] = useState<"all" | "in_progress" | "completed">("all");
+  const [editingLog, setEditingLog] = useState<MemorizationLogRow | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => {
+      setToastMessage((cur) => (cur === msg ? null : cur));
+    }, 3000);
+  };
 
   const toggleJuzExpand = (juzNumber: number) => {
     setExpandedJuzId((prev) => (prev === juzNumber ? null : juzNumber));
@@ -426,7 +437,10 @@ export function StudentDetailClient({
               سجل التسميعات اليومية 📜
             </h3>
             <Button
-              onClick={() => setIsLogDialogOpen(true)}
+              onClick={() => {
+                setEditingLog(null);
+                setIsLogDialogOpen(true);
+              }}
               size="sm"
               className="gap-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl"
             >
@@ -442,6 +456,10 @@ export function StudentDetailClient({
                   key={log.id}
                   log={log}
                   onDelete={handleDeleteLog}
+                  onEdit={(logToEdit) => {
+                    setEditingLog(logToEdit);
+                    setIsLogDialogOpen(true);
+                  }}
                 />
               ))}
             </div>
@@ -450,7 +468,14 @@ export function StudentDetailClient({
               <CardContent className="space-y-3">
                 <BookOpen className="w-10 h-10 text-slate-300 mx-auto" />
                 <p className="text-slate-600 font-bold text-sm">لا يوجد تسميع مسجل لهذا الطالب بعد</p>
-                <Button variant="outline" onClick={() => setIsLogDialogOpen(true)} className="gap-2 rounded-xl">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setEditingLog(null);
+                    setIsLogDialogOpen(true);
+                  }}
+                  className="gap-2 rounded-xl"
+                >
                   <Plus className="w-4 h-4 text-emerald-600" />
                   <span>سجل أول تسميع الآن</span>
                 </Button>
@@ -822,12 +847,26 @@ export function StudentDetailClient({
       {/* Dialog Modals */}
       <LogEntryDialog
         isOpen={isLogDialogOpen}
-        onClose={() => setIsLogDialogOpen(false)}
+        onClose={() => {
+          setIsLogDialogOpen(false);
+          setEditingLog(null);
+        }}
         studentId={student.id}
         studentName={student.full_name}
         existingLogs={logs}
-        onSuccess={(newLog) => {
-          setLogs((prev) => [newLog, ...prev.filter((l) => l.id !== newLog.id)]);
+        editingLog={editingLog}
+        onSuccess={(savedLog) => {
+          const isEdit = Boolean(editingLog);
+          setLogs((prev) => {
+            const exists = prev.some((l) => l.id === savedLog.id);
+            if (exists) {
+              return prev.map((l) => (l.id === savedLog.id ? savedLog : l));
+            }
+            return [savedLog, ...prev];
+          });
+          setIsLogDialogOpen(false);
+          setEditingLog(null);
+          showToast(isEdit ? "تم تحديث التسميع بنجاح ✅" : "تم حفظ التسميع بنجاح ✅");
         }}
       />
 
@@ -856,6 +895,14 @@ export function StudentDetailClient({
         logs={logs}
         attendance={attendance}
       />
+
+      {/* Floating Success Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[110] bg-slate-900/95 dark:bg-slate-100/95 text-white dark:text-slate-900 text-xs sm:text-sm font-black px-5 py-3 rounded-2xl shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-bottom-4 duration-200 flex items-center gap-2 border border-slate-700/50 dark:border-slate-300/50 pointer-events-none">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 dark:text-emerald-600 shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
     </div>
   );
 }

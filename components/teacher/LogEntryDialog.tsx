@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { BookOpen, X, CheckCircle2, UserCheck, Hash, ChevronDown } from "lucide-react";
 import { memorizationLogSchema, MemorizationLogInput } from "@/lib/validations/log";
-import { createMemorizationLog } from "@/lib/actions/log";
+import { createMemorizationLog, updateMemorizationLog } from "@/lib/actions/log";
 import { QURAN_SURAHS } from "@/lib/constants/quran";
 import {
   calculateRecitationPages,
@@ -31,6 +31,7 @@ interface LogEntryDialogProps {
   studentId: string;
   studentName: string;
   existingLogs?: MemorizationLogRow[];
+  editingLog?: MemorizationLogRow | null;
   onSuccess?: (log: MemorizationLogRow) => void;
 }
 
@@ -40,6 +41,7 @@ export function LogEntryDialog({
   studentId,
   studentName,
   existingLogs = [],
+  editingLog = null,
   onSuccess,
 }: LogEntryDialogProps) {
   const [error, setError] = useState<string | null>(null);
@@ -114,9 +116,33 @@ export function LogEntryDialog({
 
   const isSurahAlreadyMemorized = Boolean(selectedSurahRecord);
 
-  // Set default initial surah & log_type based on student's history on modal open
+  // Set default initial surah & log_type based on student's history or editingLog on modal open
   useEffect(() => {
-    if (isOpen && existingLogs && existingLogs.length > 0) {
+    if (!isOpen) return;
+
+    if (editingLog) {
+      setValue("student_id", editingLog.student_id);
+      setValue("log_type", editingLog.log_type);
+      setValue("surah_start", editingLog.surah_start);
+      setValue("surah_end", editingLog.surah_end || editingLog.surah_start);
+      setValue("aya_start", editingLog.aya_start || 1);
+      setValue("aya_end", editingLog.aya_end || 1);
+      setValue("grade", editingLog.grade);
+      setValue("notes", editingLog.notes || "");
+      setValue("assistant_name", editingLog.assistant_name || "");
+      setValue("page_count", editingLog.page_count ?? 1);
+      setIsCrossSurah(Boolean(editingLog.surah_end && editingLog.surah_end !== editingLog.surah_start));
+      return;
+    }
+
+    if (typeof window !== "undefined") {
+      const savedAssistant = localStorage.getItem("quran_tracker_last_assistant_name");
+      if (savedAssistant) {
+        setValue("assistant_name", savedAssistant);
+      }
+    }
+
+    if (existingLogs && existingLogs.length > 0) {
       const studentLogs = existingLogs.filter((l) => l.student_id === studentId);
       if (studentLogs.length > 0) {
         const sorted = [...studentLogs].sort(
@@ -144,11 +170,25 @@ export function LogEntryDialog({
           setValue("aya_end", nextSurah.numberOfAyahs);
           setValue("page_count", getSurahStandardPages(nextSurah.name));
           setValue("log_type", "جديد");
+          setValue("grade", "ممتاز");
+          setValue("notes", "");
+          setIsCrossSurah(false);
           return;
         }
       }
     }
-  }, [isOpen, existingLogs, studentId, setValue]);
+
+    // Default fallback
+    setValue("log_type", "جديد");
+    setValue("surah_start", "الفاتحة");
+    setValue("surah_end", "الفاتحة");
+    setValue("aya_start", 1);
+    setValue("aya_end", 7);
+    setValue("page_count", 1);
+    setValue("grade", "ممتاز");
+    setValue("notes", "");
+    setIsCrossSurah(false);
+  }, [isOpen, editingLog, existingLogs, studentId, setValue]);
 
   // Automatically update page_count when surah, ayah, or cross-surah state changes
   useEffect(() => {
@@ -212,8 +252,28 @@ export function LogEntryDialog({
       student_id: studentId,
       surah_end: isCrossSurah ? data.surah_end : data.surah_start,
       surahs: [data.surah_start, ...(isCrossSurah && data.surah_end !== data.surah_start ? [data.surah_end] : [])],
-      audio_url: audioUrl,
+      audio_url: audioUrl || (editingLog?.audio_url ?? null),
     };
+
+    if (editingLog) {
+      try {
+        const res = await updateMemorizationLog(editingLog.id, payload);
+        if (res.success && res.data) {
+          successHaptic();
+          reset();
+          onSuccess?.(res.data);
+          onClose();
+        } else {
+          warningHaptic();
+          setError(res.error || "فشل تحديث التسميع");
+        }
+      } catch (err) {
+        warningHaptic();
+        setError(err instanceof Error ? err.message : "حدث خطأ غير متوقع أثناء تحديث التسميع");
+      }
+      setIsLoading(false);
+      return;
+    }
 
     if (typeof window !== "undefined" && !navigator.onLine) {
       queuePendingAction("recitation", payload);
@@ -330,7 +390,7 @@ export function LogEntryDialog({
           <div className="flex flex-col">
             <div className="flex items-center gap-2 text-teal-800 dark:text-teal-300 font-bold text-base">
               <BookOpen className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-              <span>تسجيل تسميع جديد 📖</span>
+              <span>{editingLog ? "تعديل بيانات التسميع ✏️" : "تسجيل تسميع جديد 📖"}</span>
             </div>
             {studentName && (
               <span className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
@@ -645,6 +705,8 @@ export function LogEntryDialog({
                   ? isUploadingAudio
                     ? "جاري رفع التلاوة الصوتية... 🎙️"
                     : "جاري الحفظ..."
+                  : editingLog
+                  ? "حفظ التعديلات ✅"
                   : "حفظ التسميع 💾"}
               </span>
             </button>

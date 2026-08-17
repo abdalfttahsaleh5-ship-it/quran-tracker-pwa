@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Trash2, Volume2, Mic } from "lucide-react";
+import { Trash2, Volume2, Mic, Pencil } from "lucide-react";
 import { MemorizationLogRow } from "@/types";
 import { GRADE_LABELS, LOG_TYPE_LABELS, formatArabicDate, formatPageCount } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 export interface RecitationLogCardProps {
   log: MemorizationLogRow | (Record<string, any> & { id: string });
   onDelete?: (id: string) => void;
+  onEdit?: (log: MemorizationLogRow) => void;
   showDeleteButton?: boolean;
   className?: string;
 }
@@ -17,6 +18,7 @@ export interface RecitationLogCardProps {
 export function RecitationLogCard({
   log,
   onDelete,
+  onEdit,
   showDeleteButton = true,
   className = "",
 }: RecitationLogCardProps) {
@@ -87,18 +89,32 @@ export function RecitationLogCard({
           )}
         </div>
 
-        {/* Delete Action Button */}
-        {showDeleteButton && onDelete && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => onDelete(log.id)}
-            className="text-slate-400 hover:text-rose-600 shrink-0 rounded-xl"
-            title="حذف التسميع"
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
-        )}
+        {/* Actions Row: Edit & Delete */}
+        <div className="flex items-center gap-1 shrink-0">
+          {onEdit && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onEdit(log as MemorizationLogRow)}
+              className="text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 shrink-0 rounded-xl"
+              title="تعديل التسميع"
+            >
+              <Pencil className="w-4 h-4" />
+            </Button>
+          )}
+
+          {showDeleteButton && onDelete && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onDelete(log.id)}
+              className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 shrink-0 rounded-xl"
+              title="حذف التسميع"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

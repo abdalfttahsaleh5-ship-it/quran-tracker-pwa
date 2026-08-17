@@ -83,6 +83,83 @@ export async function createMemorizationLog(data: MemorizationLogInput): Promise
   }
 }
 
+export async function updateMemorizationLog(
+  id: string,
+  data: MemorizationLogInput
+): Promise<ActionResult<MemorizationLogRow>> {
+  if (!id) {
+    return { success: false, error: "معرف السجل مطلوب للتعديل" };
+  }
+
+  const validation = memorizationLogSchema.safeParse(data);
+  if (!validation.success) {
+    return {
+      success: false,
+      error: validation.error.errors[0]?.message || "بيانات التسميع غير صحيحة",
+    };
+  }
+
+  try {
+    const supabase = createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: "غير مصرح لك بتعديل السجل، يرجى تسجيل الدخول",
+      };
+    }
+
+    const updatePayload: Database["public"]["Tables"]["memorization_logs"]["Update"] & {
+      assistant_name?: string | null;
+      page_count?: number | null;
+      surahs?: string[] | null;
+      audio_url?: string | null;
+    } = {
+      log_type: validation.data.log_type,
+      surah_start: validation.data.surah_start,
+      aya_start: validation.data.aya_start,
+      surah_end: validation.data.surah_end,
+      aya_end: validation.data.aya_end,
+      grade: validation.data.grade,
+      notes: validation.data.notes || null,
+      assistant_name: validation.data.assistant_name || null,
+      page_count: validation.data.page_count ?? null,
+      surahs: validation.data.surahs || null,
+      ...(validation.data.audio_url ? { audio_url: validation.data.audio_url } : {}),
+    };
+
+    const { data: updatedLog, error } = await (supabase.from("memorization_logs") as ReturnType<typeof supabase.from>)
+      .update(updatePayload)
+      .eq("id", id)
+      .eq("teacher_id", user.id)
+      .select()
+      .single();
+
+    if (error) {
+      return {
+        success: false,
+        error: "فشل تحديث التسميع: " + error.message,
+      };
+    }
+
+    revalidatePath(`/students/${validation.data.student_id}`);
+    revalidatePath("/dashboard");
+    return {
+      success: true,
+      data: updatedLog as MemorizationLogRow,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "حدث خطأ غير متوقع أثناء تحديث التسميع",
+    };
+  }
+}
+
 export async function getStudentLogs(
   studentId: string,
   limit: number = 50
