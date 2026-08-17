@@ -11,7 +11,6 @@ export function RoutePrefetcher() {
     const routesToPrefetch = [
       "/dashboard",
       "/students",
-      "/trash",
       "/login",
       "/parent",
     ];

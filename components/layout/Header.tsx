@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, LayoutDashboard, Users, LogOut, Trash2, WifiOff, RefreshCw } from "lucide-react";
+import { BookOpen, LayoutDashboard, Users, LogOut, WifiOff, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { logoutTeacher } from "@/lib/actions/auth";
 import { useNetworkSync } from "@/lib/hooks/useNetworkSync";
@@ -15,7 +15,6 @@ export function Header() {
   const navItems = [
     { href: "/dashboard", label: "اللوحة الرئيسية", icon: LayoutDashboard },
     { href: "/students", label: "قائمة الطلاب", icon: Users },
-    { href: "/trash", label: "الأرشيف", icon: Trash2 },
   ];
 
   return (
