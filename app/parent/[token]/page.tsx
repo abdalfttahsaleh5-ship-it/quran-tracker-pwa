@@ -1,11 +1,14 @@
 import { Metadata } from "next";
-import { getStudentProgressByTokenCached } from "@/lib/actions/student";
+import { cache } from "react";
+import { getStudentProgressByToken } from "@/lib/actions/parent";
 import { AlertCircle } from "lucide-react";
 import { Card, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { ParentProgressPayload } from "@/types";
 import { ParentPortalClient } from "@/components/parent/ParentPortalClient";
 
 export const revalidate = 0;
+
+const getStudentProgressByTokenCached = cache(getStudentProgressByToken);
 
 interface ParentPortalPageProps {
   params: {

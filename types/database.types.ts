@@ -304,7 +304,12 @@ export type Database = {
       };
     };
     Functions: {
-      [_ in never]: never;
+      get_student_progress_by_token: {
+        Args: {
+          p_token: string;
+        };
+        Returns: Json;
+      };
     };
     Enums: {
       attendance_status_enum: "حاضر" | "غائب" | "متأخر" | "لم يرصد" | "مستأذن";

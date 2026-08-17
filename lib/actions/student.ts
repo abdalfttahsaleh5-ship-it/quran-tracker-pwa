@@ -247,53 +247,10 @@ export async function deleteStudent(id: string): Promise<ActionResult> {
   }
 }
 
+import { getStudentProgressByToken as getParentProgressByToken } from "./parent";
+
 export async function getStudentProgressByToken(token: string): Promise<ParentProgressPayload> {
-  if (!token || typeof token !== "string" || token.trim() === "") {
-    return { success: false, error: "الرابط غير صحيح أو مفقود" };
-  }
-
-  const cleanToken = token.trim();
-
-  try {
-    const supabase = createClient();
-
-    // Direct RLS-safe query on students table by parent_token
-    const { data: student, error: studentError } = await supabase
-      .from("students")
-      .select("*")
-      .eq("parent_token", cleanToken)
-      .maybeSingle();
-
-    if (studentError || !student) {
-      return { success: false, error: "الرابط غير صالح أو تم حذف بيانات الطالب" };
-    }
-
-    const { data: logs } = await supabase
-      .from("memorization_logs")
-      .select("*")
-      .eq("student_id", student.id)
-      .order("created_at", { ascending: false })
-      .limit(50);
-
-    const { data: attendance } = await supabase
-      .from("attendance_records")
-      .select("*")
-      .eq("student_id", student.id)
-      .order("date", { ascending: false })
-      .limit(50);
-
-    return {
-      success: true,
-      student,
-      logs: logs || [],
-      attendance: attendance || [],
-    };
-  } catch (err) {
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : "حدث خطأ أثناء تحميل بيانات الطالب",
-    };
-  }
+  return getParentProgressByToken(token);
 }
 
 export interface ParentSearchResult {
@@ -346,7 +303,6 @@ export async function findStudentByPhoneOrCode(input: string): Promise<ParentSea
 }
 
 export const getStudentsCached = cache(getStudents);
-export const getStudentProgressByTokenCached = cache(getStudentProgressByToken);
 
 export type TimeframeFilter = "today" | "this_week" | "this_month" | "last_30_days" | "all";
 
