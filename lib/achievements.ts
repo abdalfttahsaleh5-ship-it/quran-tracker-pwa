@@ -1,6 +1,6 @@
 import { StudentRow, MemorizationLogRow, AttendanceRecordRow } from "@/types";
 import { getTimeframeDateBounds, formatCleanPageCount } from "@/lib/reportCalculations";
-import { getStudentMemorizedSurahsMap, SURAH_METADATA, normalizeSurahName } from "@/lib/quranMetadata";
+import { getStudentMemorizedSurahsMap, getStudentSurahProgressMap, SURAH_METADATA, normalizeSurahName } from "@/lib/quranMetadata";
 
 export interface StudentBadge {
   id: string;
@@ -33,12 +33,13 @@ export function calculateStudentBadges(
   const totalPages = formatCleanPageCount(rawTotalPages);
 
   // 2. Juz 30 Pages (Surah 78 to 114)
-  const memMap = getStudentMemorizedSurahsMap(studentLogs, student.id);
+  const progressMap = getStudentSurahProgressMap(studentLogs, student.id);
   let juz30Pages = 0;
   const juz30Surahs = SURAH_METADATA.filter((s) => s.id >= 78);
   for (const surah of juz30Surahs) {
-    if (memMap.has(normalizeSurahName(surah.name))) {
-      juz30Pages += surah.standardPages;
+    const p = progressMap.get(normalizeSurahName(surah.name));
+    if (p) {
+      juz30Pages += Math.min(surah.standardPages, p.memorizedPages);
     }
   }
   const cleanJuz30Pages = formatCleanPageCount(juz30Pages);
@@ -73,7 +74,7 @@ export function calculateStudentBadges(
       color: "text-amber-500 border-amber-300 dark:border-amber-700",
       bgGradient: "from-amber-500/20 via-amber-400/10 to-amber-500/5",
       description: "إتمام حفظ سور جزء عمّ كاملاً (23 صفحة)",
-      isUnlocked: cleanJuz30Pages >= 23 || totalPages >= 23,
+      isUnlocked: cleanJuz30Pages >= 23,
       progressText: `${cleanJuz30Pages} / 23 صفحة`,
     },
     {

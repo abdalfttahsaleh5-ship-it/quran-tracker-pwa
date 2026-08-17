@@ -11,8 +11,10 @@ import {
   calculateRecitationPages,
   getSurahStandardPages,
   getStudentMemorizedSurahsMap,
+  getStudentSurahProgressMap,
   normalizeSurahName,
   MemorizedSurahRecord,
+  SurahProgressRecord,
 } from "@/lib/quranMetadata";
 import { LogTypeEnum, EvaluationGradeEnum, MemorizationLogRow } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -86,26 +88,31 @@ export function LogEntryDialog({
   const selectedGrade = watch("grade");
   const currentPageCount = watch("page_count");
 
-  // Map of memorized Surahs for this student
+  // Map of memorized Surahs (100% completed) for this student
   const memorizedSurahsMap = useMemo(() => {
     return getStudentMemorizedSurahsMap(existingLogs, studentId);
   }, [existingLogs, studentId]);
 
-  // Check if currently selected Surah was already memorized
+  // Map of all Surah progress for this student
+  const surahProgressMap = useMemo(() => {
+    return getStudentSurahProgressMap(existingLogs, studentId);
+  }, [existingLogs, studentId]);
+
+  // Check if currently selected Surah was already 100% completed
   const selectedSurahRecord = useMemo(() => {
     const normStart = normalizeSurahName(selectedSurahStart || "");
     const normEnd = normalizeSurahName(selectedSurahEnd || selectedSurahStart || "");
     return memorizedSurahsMap.get(normStart) || (isCrossSurah ? memorizedSurahsMap.get(normEnd) : null) || null;
   }, [memorizedSurahsMap, selectedSurahStart, selectedSurahEnd, isCrossSurah]);
 
-  const isSurahAlreadyMemorized = Boolean(selectedSurahRecord);
+  // Check partial progress for selected Surah
+  const selectedSurahProgress = useMemo(() => {
+    const normStart = normalizeSurahName(selectedSurahStart || "");
+    const normEnd = normalizeSurahName(selectedSurahEnd || selectedSurahStart || "");
+    return surahProgressMap.get(normStart) || (isCrossSurah ? surahProgressMap.get(normEnd) : null) || null;
+  }, [surahProgressMap, selectedSurahStart, selectedSurahEnd, isCrossSurah]);
 
-  // Automatically force recitation type to revision if already memorized
-  useEffect(() => {
-    if (isSurahAlreadyMemorized && selectedLogType === "جديد") {
-      setValue("log_type", "مراجعة_صغرى");
-    }
-  }, [isSurahAlreadyMemorized, selectedLogType, setValue]);
+  const isSurahAlreadyMemorized = Boolean(selectedSurahRecord);
 
   // Set default initial surah & log_type based on student's history on modal open
   useEffect(() => {
@@ -130,15 +137,13 @@ export function LogEntryDialog({
               nextSurah = nextSurahObj;
             }
           }
-          const memMap = getStudentMemorizedSurahsMap(existingLogs, studentId);
-          const isNextMem = memMap.has(normalizeSurahName(nextSurah.name));
 
           setValue("surah_start", nextSurah.name);
           setValue("surah_end", nextSurah.name);
           setValue("aya_start", 1);
           setValue("aya_end", nextSurah.numberOfAyahs);
           setValue("page_count", getSurahStandardPages(nextSurah.name));
-          setValue("log_type", isNextMem ? "مراجعة_صغرى" : "جديد");
+          setValue("log_type", "جديد");
           return;
         }
       }
@@ -178,26 +183,11 @@ export function LogEntryDialog({
       !isCrossSurah ? surahObj?.numberOfAyahs : (Number(selectedAyaEnd) || undefined)
     );
     setValue("page_count", calculatedPages);
-
-    const memMap = getStudentMemorizedSurahsMap(existingLogs, studentId);
-    if (memMap.has(normalizeSurahName(surahName))) {
-      setValue("log_type", "مراجعة_صغرى");
-    }
   };
 
   if (!isOpen) return null;
 
   const handleFormSubmit = async (data: MemorizationLogInput) => {
-    // Strict Duplicate Memorization Guard
-    if (data.log_type === "جديد" && isSurahAlreadyMemorized && selectedSurahRecord) {
-      warningHaptic();
-      setError(
-        `⚠️ تم حفظ سورة (${selectedSurahRecord.surahName}) مسبقاً بتاريخ (${selectedSurahRecord.formattedDate}). تم قفل خيار (حفظ جديد) وتوجيه التسجيل إلى (مراجعة).`
-      );
-      setValue("log_type", "مراجعة_صغرى");
-      return;
-    }
-
     setIsLoading(true);
     setError(null);
 
@@ -389,33 +379,19 @@ export function LogEntryDialog({
             <div className="space-y-1">
               <div className="flex items-center justify-between">
                 <Label className="text-xs font-bold text-slate-700 dark:text-slate-200">نوع التسميع</Label>
-                {isSurahAlreadyMemorized && (
-                  <span className="text-[11px] font-extrabold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/80 px-2 py-0.5 rounded-lg border border-amber-300 dark:border-amber-800">
-                    🔒 مقفل للحفظ الجديد
-                  </span>
-                )}
               </div>
               <div className="grid grid-cols-3 gap-1.5">
                 {logTypes.map((type) => {
-                  const isNewTypeLocked = type.value === "جديد" && isSurahAlreadyMemorized;
                   return (
                     <button
                       key={type.value}
                       type="button"
-                      disabled={isNewTypeLocked}
                       onClick={() => {
-                        if (!isNewTypeLocked) {
-                          lightHaptic();
-                          setValue("log_type", type.value);
-                        } else {
-                          warningHaptic();
-                        }
+                        lightHaptic();
+                        setValue("log_type", type.value);
                       }}
-                      title={isNewTypeLocked ? "تم حفظ هذه السورة مسبقاً لهذا الطالب" : type.label}
                       className={`py-2 px-1.5 text-xs font-bold rounded-xl border transition-all text-center ${
-                        isNewTypeLocked
-                          ? "opacity-35 cursor-not-allowed bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-400 line-through"
-                          : selectedLogType === type.value
+                        selectedLogType === type.value
                           ? "bg-teal-700 text-white border-teal-700 shadow-sm"
                           : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
                       }`}
@@ -440,10 +416,17 @@ export function LogEntryDialog({
                   className="w-full h-9 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 text-xs font-bold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-teal-500 outline-none transition-all"
                 >
                   {QURAN_SURAHS.map((s) => {
-                    const isMem = memorizedSurahsMap.has(normalizeSurahName(s.name));
+                    const norm = normalizeSurahName(s.name);
+                    const prog = surahProgressMap.get(norm);
+                    let label = `${s.number}. سورة ${s.name} (${s.numberOfAyahs} آية)`;
+                    if (prog?.isCompleted) {
+                      label = `✅ ${s.number}. سورة ${s.name} (مكتمل)`;
+                    } else if (prog && prog.memorizedPages > 0) {
+                      label = `⏳ ${s.number}. سورة ${s.name} (تم حفظ ${prog.memorizedPages} من ${prog.totalPages} صفحة)`;
+                    }
                     return (
                       <option key={s.number} value={s.name}>
-                        {isMem ? `✅ ${s.number}. سورة ${s.name} (تم الحفظ)` : `${s.number}. سورة ${s.name} (${s.numberOfAyahs} آية)`}
+                        {label}
                       </option>
                     );
                   })}
@@ -522,10 +505,17 @@ export function LogEntryDialog({
                       })}
                     >
                       {QURAN_SURAHS.map((s) => {
-                        const isMem = memorizedSurahsMap.has(normalizeSurahName(s.name));
+                        const norm = normalizeSurahName(s.name);
+                        const prog = surahProgressMap.get(norm);
+                        let label = `${s.number}. سورة ${s.name}`;
+                        if (prog?.isCompleted) {
+                          label = `✅ ${s.number}. سورة ${s.name} (مكتمل)`;
+                        } else if (prog && prog.memorizedPages > 0) {
+                          label = `⏳ ${s.number}. سورة ${s.name} (تم حفظ ${prog.memorizedPages} من ${prog.totalPages} صفحة)`;
+                        }
                         return (
                           <option key={s.number} value={s.name}>
-                            {isMem ? `✅ ${s.number}. سورة ${s.name} (تم الحفظ)` : `${s.number}. سورة ${s.name}`}
+                            {label}
                           </option>
                         );
                       })}
@@ -534,17 +524,16 @@ export function LogEntryDialog({
                 )}
               </div>
 
-              {/* Prominent Amber Warning Box when Surah was previously memorized */}
-              {isSurahAlreadyMemorized && selectedSurahRecord && (
-                <div className="p-3 rounded-2xl bg-amber-500/15 border border-amber-500/40 text-amber-900 dark:text-amber-200 text-xs font-bold flex items-start gap-2.5 shadow-sm animate-in fade-in duration-200">
-                  <span className="text-base shrink-0">⚠️</span>
+              {/* Informative Progress Banner when Surah is in-progress (partial) */}
+              {!isSurahAlreadyMemorized && selectedSurahProgress && selectedSurahProgress.memorizedPages > 0 && (
+                <div className="p-3 rounded-2xl bg-teal-500/15 border border-teal-500/40 text-teal-900 dark:text-teal-200 text-xs font-bold flex items-start gap-2.5 shadow-sm animate-in fade-in duration-200">
+                  <span className="text-base shrink-0">⏳</span>
                   <div className="space-y-1 leading-relaxed">
                     <p>
-                      تم حفظ <strong className="text-amber-950 dark:text-amber-100 underline decoration-amber-400 decoration-2 font-black">سورة {selectedSurahRecord.surahName}</strong> مسبقاً بتاريخ (
-                      <span className="font-black text-amber-950 dark:text-amber-100">{selectedSurahRecord.formattedDate}</span>).
+                      تم حفظ <strong className="text-teal-950 dark:text-teal-100 font-black">{selectedSurahProgress.memorizedPages} من {selectedSurahProgress.totalPages} صفحات</strong> من سورة {selectedSurahProgress.surahName} ({selectedSurahProgress.percentage}%).
                     </p>
-                    <p className="text-[11px] text-amber-800 dark:text-amber-300/90 font-medium">
-                      تم قفل خيار (حفظ جديد) وتوجيه التسجيل إلى (مراجعة) لمنع تكرار احتساب الصفحات.
+                    <p className="text-[11px] text-teal-800 dark:text-teal-300/90 font-medium">
+                      يمكنك مواصلة تسجيل (حفظ جديد) للصفحات المتبقية لإتمام حفظ السورة كاملة.
                     </p>
                   </div>
                 </div>

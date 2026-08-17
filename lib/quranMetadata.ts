@@ -217,11 +217,28 @@ export function getJuz30TotalPages(): number {
   );
 }
 
+export interface SurahProgressRecord {
+  surahId: number;
+  surahName: string;
+  totalPages: number;
+  memorizedPages: number;
+  rawRecitedPages: number;
+  isCompleted: boolean;
+  percentage: number;
+  lastLogDate: string;
+  formattedDate: string;
+  logId: string;
+}
+
 export interface MemorizedSurahRecord {
   surahName: string;
   memorizedAt: string;
   formattedDate: string;
   logId: string;
+  surahId?: number;
+  totalPages?: number;
+  memorizedPages?: number;
+  isCompleted?: boolean;
 }
 
 export function normalizeSurahName(name: string): string {
@@ -243,9 +260,187 @@ export function formatArabicLogDate(dateStr?: string | null): string {
   }
 }
 
+function cleanPageNum(p: number): number {
+  if (!p || isNaN(p) || p <= 0) return 0;
+  const rounded = Math.round(p * 4) / 4;
+  return Number(rounded.toFixed(2).replace(/\.00$/, "").replace(/(\.[1-9])0$/, "$1"));
+}
+
 /**
- * Returns a map of normalized surah name -> MemorizedSurahRecord for all surahs
- * that have been logged under 'جديد' (or already completed) for the given student.
+ * Calculates exact memorization progress for all Surahs for a student based on 'جديد' logs.
+ * A Surah is only marked completed (isCompleted = true) when sum(pages_recited) >= total_pages_in_surah.
+ */
+export function getStudentSurahProgressMap(
+  logs?: Array<{
+    student_id?: string;
+    log_type?: string;
+    surah_start?: string | null;
+    surah_end?: string | null;
+    surahs?: string[] | null;
+    created_at?: string;
+    id?: string;
+    page_count?: number | null;
+    aya_start?: number | null;
+    aya_end?: number | null;
+  }> | null,
+  studentId?: string
+): Map<string, SurahProgressRecord> {
+  const progressMap = new Map<string, SurahProgressRecord>();
+  if (!logs || logs.length === 0) return progressMap;
+
+  const studentLogs = studentId ? logs.filter((l) => l.student_id === studentId) : logs;
+  const newLogs = studentLogs.filter((l) => l.log_type === "جديد");
+
+  // Track aggregated pages and latest log metadata per surah id
+  const accumulatedMap = new Map<
+    number,
+    {
+      meta: SurahMeta;
+      pagesSum: number;
+      lastDate: string;
+      formattedDate: string;
+      logId: string;
+    }
+  >();
+
+  for (const log of newLogs) {
+    const logDate = log.created_at || "";
+    const formattedDate = formatArabicLogDate(log.created_at);
+    const logId = log.id || "";
+
+    const startMeta = log.surah_start ? getSurahMetadata(log.surah_start) : undefined;
+    const endMeta = log.surah_end ? getSurahMetadata(log.surah_end) : startMeta;
+
+    if (startMeta && endMeta) {
+      if (startMeta.id === endMeta.id) {
+        // Single surah log
+        const surah = startMeta;
+        let recited = typeof log.page_count === "number" && !isNaN(log.page_count) && log.page_count > 0
+          ? log.page_count
+          : calculateRecitationPages(surah.id, surah.id, log.aya_start || 1, log.aya_end || surah.numberOfAyahs);
+
+        const current = accumulatedMap.get(surah.id) || {
+          meta: surah,
+          pagesSum: 0,
+          lastDate: logDate,
+          formattedDate,
+          logId,
+        };
+        current.pagesSum += recited;
+        if (!current.lastDate || new Date(logDate).getTime() > new Date(current.lastDate).getTime()) {
+          current.lastDate = logDate;
+          current.formattedDate = formattedDate;
+          current.logId = logId;
+        }
+        accumulatedMap.set(surah.id, current);
+      } else {
+        // Multi-surah range
+        const minId = Math.min(startMeta.id, endMeta.id);
+        const maxId = Math.max(startMeta.id, endMeta.id);
+        const calculatedTotalRange = calculateRecitationPages(
+          startMeta.id,
+          endMeta.id,
+          log.aya_start || 1,
+          log.aya_end || undefined
+        );
+
+        for (let id = minId; id <= maxId; id++) {
+          const surah = getSurahMetadata(id);
+          if (!surah) continue;
+
+          const sAyaStart = id === startMeta.id ? (log.aya_start || 1) : 1;
+          const sAyaEnd = id === endMeta.id ? (log.aya_end || surah.numberOfAyahs) : surah.numberOfAyahs;
+          const surahComputedPages = calculateRecitationPages(id, id, sAyaStart, sAyaEnd);
+
+          let attributedPages = surahComputedPages;
+          if (
+            typeof log.page_count === "number" &&
+            !isNaN(log.page_count) &&
+            log.page_count > 0 &&
+            calculatedTotalRange > 0
+          ) {
+            attributedPages = (surahComputedPages / calculatedTotalRange) * log.page_count;
+          }
+
+          const current = accumulatedMap.get(surah.id) || {
+            meta: surah,
+            pagesSum: 0,
+            lastDate: logDate,
+            formattedDate,
+            logId,
+          };
+          current.pagesSum += attributedPages;
+          if (!current.lastDate || new Date(logDate).getTime() > new Date(current.lastDate).getTime()) {
+            current.lastDate = logDate;
+            current.formattedDate = formattedDate;
+            current.logId = logId;
+          }
+          accumulatedMap.set(surah.id, current);
+        }
+      }
+    } else {
+      // Fallback: array of surah names or raw names
+      const names: string[] = [];
+      if (log.surahs && Array.isArray(log.surahs)) names.push(...log.surahs);
+      if (log.surah_start) names.push(log.surah_start);
+      if (log.surah_end) names.push(log.surah_end);
+
+      for (const raw of names) {
+        const surah = getSurahMetadata(raw);
+        if (!surah) continue;
+
+        const recited = typeof log.page_count === "number" && !isNaN(log.page_count) && log.page_count > 0
+          ? log.page_count
+          : surah.standardPages;
+
+        const current = accumulatedMap.get(surah.id) || {
+          meta: surah,
+          pagesSum: 0,
+          lastDate: logDate,
+          formattedDate,
+          logId,
+        };
+        current.pagesSum += recited;
+        if (!current.lastDate || new Date(logDate).getTime() > new Date(current.lastDate).getTime()) {
+          current.lastDate = logDate;
+          current.formattedDate = formattedDate;
+          current.logId = logId;
+        }
+        accumulatedMap.set(surah.id, current);
+      }
+    }
+  }
+
+  // Build final Progress Records
+  accumulatedMap.forEach(({ meta, pagesSum, lastDate, formattedDate, logId }) => {
+    const totalPages = meta.standardPages;
+    const isCompleted = pagesSum >= (totalPages - 0.05);
+    const memorizedPages = cleanPageNum(Math.min(totalPages, pagesSum));
+    const percentage = Math.min(100, Math.round((memorizedPages / totalPages) * 100));
+
+    const record: SurahProgressRecord = {
+      surahId: meta.id,
+      surahName: meta.name,
+      totalPages,
+      memorizedPages,
+      rawRecitedPages: pagesSum,
+      isCompleted,
+      percentage,
+      lastLogDate: lastDate,
+      formattedDate,
+      logId,
+    };
+
+    const norm = normalizeSurahName(meta.name);
+    progressMap.set(norm, record);
+  });
+
+  return progressMap;
+}
+
+/**
+ * Returns a map of normalized surah name -> MemorizedSurahRecord ONLY for surahs
+ * that have been 100% completed (sum(pages_recited) >= total_pages_in_surah).
  */
 export function getStudentMemorizedSurahsMap(
   logs?: Array<{
@@ -256,58 +451,31 @@ export function getStudentMemorizedSurahsMap(
     surahs?: string[] | null;
     created_at?: string;
     id?: string;
+    page_count?: number | null;
+    aya_start?: number | null;
+    aya_end?: number | null;
   }> | null,
   studentId?: string
 ): Map<string, MemorizedSurahRecord> {
   const map = new Map<string, MemorizedSurahRecord>();
   if (!logs || logs.length === 0) return map;
 
-  const studentLogs = studentId ? logs.filter((l) => l.student_id === studentId) : logs;
-  const newLogs = studentLogs.filter((l) => l.log_type === "جديد");
+  const progressMap = getStudentSurahProgressMap(logs, studentId);
 
-  for (const log of newLogs) {
-    const formattedDate = formatArabicLogDate(log.created_at);
-
-    // Check surah range if available
-    const startMeta = log.surah_start ? getSurahMetadata(log.surah_start) : undefined;
-    const endMeta = log.surah_end ? getSurahMetadata(log.surah_end) : startMeta;
-
-    if (startMeta && endMeta) {
-      const minId = Math.min(startMeta.id, endMeta.id);
-      const maxId = Math.max(startMeta.id, endMeta.id);
-      for (let id = minId; id <= maxId; id++) {
-        const s = getSurahMetadata(id);
-        if (s) {
-          const norm = normalizeSurahName(s.name);
-          if (!map.has(norm)) {
-            map.set(norm, {
-              surahName: s.name,
-              memorizedAt: log.created_at || "",
-              formattedDate,
-              logId: log.id || "",
-            });
-          }
-        }
-      }
-    } else {
-      const names: string[] = [];
-      if (log.surahs && Array.isArray(log.surahs)) names.push(...log.surahs);
-      if (log.surah_start) names.push(log.surah_start);
-      if (log.surah_end) names.push(log.surah_end);
-
-      for (const raw of names) {
-        const norm = normalizeSurahName(raw);
-        if (!map.has(norm)) {
-          map.set(norm, {
-            surahName: norm,
-            memorizedAt: log.created_at || "",
-            formattedDate,
-            logId: log.id || "",
-          });
-        }
-      }
+  progressMap.forEach((progress, normName) => {
+    if (progress.isCompleted) {
+      map.set(normName, {
+        surahName: progress.surahName,
+        memorizedAt: progress.lastLogDate,
+        formattedDate: progress.formattedDate,
+        logId: progress.logId,
+        surahId: progress.surahId,
+        totalPages: progress.totalPages,
+        memorizedPages: progress.memorizedPages,
+        isCompleted: true,
+      });
     }
-  }
+  });
 
   return map;
 }

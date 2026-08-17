@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
@@ -15,6 +15,7 @@ import {
   Award,
   BookCheck,
   Sparkles,
+  BarChart3,
 } from "lucide-react";
 import { StudentRow, MemorizationLogRow, AttendanceRecordRow } from "@/types";
 import { GRADE_LABELS, ATTENDANCE_LABELS, LOG_TYPE_LABELS, formatArabicDate, formatPageCount } from "@/lib/utils";
@@ -27,6 +28,7 @@ import { lightHaptic } from "@/lib/haptics";
 import { ShareAchievementModal } from "./ShareAchievementModal";
 import { AudioPlayer } from "@/components/common/AudioPlayer";
 import { RecitationLogCard } from "./RecitationLogCard";
+import { getStudentSurahProgressMap, SurahProgressRecord } from "@/lib/quranMetadata";
 
 const LogEntryDialog = dynamic(() => import("./LogEntryDialog").then((mod) => mod.LogEntryDialog), { ssr: false });
 const AttendanceDialog = dynamic(() => import("./AttendanceDialog").then((mod) => mod.AttendanceDialog), { ssr: false });
@@ -43,13 +45,34 @@ export function StudentDetailClient({
   initialAttendance,
 }: StudentDetailClientProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"logs" | "attendance">("logs");
+  const [activeTab, setActiveTab] = useState<"logs" | "attendance" | "progress">("logs");
+  const [surahFilter, setSurahFilter] = useState<"all" | "in_progress" | "completed">("all");
   const [logs, setLogs] = useState<MemorizationLogRow[]>(initialLogs);
   const [attendance, setAttendance] = useState<AttendanceRecordRow[]>(initialAttendance);
   const [isLogDialogOpen, setIsLogDialogOpen] = useState(false);
   const [isAttendanceDialogOpen, setIsAttendanceDialogOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [imgError, setImgError] = useState(false);
+
+  const surahProgressList = useMemo(() => {
+    const map = getStudentSurahProgressMap(logs, student.id);
+    return Array.from(map.values()).sort((a, b) => {
+      if (a.isCompleted !== b.isCompleted) {
+        return a.isCompleted ? 1 : -1;
+      }
+      return new Date(b.lastLogDate || 0).getTime() - new Date(a.lastLogDate || 0).getTime();
+    });
+  }, [logs, student.id]);
+
+  const filteredSurahList = useMemo(() => {
+    if (surahFilter === "in_progress") {
+      return surahProgressList.filter((s) => !s.isCompleted);
+    }
+    if (surahFilter === "completed") {
+      return surahProgressList.filter((s) => s.isCompleted);
+    }
+    return surahProgressList;
+  }, [surahProgressList, surahFilter]);
 
   // Realtime Payload Handler for Instant Client State Update
   const handleRealtimePayload = useCallback(
@@ -311,13 +334,13 @@ export function StudentDetailClient({
       </div>
 
       {/* Navigation Tabs Header */}
-      <div className="flex border-b border-slate-200 dark:border-slate-800">
+      <div className="flex border-b border-slate-200 dark:border-slate-800 overflow-x-auto">
         <button
           onClick={() => {
             lightHaptic();
             React.startTransition(() => setActiveTab("logs"));
           }}
-          className={`py-3 px-5 text-xs sm:text-sm font-extrabold border-b-2 transition-all flex items-center gap-2 ${
+          className={`py-3 px-4 sm:px-5 text-xs sm:text-sm font-extrabold border-b-2 transition-all flex items-center gap-2 shrink-0 ${
             activeTab === "logs"
               ? "border-emerald-700 text-emerald-800 dark:text-emerald-300"
               : "border-transparent text-slate-500 hover:text-slate-800"
@@ -330,9 +353,24 @@ export function StudentDetailClient({
         <button
           onClick={() => {
             lightHaptic();
+            React.startTransition(() => setActiveTab("progress"));
+          }}
+          className={`py-3 px-4 sm:px-5 text-xs sm:text-sm font-extrabold border-b-2 transition-all flex items-center gap-2 shrink-0 ${
+            activeTab === "progress"
+              ? "border-emerald-700 text-emerald-800 dark:text-emerald-300"
+              : "border-transparent text-slate-500 hover:text-slate-800"
+          }`}
+        >
+          <BookCheck className="w-4 h-4 text-teal-600" />
+          <span>تقدم حفظ السور ({surahProgressList.length})</span>
+        </button>
+
+        <button
+          onClick={() => {
+            lightHaptic();
             React.startTransition(() => setActiveTab("attendance"));
           }}
-          className={`py-3 px-5 text-xs sm:text-sm font-extrabold border-b-2 transition-all flex items-center gap-2 ${
+          className={`py-3 px-4 sm:px-5 text-xs sm:text-sm font-extrabold border-b-2 transition-all flex items-center gap-2 shrink-0 ${
             activeTab === "attendance"
               ? "border-emerald-700 text-emerald-800 dark:text-emerald-300"
               : "border-transparent text-slate-500 hover:text-slate-800"
@@ -385,7 +423,130 @@ export function StudentDetailClient({
         </div>
       )}
 
-      {/* Tab 2: Attendance History List */}
+      {/* Tab 2: Surahs Memorization Progress Bars */}
+      {activeTab === "progress" && (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-base font-black text-slate-900 dark:text-slate-50">
+                متابعة تقدم حفظ السور القرآنية 📊
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                متابعة دقيقة لنسبة إنجاز صفحات كل سورة
+              </p>
+            </div>
+
+            {/* Filter Tabs */}
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-bold shrink-0">
+              <button
+                type="button"
+                onClick={() => setSurahFilter("all")}
+                className={`px-3 py-1 rounded-lg transition-all ${
+                  surahFilter === "all"
+                    ? "bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-xs"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                }`}
+              >
+                الكل ({surahProgressList.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setSurahFilter("in_progress")}
+                className={`px-3 py-1 rounded-lg transition-all ${
+                  surahFilter === "in_progress"
+                    ? "bg-white dark:bg-slate-900 text-amber-700 dark:text-amber-400 shadow-xs"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                }`}
+              >
+                قيد الحفظ ({surahProgressList.filter((s) => !s.isCompleted).length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setSurahFilter("completed")}
+                className={`px-3 py-1 rounded-lg transition-all ${
+                  surahFilter === "completed"
+                    ? "bg-white dark:bg-slate-900 text-teal-700 dark:text-teal-400 shadow-xs"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                }`}
+              >
+                مكتملة ({surahProgressList.filter((s) => s.isCompleted).length})
+              </button>
+            </div>
+          </div>
+
+          {surahProgressList.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {filteredSurahList.map((surah) => (
+                <Card
+                  key={surah.surahId}
+                  className="p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-2.5 shadow-xs hover:shadow-sm transition-all"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="w-7 h-7 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-200 font-black text-xs flex items-center justify-center border border-emerald-200 dark:border-emerald-800">
+                        {surah.surahId}
+                      </span>
+                      <div>
+                        <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">
+                          سورة {surah.surahName}
+                        </h4>
+                        <span className="text-[10px] text-slate-400">
+                          إجمالي صفحات السورة: {surah.totalPages} صفحة
+                        </span>
+                      </div>
+                    </div>
+
+                    {surah.isCompleted ? (
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                        مكتمل 100% ✅
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                        قيد الحفظ ({surah.percentage}%)
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-300 rounded-full ${
+                        surah.isCompleted
+                          ? "bg-gradient-to-r from-emerald-500 to-teal-500"
+                          : "bg-gradient-to-r from-amber-500 to-teal-500"
+                      }`}
+                      style={{ width: `${surah.percentage}%` }}
+                    />
+                  </div>
+
+                  {/* Progress Detail Text: "تم حفظ 1 من 3 صفحات" */}
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400 pt-0.5">
+                    <span>
+                      {surah.isCompleted
+                        ? `تم إتمام حفظ السورة كاملاً (${surah.totalPages} صفحة)`
+                        : `تم حفظ ${surah.memorizedPages} من ${surah.totalPages} صفحات`}
+                    </span>
+                    <span className="font-mono">{surah.percentage}%</span>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card className="p-8 text-center border-dashed rounded-3xl">
+              <CardContent className="space-y-3">
+                <BookCheck className="w-10 h-10 text-slate-300 mx-auto" />
+                <p className="text-slate-600 font-bold text-sm">لا يوجد تقدم حفظ مسجل بعد لهذا الطالب</p>
+                <Button variant="outline" onClick={() => setIsLogDialogOpen(true)} className="gap-2 rounded-xl">
+                  <Plus className="w-4 h-4 text-emerald-600" />
+                  <span>سجل حفظ جديد الآن</span>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* Tab 3: Attendance History List */}
       {activeTab === "attendance" && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">

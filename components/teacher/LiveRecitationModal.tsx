@@ -10,8 +10,10 @@ import {
   getSurahStandardPages,
   calculateRecitationPages,
   getStudentMemorizedSurahsMap,
+  getStudentSurahProgressMap,
   normalizeSurahName,
   MemorizedSurahRecord,
+  SurahProgressRecord,
 } from "@/lib/quranMetadata";
 import { Button } from "@/components/ui/button";
 import { lightHaptic, successHaptic, warningHaptic } from "@/lib/haptics";
@@ -85,27 +87,33 @@ export function LiveRecitationModal({
     ? students[currentIndex]
     : null;
 
-  // Map of memorized Surahs for the active student
+  // Map of memorized Surahs (100% completed) for the active student
   const memorizedSurahsMap = useMemo(() => {
     if (!currentStudent || !logs || logs.length === 0) return new Map<string, MemorizedSurahRecord>();
     return getStudentMemorizedSurahsMap(logs, currentStudent.id);
   }, [currentStudent, logs]);
 
-  // Check if current selected Surah range contains already-memorized Surah
+  // Map of all Surah progress for the active student
+  const surahProgressMap = useMemo(() => {
+    if (!currentStudent || !logs || logs.length === 0) return new Map<string, SurahProgressRecord>();
+    return getStudentSurahProgressMap(logs, currentStudent.id);
+  }, [currentStudent, logs]);
+
+  // Check if current selected Surah range is 100% completed
   const selectedSurahRecord = useMemo(() => {
     const normStart = normalizeSurahName(surahStart);
     const normEnd = normalizeSurahName(surahEnd || surahStart);
     return memorizedSurahsMap.get(normStart) || memorizedSurahsMap.get(normEnd) || null;
   }, [memorizedSurahsMap, surahStart, surahEnd]);
 
-  const isSurahAlreadyMemorized = Boolean(selectedSurahRecord);
+  // Check partial progress for currently selected Surah
+  const selectedSurahProgress = useMemo(() => {
+    const normStart = normalizeSurahName(surahStart);
+    const normEnd = normalizeSurahName(surahEnd || surahStart);
+    return surahProgressMap.get(normStart) || surahProgressMap.get(normEnd) || null;
+  }, [surahProgressMap, surahStart, surahEnd]);
 
-  // Automatically force recitation type to revision if already memorized
-  useEffect(() => {
-    if (isSurahAlreadyMemorized && logType === "جديد") {
-      setLogType("مراجعة_صغرى");
-    }
-  }, [isSurahAlreadyMemorized, logType]);
+  const isSurahAlreadyMemorized = Boolean(selectedSurahRecord);
 
   // Reset and auto-select form inputs when active student changes
   useEffect(() => {
@@ -136,28 +144,24 @@ export function LiveRecitationModal({
             }
           }
 
-          const memMap = getStudentMemorizedSurahsMap(logs, currentStudent.id);
-          const isNextMem = memMap.has(normalizeSurahName(nextSurah.name));
-
           setSurahStart(nextSurah.name);
           setSurahEnd(nextSurah.name);
           setAyaStart(1);
           setAyaEnd(nextSurah.numberOfAyahs);
           setPageCount(getSurahStandardPages(nextSurah.name));
-          setLogType(isNextMem ? "مراجعة_صغرى" : "جديد");
+          setLogType("جديد");
           return;
         }
       }
     }
 
     // Default fallback if no previous log or student
-    const fallbackMem = currentStudent ? getStudentMemorizedSurahsMap(logs, currentStudent.id).has("الفاتحة") : false;
     setSurahStart("الفاتحة");
     setSurahEnd("الفاتحة");
     setAyaStart(1);
     setAyaEnd(7);
     setPageCount(getSurahStandardPages("الفاتحة"));
-    setLogType(fallbackMem ? "مراجعة_صغرى" : "جديد");
+    setLogType("جديد");
   }, [currentIndex, currentStudent, logs]);
 
   // Reset session counters whenever modal opens
@@ -222,16 +226,6 @@ export function LiveRecitationModal({
   // Submit Recitation for Current Student and Advance
   const handleSaveAndNext = async () => {
     if (!currentStudent) return;
-
-    // Strict Duplicate Memorization Guard: reject and warn if attempted as 'جديد' when already memorized
-    if (logType === "جديد" && isSurahAlreadyMemorized && selectedSurahRecord) {
-      warningHaptic();
-      setErrorMessage(
-        `⚠️ تم حفظ سورة (${selectedSurahRecord.surahName}) مسبقاً بتاريخ (${selectedSurahRecord.formattedDate}). تم قفل خيار (حفظ جديد) وتوجيه التسجيل إلى (مراجعة).`
-      );
-      setLogType("مراجعة_صغرى");
-      return;
-    }
 
     setIsSubmitting(true);
     setErrorMessage(null);
@@ -433,29 +427,16 @@ export function LiveRecitationModal({
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-slate-400">نوع التسميع 🎯</label>
-                {isSurahAlreadyMemorized && (
-                  <span className="text-[11px] font-extrabold text-amber-400 bg-amber-950/80 px-2 py-0.5 rounded-lg border border-amber-800/80">
-                    🔒 مقفل للحفظ الجديد
-                  </span>
-                )}
               </div>
               <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
-                  disabled={isSurahAlreadyMemorized}
                   onClick={() => {
-                    if (!isSurahAlreadyMemorized) {
-                      lightHaptic();
-                      setLogType("جديد");
-                    } else {
-                      warningHaptic();
-                    }
+                    lightHaptic();
+                    setLogType("جديد");
                   }}
-                  title={isSurahAlreadyMemorized ? "تم حفظ هذه السورة مسبقاً لهذا الطالب" : "حفظ جديد"}
                   className={`py-2.5 px-3 rounded-2xl text-xs font-black border transition-all ${
-                    isSurahAlreadyMemorized
-                      ? "opacity-35 cursor-not-allowed bg-slate-950 border-slate-850 text-slate-500 line-through"
-                      : logType === "جديد"
+                    logType === "جديد"
                       ? "bg-emerald-600 border-emerald-500 text-white shadow-md"
                       : "bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-850"
                   }`}
@@ -571,10 +552,17 @@ export function LiveRecitationModal({
                     className="w-full p-2.5 rounded-2xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-100"
                   >
                     {QURAN_SURAHS.map((s) => {
-                      const isMem = memorizedSurahsMap.has(normalizeSurahName(s.name));
+                      const norm = normalizeSurahName(s.name);
+                      const prog = surahProgressMap.get(norm);
+                      let label = `${s.id}. سورة ${s.name}`;
+                      if (prog?.isCompleted) {
+                        label = `✅ ${s.id}. سورة ${s.name} (مكتمل)`;
+                      } else if (prog && prog.memorizedPages > 0) {
+                        label = `⏳ ${s.id}. سورة ${s.name} (تم حفظ ${prog.memorizedPages} من ${prog.totalPages} صفحة)`;
+                      }
                       return (
                         <option key={s.id} value={s.name}>
-                          {isMem ? `✅ ${s.id}. سورة ${s.name} (تم الحفظ)` : `${s.id}. سورة ${s.name}`}
+                          {label}
                         </option>
                       );
                     })}
@@ -598,10 +586,17 @@ export function LiveRecitationModal({
                     className="w-full p-2.5 rounded-2xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-100"
                   >
                     {QURAN_SURAHS.map((s) => {
-                      const isMem = memorizedSurahsMap.has(normalizeSurahName(s.name));
+                      const norm = normalizeSurahName(s.name);
+                      const prog = surahProgressMap.get(norm);
+                      let label = `${s.id}. سورة ${s.name}`;
+                      if (prog?.isCompleted) {
+                        label = `✅ ${s.id}. سورة ${s.name} (مكتمل)`;
+                      } else if (prog && prog.memorizedPages > 0) {
+                        label = `⏳ ${s.id}. سورة ${s.name} (تم حفظ ${prog.memorizedPages} من ${prog.totalPages} صفحة)`;
+                      }
                       return (
                         <option key={s.id} value={s.name}>
-                          {isMem ? `✅ ${s.id}. سورة ${s.name} (تم الحفظ)` : `${s.id}. سورة ${s.name}`}
+                          {label}
                         </option>
                       );
                     })}
@@ -609,17 +604,16 @@ export function LiveRecitationModal({
                 </div>
               </div>
 
-              {/* Prominent Amber Warning Box when Surah was previously memorized */}
-              {isSurahAlreadyMemorized && selectedSurahRecord && (
-                <div className="p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/40 text-amber-200 text-xs font-bold flex items-start gap-2.5 shadow-sm animate-in fade-in duration-200">
-                  <span className="text-base shrink-0">⚠️</span>
+              {/* Informative Progress Banner when Surah is in-progress (partial) */}
+              {!isSurahAlreadyMemorized && selectedSurahProgress && selectedSurahProgress.memorizedPages > 0 && (
+                <div className="p-3.5 rounded-2xl bg-teal-500/15 border border-teal-500/40 text-teal-200 text-xs font-bold flex items-start gap-2.5 shadow-sm animate-in fade-in duration-200">
+                  <span className="text-base shrink-0">⏳</span>
                   <div className="space-y-1 leading-relaxed">
                     <p>
-                      تم حفظ <strong className="text-amber-100 underline decoration-amber-400 decoration-2 font-black">سورة {selectedSurahRecord.surahName}</strong> مسبقاً بتاريخ (
-                      <span className="font-black text-amber-100">{selectedSurahRecord.formattedDate}</span>).
+                      تم حفظ <strong className="text-teal-100 font-black">{selectedSurahProgress.memorizedPages} من {selectedSurahProgress.totalPages} صفحات</strong> من سورة {selectedSurahProgress.surahName} ({selectedSurahProgress.percentage}%).
                     </p>
-                    <p className="text-[11px] text-amber-300/90 font-medium">
-                      تم قفل خيار (حفظ جديد) وتوجيه التسجيل إلى (مراجعة) لمنع تكرار احتساب الصفحات.
+                    <p className="text-[11px] text-teal-300/90 font-medium">
+                      يمكنك مواصلة تسجيل (حفظ جديد) للصفحات المتبقية لإتمام حفظ السورة كاملة.
                     </p>
                   </div>
                 </div>
