@@ -279,23 +279,27 @@ export function LogEntryDialog({
       queuePendingAction("recitation", payload);
       successHaptic();
       reset();
-      onSuccess?.({
+      const offlineLog: MemorizationLogRow = {
         id: `offline_${Date.now()}`,
-        teacher_id: "offline",
-        created_at: new Date().toISOString(),
         student_id: studentId,
+        teacher_id: "offline",
         log_type: payload.log_type,
         surah_start: payload.surah_start,
         aya_start: payload.aya_start,
         surah_end: payload.surah_end,
         aya_end: payload.aya_end,
         grade: payload.grade,
+        date: new Date().toISOString().split("T")[0],
         page_count: payload.page_count ?? null,
         notes: payload.notes || null,
         assistant_name: payload.assistant_name || null,
         surahs: payload.surahs || null,
         audio_url: audioUrl,
-      } as unknown as MemorizationLogRow);
+        rating: null,
+        deleted_at: null,
+        created_at: new Date().toISOString(),
+      };
+      onSuccess?.(offlineLog);
       onClose();
       return;
     }
@@ -313,22 +317,27 @@ export function LogEntryDialog({
           queuePendingAction("recitation", payload);
           successHaptic();
           reset();
-          onSuccess?.({
+          const offlineLog: MemorizationLogRow = {
             id: `offline_${Date.now()}`,
-            teacher_id: "offline",
-            created_at: new Date().toISOString(),
             student_id: studentId,
+            teacher_id: "offline",
             log_type: payload.log_type,
             surah_start: payload.surah_start,
             aya_start: payload.aya_start,
             surah_end: payload.surah_end,
             aya_end: payload.aya_end,
             grade: payload.grade,
+            date: new Date().toISOString().split("T")[0],
             page_count: payload.page_count ?? null,
             notes: payload.notes || null,
             assistant_name: payload.assistant_name || null,
             surahs: payload.surahs || null,
-          } as unknown as MemorizationLogRow);
+            audio_url: audioUrl,
+            rating: null,
+            deleted_at: null,
+            created_at: new Date().toISOString(),
+          };
+          onSuccess?.(offlineLog);
           onClose();
         } else {
           warningHaptic();
@@ -339,22 +348,27 @@ export function LogEntryDialog({
       queuePendingAction("recitation", payload);
       successHaptic();
       reset();
-      onSuccess?.({
+      const offlineLog: MemorizationLogRow = {
         id: `offline_${Date.now()}`,
-        teacher_id: "offline",
-        created_at: new Date().toISOString(),
         student_id: studentId,
+        teacher_id: "offline",
         log_type: payload.log_type,
         surah_start: payload.surah_start,
         aya_start: payload.aya_start,
         surah_end: payload.surah_end,
         aya_end: payload.aya_end,
         grade: payload.grade,
+        date: new Date().toISOString().split("T")[0],
         page_count: payload.page_count ?? null,
         notes: payload.notes || null,
         assistant_name: payload.assistant_name || null,
         surahs: payload.surahs || null,
-      } as unknown as MemorizationLogRow);
+        audio_url: audioUrl,
+        rating: null,
+        deleted_at: null,
+        created_at: new Date().toISOString(),
+      };
+      onSuccess?.(offlineLog);
       onClose();
     }
     setIsLoading(false);

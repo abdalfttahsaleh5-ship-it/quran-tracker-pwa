@@ -3,8 +3,7 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { memorizationLogSchema, MemorizationLogInput } from "@/lib/validations/log";
-import { MemorizationLogRow } from "@/types";
-import { Database } from "@/types/database";
+import { MemorizationLogRow, MemorizationLogInsert, MemorizationLogUpdate } from "@/types";
 import { revalidatePath } from "next/cache";
 
 export interface ActionResult<T = void> {
@@ -36,12 +35,7 @@ export async function createMemorizationLog(data: MemorizationLogInput): Promise
       };
     }
 
-    const insertPayload: Database["public"]["Tables"]["memorization_logs"]["Insert"] & {
-      assistant_name?: string | null;
-      page_count?: number | null;
-      surahs?: string[] | null;
-      audio_url?: string | null;
-    } = {
+    const insertPayload: MemorizationLogInsert = {
       student_id: validation.data.student_id,
       teacher_id: user.id,
       log_type: validation.data.log_type,
@@ -57,7 +51,8 @@ export async function createMemorizationLog(data: MemorizationLogInput): Promise
       audio_url: validation.data.audio_url || null,
     };
 
-    const { data: newLog, error } = await (supabase.from("memorization_logs") as ReturnType<typeof supabase.from>)
+    const { data: newLog, error } = await supabase
+      .from("memorization_logs")
       .insert(insertPayload)
       .select()
       .single();
@@ -73,7 +68,7 @@ export async function createMemorizationLog(data: MemorizationLogInput): Promise
     revalidatePath("/dashboard");
     return {
       success: true,
-      data: newLog as MemorizationLogRow,
+      data: newLog,
     };
   } catch (err) {
     return {
@@ -113,12 +108,7 @@ export async function updateMemorizationLog(
       };
     }
 
-    const updatePayload: Database["public"]["Tables"]["memorization_logs"]["Update"] & {
-      assistant_name?: string | null;
-      page_count?: number | null;
-      surahs?: string[] | null;
-      audio_url?: string | null;
-    } = {
+    const updatePayload: MemorizationLogUpdate = {
       log_type: validation.data.log_type,
       surah_start: validation.data.surah_start,
       aya_start: validation.data.aya_start,
@@ -132,7 +122,8 @@ export async function updateMemorizationLog(
       ...(validation.data.audio_url ? { audio_url: validation.data.audio_url } : {}),
     };
 
-    const { data: updatedLog, error } = await (supabase.from("memorization_logs") as ReturnType<typeof supabase.from>)
+    const { data: updatedLog, error } = await supabase
+      .from("memorization_logs")
       .update(updatePayload)
       .eq("id", id)
       .eq("teacher_id", user.id)
@@ -150,7 +141,7 @@ export async function updateMemorizationLog(
     revalidatePath("/dashboard");
     return {
       success: true,
-      data: updatedLog as MemorizationLogRow,
+      data: updatedLog,
     };
   } catch (err) {
     return {
@@ -199,7 +190,7 @@ export async function getStudentLogs(
 
     return {
       success: true,
-      data: (logs || []) as MemorizationLogRow[],
+      data: logs || [],
     };
   } catch (err) {
     return {

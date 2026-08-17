@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Download, Smartphone } from "lucide-react";
 import { lightHaptic, successHaptic } from "@/lib/haptics";
-import { BeforeInstallPromptEvent } from "./PWAInstallModal";
+import { BeforeInstallPromptEvent } from "@/types/pwa";
 
 export interface PWAInstallButtonProps {
   className?: string;
@@ -20,7 +20,7 @@ export function PWAInstallButton({
     // Only show if NOT standalone
     const isAppStandalone =
       window.matchMedia("(display-mode: standalone)").matches ||
-      (window.navigator as unknown as { standalone?: boolean }).standalone === true;
+      window.navigator.standalone === true;
 
     setIsStandalone(isAppStandalone);
   }, []);
@@ -29,7 +29,7 @@ export function PWAInstallButton({
 
   const handleInstallClick = async () => {
     lightHaptic();
-    const prompt = (window as unknown as { deferredPwaPrompt?: BeforeInstallPromptEvent }).deferredPwaPrompt;
+    const prompt = window.deferredPwaPrompt;
 
     if (prompt) {
       await prompt.prompt();
@@ -37,7 +37,7 @@ export function PWAInstallButton({
       if (choice.outcome === "accepted") {
         successHaptic();
       }
-      (window as unknown as { deferredPwaPrompt?: BeforeInstallPromptEvent | null }).deferredPwaPrompt = null;
+      window.deferredPwaPrompt = null;
     } else {
       window.dispatchEvent(new CustomEvent("open-pwa-install-modal"));
     }

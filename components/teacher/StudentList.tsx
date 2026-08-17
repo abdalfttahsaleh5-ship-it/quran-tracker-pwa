@@ -44,27 +44,29 @@ export function StudentList({
   const [alertMessage, setAlertMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // Realtime payload handler for instant student list & logs sync
-  const handleRealtimePayload = useCallback((payload: RealtimePayload) => {
+  const handleRealtimePayload = useCallback((payload: RealtimePayload<StudentRow & MemorizationLogRow>) => {
     const { table, eventType, new: newRecord, old: oldRecord } = payload;
     if (table === "students") {
-      if (eventType === "INSERT" && newRecord) {
-        setStudents((prev) => [newRecord as unknown as StudentRow, ...prev.filter((s) => s.id !== newRecord.id)]);
+      const studentRec = newRecord as StudentRow;
+      if (eventType === "INSERT" && studentRec) {
+        setStudents((prev) => [studentRec, ...prev.filter((s) => s.id !== studentRec.id)]);
       } else if (eventType === "DELETE" && oldRecord && oldRecord.id) {
         setStudents((prev) => prev.filter((s) => s.id !== oldRecord.id));
-      } else if (eventType === "UPDATE" && newRecord) {
+      } else if (eventType === "UPDATE" && studentRec) {
         setStudents((prev) =>
-          prev.map((s) => (s.id === newRecord.id ? (newRecord as unknown as StudentRow) : s))
+          prev.map((s) => (s.id === studentRec.id ? studentRec : s))
         );
       }
     }
     if (table === "memorization_logs") {
-      if (eventType === "INSERT" && newRecord) {
-        setLogs((prev) => [newRecord as unknown as MemorizationLogRow, ...prev.filter((l) => l.id !== newRecord.id)]);
+      const logRec = newRecord as MemorizationLogRow;
+      if (eventType === "INSERT" && logRec) {
+        setLogs((prev) => [logRec, ...prev.filter((l) => l.id !== logRec.id)]);
       } else if (eventType === "DELETE" && oldRecord && oldRecord.id) {
         setLogs((prev) => prev.filter((l) => l.id !== oldRecord.id));
-      } else if (eventType === "UPDATE" && newRecord) {
+      } else if (eventType === "UPDATE" && logRec) {
         setLogs((prev) =>
-          prev.map((l) => (l.id === newRecord.id ? (newRecord as unknown as MemorizationLogRow) : l))
+          prev.map((l) => (l.id === logRec.id ? logRec : l))
         );
       }
     }

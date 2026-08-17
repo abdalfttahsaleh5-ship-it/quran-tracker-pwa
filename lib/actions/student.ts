@@ -4,7 +4,6 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { studentSchema, StudentInput } from "@/lib/validations/student";
 import { StudentRow, StudentInsert, StudentUpdate, ParentProgressPayload, MemorizationLogRow, AttendanceRecordRow } from "@/types";
-import { Database } from "@/types/database";
 import { revalidatePath } from "next/cache";
 
 export interface ActionResult<T = void> {
@@ -48,22 +47,22 @@ export async function getStudents(): Promise<ActionResult<StudentRow[]>> {
       .eq("teacher_id", user.id);
 
     const pagesMap: Record<string, number> = {};
-    ((logs || []) as unknown as Array<{ student_id: string; page_count?: number | null }>).forEach((log) => {
+    (logs || []).forEach((log) => {
       if (log.student_id) {
         pagesMap[log.student_id] = Number(((pagesMap[log.student_id] || 0) + (log.page_count || 1)).toFixed(2));
       }
     });
 
     // Auto-patch any student missing parent_token and attach total_pages_count
-    const studentList = (students || []) as unknown as StudentRow[];
-    const safeStudents = await Promise.all(
-      studentList.map(async (student) => {
+    const safeStudents: StudentRow[] = await Promise.all(
+      (students || []).map(async (student) => {
         const totalPages = pagesMap[student.id] || 0;
         let token = student.parent_token;
         if (!token) {
           token = crypto.randomUUID();
-          await (supabase.from("students") as ReturnType<typeof supabase.from>)
-            .update({ parent_token: token } as unknown as Database["public"]["Tables"]["students"]["Update"])
+          await supabase
+            .from("students")
+            .update({ parent_token: token })
             .eq("id", student.id);
         }
         return { ...student, parent_token: token, total_pages_count: totalPages };
@@ -117,8 +116,9 @@ export async function createStudent(data: StudentInput): Promise<ActionResult<St
       parent_token: crypto.randomUUID(),
     };
 
-    const { data: newStudent, error } = await (supabase.from("students") as ReturnType<typeof supabase.from>)
-      .insert(insertPayload as unknown as Database["public"]["Tables"]["students"]["Insert"])
+    const { data: newStudent, error } = await supabase
+      .from("students")
+      .insert(insertPayload)
       .select()
       .single();
 
@@ -133,7 +133,7 @@ export async function createStudent(data: StudentInput): Promise<ActionResult<St
     revalidatePath("/dashboard");
     return {
       success: true,
-      data: newStudent as StudentRow,
+      data: newStudent,
     };
   } catch (err) {
     return {
@@ -180,8 +180,9 @@ export async function updateStudent(id: string, data: StudentInput): Promise<Act
       avatar_url: validation.data.avatar_url || null,
     };
 
-    const { data: updatedStudent, error } = await (supabase.from("students") as ReturnType<typeof supabase.from>)
-      .update(updatePayload as unknown as Database["public"]["Tables"]["students"]["Update"])
+    const { data: updatedStudent, error } = await supabase
+      .from("students")
+      .update(updatePayload)
       .eq("id", id)
       .eq("teacher_id", user.id)
       .select()
@@ -198,7 +199,7 @@ export async function updateStudent(id: string, data: StudentInput): Promise<Act
     revalidatePath("/dashboard");
     return {
       success: true,
-      data: updatedStudent as StudentRow,
+      data: updatedStudent,
     };
   } catch (err) {
     return {
@@ -272,25 +273,23 @@ export async function getStudentProgressByToken(token: string): Promise<ParentPr
       return { success: false, error: "الرابط غير صالح أو تم حذف بيانات الطالب" };
     }
 
-    const studentRow = student as unknown as StudentRow;
-
     const { data: logs } = await supabase
       .from("memorization_logs")
       .select("*")
-      .eq("student_id", studentRow.id)
+      .eq("student_id", student.id)
       .order("created_at", { ascending: false });
 
     const { data: attendance } = await supabase
       .from("attendance_records")
       .select("*")
-      .eq("student_id", studentRow.id)
+      .eq("student_id", student.id)
       .order("date", { ascending: false });
 
     return {
       success: true,
-      student: studentRow,
-      logs: (logs || []) as unknown as MemorizationLogRow[],
-      attendance: (attendance || []) as unknown as AttendanceRecordRow[],
+      student,
+      logs: logs || [],
+      attendance: attendance || [],
     };
   } catch (err) {
     return {
@@ -330,18 +329,16 @@ export async function findStudentByPhoneOrCode(input: string): Promise<ParentSea
       };
     }
 
-    const matches = students as unknown as Array<{ id: string; full_name: string; parent_token: string }>;
-
-    if (matches.length === 1) {
+    if (students.length === 1) {
       return {
         success: true,
-        token: matches[0].parent_token,
+        token: students[0].parent_token,
       };
     }
 
     return {
       success: true,
-      students: matches,
+      students,
     };
   } catch (err) {
     return {
@@ -382,9 +379,9 @@ export async function getTeacherReportData(): Promise<TeacherReportDataResult> {
 
     return {
       success: true,
-      students: (studentsRes.data || []) as unknown as StudentRow[],
-      logs: (logsRes.data || []) as unknown as MemorizationLogRow[],
-      attendance: (attendanceRes.data || []) as unknown as AttendanceRecordRow[],
+      students: studentsRes.data || [],
+      logs: logsRes.data || [],
+      attendance: attendanceRes.data || [],
     };
   } catch (err) {
     return {

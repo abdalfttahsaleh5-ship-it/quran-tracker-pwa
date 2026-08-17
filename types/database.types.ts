@@ -6,7 +6,7 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
-export interface Database {
+export type Database = {
   public: {
     Tables: {
       students: {
@@ -276,12 +276,7 @@ export interface Database {
       [_ in never]: never;
     };
     Functions: {
-      get_student_progress_by_token: {
-        Args: {
-          p_token: string;
-        };
-        Returns: Json;
-      };
+      [_ in never]: never;
     };
     Enums: {
       attendance_status_enum: "حاضر" | "غائب" | "متأخر" | "لم يرصد" | "مستأذن";
@@ -292,7 +287,7 @@ export interface Database {
       [_ in never]: never;
     };
   };
-}
+};
 
 export type LogTypeEnum = Database["public"]["Enums"]["log_type_enum"];
 export type EvaluationGradeEnum = Database["public"]["Enums"]["evaluation_grade_enum"];

@@ -6,11 +6,11 @@ import { createClient } from "@/lib/supabase/client";
 import { RealtimeChannel, RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 import { revalidateAllPaths } from "@/lib/actions/revalidate";
 
-export type RealtimePayload = RealtimePostgresChangesPayload<Record<string, unknown>>;
+export type RealtimePayload<T extends { [key: string]: any } = Record<string, any>> = RealtimePostgresChangesPayload<T>;
 
 interface RealtimeSyncOptions {
   tables?: Array<"students" | "memorization_logs" | "attendance_records">;
-  onPayload?: (payload: RealtimePayload) => void;
+  onPayload?: (payload: RealtimePayload<any>) => void;
   enableToast?: boolean;
 }
 

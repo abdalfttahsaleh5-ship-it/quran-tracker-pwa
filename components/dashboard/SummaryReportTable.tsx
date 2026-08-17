@@ -41,11 +41,11 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
   }, [attendance]);
 
   // Realtime Payload Handler for immediate synchronization
-  const handleRealtimePayload = useCallback((payload: RealtimePayload) => {
+  const handleRealtimePayload = useCallback((payload: RealtimePayload<AttendanceRecordRow>) => {
     const { table, eventType, new: newRecord, old: oldRecord } = payload;
     if (table === "attendance_records") {
       if ((eventType === "INSERT" || eventType === "UPDATE") && newRecord) {
-        const rec = newRecord as unknown as AttendanceRecordRow;
+        const rec = newRecord;
         setLocalAttendance((prev) => {
           const exists = prev.some(
             (a) => a.id === rec.id || (a.student_id === rec.student_id && a.date === rec.date)

@@ -124,31 +124,33 @@ export function StudentDetailClient({
 
   // Realtime Payload Handler for Instant Client State Update
   const handleRealtimePayload = useCallback(
-    (payload: RealtimePayload) => {
+    (payload: RealtimePayload<MemorizationLogRow & AttendanceRecordRow>) => {
       const { table, eventType, new: newRecord, old: oldRecord } = payload;
 
       if (table === "memorization_logs") {
-        if (eventType === "INSERT" && newRecord && newRecord.student_id === student.id) {
-          setLogs((prev) => [newRecord as unknown as MemorizationLogRow, ...prev.filter((l) => l.id !== newRecord.id)]);
+        const logRec = newRecord as MemorizationLogRow;
+        if (eventType === "INSERT" && logRec && logRec.student_id === student.id) {
+          setLogs((prev) => [logRec, ...prev.filter((l) => l.id !== logRec.id)]);
         } else if (eventType === "DELETE" && oldRecord && oldRecord.id) {
           setLogs((prev) => prev.filter((l) => l.id !== oldRecord.id));
-        } else if (eventType === "UPDATE" && newRecord && newRecord.student_id === student.id) {
+        } else if (eventType === "UPDATE" && logRec && logRec.student_id === student.id) {
           setLogs((prev) =>
-            prev.map((l) => (l.id === newRecord.id ? (newRecord as unknown as MemorizationLogRow) : l))
+            prev.map((l) => (l.id === logRec.id ? logRec : l))
           );
         }
       }
 
       if (table === "attendance_records") {
-        if ((eventType === "INSERT" || eventType === "UPDATE") && newRecord && newRecord.student_id === student.id) {
+        const attRec = newRecord as AttendanceRecordRow;
+        if ((eventType === "INSERT" || eventType === "UPDATE") && attRec && attRec.student_id === student.id) {
           setAttendance((prev) => {
-            const exists = prev.some((a) => a.id === newRecord.id || a.date === newRecord.date);
+            const exists = prev.some((a) => a.id === attRec.id || a.date === attRec.date);
             if (exists) {
               return prev.map((a) =>
-                a.id === newRecord.id || a.date === newRecord.date ? (newRecord as unknown as AttendanceRecordRow) : a
+                a.id === attRec.id || a.date === attRec.date ? attRec : a
               );
             }
-            return [newRecord as unknown as AttendanceRecordRow, ...prev];
+            return [attRec, ...prev];
           });
         } else if (eventType === "DELETE" && oldRecord && oldRecord.id) {
           setAttendance((prev) => prev.filter((a) => a.id !== oldRecord.id));

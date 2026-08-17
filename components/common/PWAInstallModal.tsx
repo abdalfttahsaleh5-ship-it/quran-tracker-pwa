@@ -5,10 +5,7 @@ import { BookOpen, X, Download, CheckCircle2, Share2, PlusSquare } from "lucide-
 import { Button } from "@/components/ui/button";
 import { lightHaptic, successHaptic } from "@/lib/haptics";
 
-export interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-}
+import { BeforeInstallPromptEvent } from "@/types/pwa";
 
 const PWA_DISMISS_SESSION_KEY = "quran_tracker_pwa_install_dismissed";
 
@@ -24,7 +21,7 @@ export function PWAInstallModal() {
     // Check if running as installed standalone PWA
     const isAppStandalone =
       window.matchMedia("(display-mode: standalone)").matches ||
-      (window.navigator as unknown as { standalone?: boolean }).standalone === true;
+      window.navigator.standalone === true;
 
     setIsStandalone(isAppStandalone);
     if (isAppStandalone) return;
@@ -62,7 +59,7 @@ export function PWAInstallModal() {
       e.preventDefault();
       const promptEvent = e as BeforeInstallPromptEvent;
       setDeferredPrompt(promptEvent);
-      (window as unknown as { deferredPwaPrompt?: BeforeInstallPromptEvent }).deferredPwaPrompt = promptEvent;
+      window.deferredPwaPrompt = promptEvent;
 
       if (!isDismissed) {
         setTimeout(() => {
@@ -83,9 +80,7 @@ export function PWAInstallModal() {
     lightHaptic();
     const prompt =
       deferredPrompt ||
-      (typeof window !== "undefined"
-        ? (window as unknown as { deferredPwaPrompt?: BeforeInstallPromptEvent }).deferredPwaPrompt
-        : null);
+      (typeof window !== "undefined" ? window.deferredPwaPrompt : null);
 
     if (prompt) {
       try {
@@ -104,7 +99,7 @@ export function PWAInstallModal() {
         console.error("Install prompt error:", err);
       }
       setDeferredPrompt(null);
-      (window as unknown as { deferredPwaPrompt?: BeforeInstallPromptEvent | null }).deferredPwaPrompt = null;
+      window.deferredPwaPrompt = null;
     } else if (isIOS) {
       // Graceful fallback toggle for iOS
       setShowIOSHint(true);
