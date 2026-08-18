@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { ParentProgressPayload } from "@/types";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { validateAndFormatJordanianPhone } from "@/lib/phoneUtils";
 
 export interface ParentSearchResult {
   success: boolean;
@@ -13,7 +14,8 @@ export interface ParentSearchResult {
 
 /**
  * Secure student lookup by parent phone number with sliding window rate limiting,
- * bot timing mitigation delay, phone sanitization, and uniform error handling.
+ * bot timing mitigation delay, strict Jordanian phone normalization, safe parameterized .in() query,
+ * and uniform error handling.
  */
 export async function findStudentByPhoneOrCode(input: string): Promise<ParentSearchResult> {
   // 1. IP-based sliding window rate-limiting check (5 attempts / 15 minutes)
@@ -25,39 +27,26 @@ export async function findStudentByPhoneOrCode(input: string): Promise<ParentSea
     };
   }
 
-  // 2. Enforce intentional delay to thwart high-speed enumeration and brute-force bots
+  // 2. Enforce intentional delay to thwart high-speed automated enumeration bots
   await new Promise((resolve) => setTimeout(resolve, 600));
 
-  // 3. Normalize and sanitize incoming phone string
-  if (!input || typeof input !== "string" || input.trim() === "") {
+  // 3. Pre-query validation: Strict Jordanian phone format check
+  const phoneValidation = validateAndFormatJordanianPhone(input);
+  if (!phoneValidation.isValid) {
     return {
       success: false,
-      error: "يرجى إدخال رقم الهاتف المسجل",
+      error: phoneValidation.error || "يرجى إدخال رقم هاتف أردني صحيح (مثال: 0791234567 أو +962791234567)",
     };
   }
 
-  // Convert Eastern Arabic numerals (٠-٩) to Western (0-9) and strip non-digits
-  const westernized = input.replace(/[٠-٩]/g, (d) => "٠١٢٣٤٥٦٧٨٩".indexOf(d).toString());
-  const cleanDigits = westernized.replace(/\D/g, "");
-
-  // Enforce minimum length of 9 digits
-  if (cleanDigits.length < 9) {
-    return {
-      success: false,
-      error: "رقم الهاتف غير صحيح أو غير مسجل في كشوفات الحلقة",
-    };
-  }
-
-  // 4. Database query and uniform generic response handling
+  // 4. Safe parameterized query using .in() to eliminate PostgREST filter injection
   try {
     const supabase = createClient();
-    const last9 = cleanDigits.slice(-9);
 
-    // Query students matching full clean digits or last 9 digits suffix
     const { data: students, error } = await supabase
       .from("students")
       .select("id, full_name, parent_token, parent_phone")
-      .or(`parent_phone.eq.${cleanDigits},parent_phone.ilike.%${last9}%`);
+      .in("parent_phone", phoneValidation.variations);
 
     if (error || !students || students.length === 0) {
       return {

@@ -3,6 +3,7 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { studentSchema, StudentInput } from "@/lib/validations/student";
+import { validateAndFormatJordanianPhone } from "@/lib/phoneUtils";
 import { StudentRow, StudentInsert, StudentUpdate, ParentProgressPayload, MemorizationLogRow, AttendanceRecordRow } from "@/types";
 import { revalidatePath } from "next/cache";
 
@@ -85,6 +86,19 @@ export async function createStudent(data: StudentInput): Promise<ActionResult<St
     };
   }
 
+  // Normalize and validate parent phone to standard Jordanian format (07XXXXXXXX)
+  let normalizedPhone: string | null = null;
+  if (validation.data.parent_phone && validation.data.parent_phone.trim() !== "") {
+    const phoneRes = validateAndFormatJordanianPhone(validation.data.parent_phone);
+    if (!phoneRes.isValid) {
+      return {
+        success: false,
+        error: phoneRes.error || "رقم هاتف ولي الأمر غير صحيح",
+      };
+    }
+    normalizedPhone = phoneRes.local || null;
+  }
+
   try {
     const supabase = createClient();
     const {
@@ -102,7 +116,7 @@ export async function createStudent(data: StudentInput): Promise<ActionResult<St
     const insertPayload: StudentInsert = {
       teacher_id: user.id,
       full_name: validation.data.full_name,
-      parent_phone: validation.data.parent_phone || null,
+      parent_phone: normalizedPhone,
       academic_grade: validation.data.academic_grade || null,
       school_name: validation.data.school_name || null,
       address: validation.data.address || null,
@@ -151,6 +165,19 @@ export async function updateStudent(id: string, data: StudentInput): Promise<Act
     };
   }
 
+  // Normalize and validate parent phone to standard Jordanian format (07XXXXXXXX)
+  let normalizedPhone: string | null = null;
+  if (validation.data.parent_phone && validation.data.parent_phone.trim() !== "") {
+    const phoneRes = validateAndFormatJordanianPhone(validation.data.parent_phone);
+    if (!phoneRes.isValid) {
+      return {
+        success: false,
+        error: phoneRes.error || "رقم هاتف ولي الأمر غير صحيح",
+      };
+    }
+    normalizedPhone = phoneRes.local || null;
+  }
+
   try {
     const supabase = createClient();
     const {
@@ -167,7 +194,7 @@ export async function updateStudent(id: string, data: StudentInput): Promise<Act
 
     const updatePayload: StudentUpdate = {
       full_name: validation.data.full_name,
-      parent_phone: validation.data.parent_phone || null,
+      parent_phone: normalizedPhone,
       academic_grade: validation.data.academic_grade || null,
       school_name: validation.data.school_name || null,
       address: validation.data.address || null,

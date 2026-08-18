@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { validateAndFormatJordanianPhone } from "@/lib/phoneUtils";
 
 export const ACADEMIC_GRADES = [
   "الأول الابتدائي",
@@ -33,7 +34,13 @@ export const studentSchema = z.object({
     .optional(),
   parent_phone: z
     .string()
-    .regex(/^(\+?|00)[0-9]{8,15}$/, { message: "رقم الهاتف غير صحيح (مثال: 0791234567)" })
+    .refine(
+      (val) => {
+        if (!val || val.trim() === "") return true;
+        return validateAndFormatJordanianPhone(val).isValid;
+      },
+      { message: "رقم الهاتف غير صحيح (مثال: 0791234567 أو +962791234567)" }
+    )
     .or(z.literal(""))
     .nullable()
     .optional(),

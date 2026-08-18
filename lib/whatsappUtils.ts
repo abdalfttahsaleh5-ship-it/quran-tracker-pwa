@@ -1,4 +1,5 @@
 import { StudentRow } from "@/types";
+import { validateAndFormatJordanianPhone } from "@/lib/phoneUtils";
 
 /**
  * Normalizes phone number into international format suitable for wa.me links.
@@ -6,13 +7,16 @@ import { StudentRow } from "@/types";
 export function cleanWhatsAppPhoneNumber(phone?: string | null): string {
   if (!phone) return "";
 
-  // Convert eastern Arabic numerals to western numerals
-  const westernized = phone.replace(/[٠-٩]/g, (d) => "٠١٢٣٤٥٦٧٨٩".indexOf(d).toString());
+  // Check if it's a valid Jordanian mobile number
+  const jordanianRes = validateAndFormatJordanianPhone(phone);
+  if (jordanianRes.isValid && jordanianRes.cleanIntl) {
+    return jordanianRes.cleanIntl;
+  }
 
-  // Remove any non-numeric characters
+  // Fallback normalization for non-standard or other international numbers
+  const westernized = phone.replace(/[٠-٩]/g, (d) => "٠١٢٣٤٥٦٧٨٩".indexOf(d).toString());
   let digitsOnly = westernized.replace(/\D/g, "");
 
-  // Remove leading 00
   if (digitsOnly.startsWith("00")) {
     digitsOnly = digitsOnly.substring(2);
   }
