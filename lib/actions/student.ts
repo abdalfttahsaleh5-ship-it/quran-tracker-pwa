@@ -113,11 +113,46 @@ export async function createStudent(data: StudentInput): Promise<ActionResult<St
       };
     }
 
-    const activeGroupId = await getActiveGroupId();
+    const groupResult = await getActiveGroupId();
+    const resultObj = groupResult as unknown as {
+      status: "ok" | "no_group" | "multiple_groups" | "unauthenticated" | "error";
+      groupId?: string;
+      error?: string;
+    };
+
+    if (resultObj.status === "unauthenticated") {
+      return {
+        success: false,
+        error: "غير مصرح لك بإضافة طالب، يرجى تسجيل الدخول",
+      };
+    }
+
+    if (resultObj.status === "no_group") {
+      return {
+        success: false,
+        error: "لا تنتمي إلى أي حلقة قرآنية حالياً. يرجى إنشاء أو الانضمام إلى حلقة أولاً قبل إضافة الطلاب.",
+      };
+    }
+
+    if (resultObj.status === "multiple_groups") {
+      return {
+        success: false,
+        error: "المستخدم ينتمي إلى أكثر من حلقة. يرجى تحديد الحلقة النشطة قبل إضافة الطالب.",
+      };
+    }
+
+    if (resultObj.status !== "ok" || !resultObj.groupId) {
+      return {
+        success: false,
+        error: resultObj.error || "تعذر تحديد الحلقة النشطة لإضافة الطالب إليها. يرجى التأكد من اختيار حلقة صحيحة.",
+      };
+    }
+
+    const assignedGroupId: string = resultObj.groupId;
 
     const insertPayload: StudentInsert = {
       teacher_id: user.id,
-      group_id: activeGroupId || null,
+      group_id: assignedGroupId,
       full_name: validation.data.full_name,
       parent_phone: normalizedPhone,
       academic_grade: validation.data.academic_grade || null,
