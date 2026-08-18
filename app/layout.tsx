@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Tajawal } from "next/font/google";
 import { OfflineBanner } from "@/components/common/OfflineBanner";
-import { PWAInstallModal } from "@/components/common/PWAInstallModal";
+import { PwaInstallPrompt } from "@/components/common/PwaInstallPrompt";
 import { PWAProvider } from "@/components/common/PWAProvider";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import "./globals.css";
@@ -52,7 +52,7 @@ export default function RootLayout({
         <ErrorBoundary>
           <main className="min-h-screen flex flex-col">{children}</main>
         </ErrorBoundary>
-        <PWAInstallModal />
+        <PwaInstallPrompt />
       </body>
     </html>
   );

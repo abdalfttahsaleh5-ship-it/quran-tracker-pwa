@@ -1,78 +1,222 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Download, X, BookOpen } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { BookOpen, X, Download, CheckCircle2, Share2, PlusSquare, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { lightHaptic, successHaptic } from "@/lib/haptics";
+import { BeforeInstallPromptEvent } from "@/types/pwa";
 
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-}
+const PWA_DISMISS_SESSION_KEY = "quran_tracker_pwa_install_dismissed";
 
+/**
+ * Unified PWA Installation Modal & Prompt.
+ * Supports Android/Chrome native prompt and iOS Safari "Add to Home Screen" instructions.
+ */
 export function PwaInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isVisible, setIsVisible] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
+  const [installedSuccess, setInstalledSuccess] = useState(false);
 
   useEffect(() => {
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-      setIsVisible(true);
-    };
+    // Check if running as installed standalone PWA
+    const isAppStandalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      window.navigator.standalone === true;
 
-    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    setIsStandalone(isAppStandalone);
+    if (isAppStandalone) return;
+
+    // Detect iOS
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
+    setIsIOS(isIosDevice);
+
+    // Initial check for deferredPrompt
+    if (window.deferredPwaPrompt) {
+      setDeferredPrompt(window.deferredPwaPrompt);
+    }
+
+    // Listener for prompt ready from PWAProvider
+    const handlePromptReady = () => {
+      if (window.deferredPwaPrompt) {
+        setDeferredPrompt(window.deferredPwaPrompt);
+      }
+    };
+    window.addEventListener("pwa-prompt-ready", handlePromptReady);
+
+    // Global event listener to manually open this modal from Header or any button
+    const handleManualOpen = () => {
+      setIsOpen(true);
+    };
+    window.addEventListener("open-pwa-install-modal", handleManualOpen);
+
+    // Auto-display modal once per session after delay if not dismissed
+    const isDismissed = sessionStorage.getItem(PWA_DISMISS_SESSION_KEY);
+    if (!isDismissed) {
+      const timer = setTimeout(() => {
+        setIsOpen(true);
+      }, 3000);
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener("pwa-prompt-ready", handlePromptReady);
+        window.removeEventListener("open-pwa-install-modal", handleManualOpen);
+      };
+    }
 
     return () => {
-      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("pwa-prompt-ready", handlePromptReady);
+      window.removeEventListener("open-pwa-install-modal", handleManualOpen);
     };
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const choiceResult = await deferredPrompt.userChoice;
-    if (choiceResult.outcome === "accepted") {
-      setIsVisible(false);
+    lightHaptic();
+    const prompt =
+      deferredPrompt ||
+      (typeof window !== "undefined" ? window.deferredPwaPrompt : null);
+
+    if (prompt) {
+      try {
+        await prompt.prompt();
+        const choice = await prompt.userChoice;
+
+        if (choice.outcome === "accepted") {
+          successHaptic();
+          setInstalledSuccess(true);
+          setTimeout(() => {
+            setIsOpen(false);
+            setInstalledSuccess(false);
+          }, 2000);
+        }
+      } catch {
+        // Fallback gracefully
+      }
+      window.deferredPwaPrompt = null;
+      setDeferredPrompt(null);
     }
-    setDeferredPrompt(null);
   };
 
-  const handleDismiss = () => {
-    setIsVisible(false);
+  const handleClose = () => {
+    lightHaptic();
+    setIsOpen(false);
+    sessionStorage.setItem(PWA_DISMISS_SESSION_KEY, "true");
   };
 
-  if (!isVisible) return null;
+  if (isStandalone || !isOpen) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:max-w-md z-40 bg-gradient-to-r from-teal-900 to-teal-800 text-white p-4 rounded-2xl shadow-2xl border border-teal-600 flex items-center justify-between gap-3 animate-in slide-in-from-bottom duration-300">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
-          <BookOpen className="w-6 h-6 text-teal-200" />
-        </div>
-        <div>
-          <h4 className="text-sm font-bold">تثبيت تطبيق متابع الحفظ</h4>
-          <p className="text-xs text-teal-200">أضف التطبيق للشاشة الرئيسية للوصول السريع</p>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-1 shrink-0">
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={handleInstallClick}
-          className="gap-1 text-xs font-bold shadow-sm"
-        >
-          <Download className="w-3.5 h-3.5" />
-          <span>تثبيت</span>
-        </Button>
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-5 animate-in zoom-in-95 duration-200"
+      >
+        {/* Close Button */}
         <button
-          onClick={handleDismiss}
-          className="p-1 text-teal-200 hover:text-white rounded-lg"
+          type="button"
+          onClick={handleClose}
+          className="absolute top-4 left-4 p-2 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
           title="إغلاق"
         >
-          <X className="w-4 h-4" />
+          <X className="w-5 h-5" />
         </button>
+
+        {/* Top App Identity */}
+        <div className="flex items-center gap-3.5 pr-1">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-800 to-teal-700 text-white flex items-center justify-center font-bold shadow-lg shrink-0">
+            <BookOpen className="w-7 h-7 text-amber-300" />
+          </div>
+          <div>
+            <h3 className="text-lg font-black text-slate-900 dark:text-slate-50 leading-tight">
+              تثبيت تطبيق متابع الحفظ
+            </h3>
+            <p className="text-xs text-slate-500 font-medium mt-0.5">
+              مسجد حذيفة بن اليمان - حلقة القرآن الكريم
+            </p>
+          </div>
+        </div>
+
+        {/* Success State */}
+        {installedSuccess ? (
+          <div className="p-4 bg-emerald-50 dark:bg-emerald-950/50 rounded-2xl border border-emerald-200 dark:border-emerald-800 text-center space-y-2">
+            <CheckCircle2 className="w-10 h-10 text-emerald-600 dark:text-emerald-400 mx-auto animate-bounce" />
+            <p className="font-bold text-sm text-emerald-900 dark:text-emerald-200">
+              تم تثبيت التطبيق بنجاح!
+            </p>
+            <p className="text-xs text-emerald-700 dark:text-emerald-300">
+              يمكنك الآن فتح التطبيق مباشرة من شاشتك الرئيسية.
+            </p>
+          </div>
+        ) : isIOS ? (
+          /* iOS Step-by-Step Instructions */
+          <div className="space-y-4 pt-1">
+            <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 rounded-2xl border border-amber-200 dark:border-amber-900/50 text-xs text-amber-900 dark:text-amber-200 leading-relaxed font-medium">
+              لتثبيت التطبيق على جهاز iPhone أو iPad، يرجى اتباع الخطوتين التاليتين في متصفح Safari:
+            </div>
+
+            <div className="space-y-2.5 text-xs text-slate-700 dark:text-slate-200">
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+                <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-black shrink-0">
+                  <Share2 className="w-4 h-4" />
+                </div>
+                <span>
+                  1. اضغط على زر <strong>المشاركة (Share)</strong> في أسفل شريط المتصفح.
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+                <div className="w-8 h-8 rounded-lg bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300 flex items-center justify-center font-black shrink-0">
+                  <PlusSquare className="w-4 h-4" />
+                </div>
+                <span>
+                  2. مرر للأسفل واختر <strong>إضافة إلى الشاشة الرئيسية (Add to Home Screen)</strong>.
+                </span>
+              </div>
+            </div>
+
+            <Button
+              onClick={handleClose}
+              className="w-full py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl shadow-md text-xs"
+            >
+              حسناً، فهمت ذلك 👍
+            </Button>
+          </div>
+        ) : (
+          /* Android / Chrome / Desktop 1-Click Install */
+          <div className="space-y-4 pt-1">
+            <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-2xl border border-emerald-200 dark:border-emerald-800/60 text-xs text-emerald-900 dark:text-emerald-200 space-y-1">
+              <p className="font-bold">✨ مميزات التثبيت:</p>
+              <ul className="list-disc list-inside text-[11px] space-y-0.5 text-emerald-800 dark:text-emerald-300">
+                <li>العمل دون اتصال بالإنترنت وحفظ السجلات محلياً</li>
+                <li>تصفح سريع جداً بدون شريط المتصفح</li>
+                <li>وصول مباشر من الشاشة الرئيسية بلمسة واحدة</li>
+              </ul>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                onClick={handleInstallClick}
+                className="flex-1 py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-black rounded-xl shadow-md text-xs gap-2"
+              >
+                <Download className="w-4 h-4 text-amber-300" />
+                <span>تثبيت التطبيق الآن 📲</span>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleClose}
+                className="py-3 px-4 rounded-xl text-xs font-bold text-slate-500"
+              >
+                لاحقاً
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
+// Backward compatibility alias
+export const PWAInstallModal = PwaInstallPrompt;
