@@ -2,20 +2,17 @@
 
 import { useState, useMemo } from "react";
 import dynamic from "next/dynamic";
-import { User, Phone, Copy, Check, Edit3, Trash2, ExternalLink, BookOpen, MessageSquare, AlertTriangle, Award, Sparkles, Zap } from "lucide-react";
+import { User, Phone, Copy, Check, Edit3, Trash2, ExternalLink, BookOpen, MessageSquare, AlertTriangle, Zap } from "lucide-react";
 import { StudentRow, AttendanceRecordRow, MemorizationLogRow } from "@/types";
 import { AttendanceAlert } from "@/lib/attendanceAlerts";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { lightHaptic, successHaptic } from "@/lib/haptics";
+import { generateWhatsAppShareUrl } from "@/lib/whatsappUtils";
 import Link from "next/link";
 
 const QuickRecitationSheet = dynamic(
   () => import("./QuickRecitationSheet").then((mod) => mod.QuickRecitationSheet),
-  { ssr: false }
-);
-const ShareAchievementModal = dynamic(
-  () => import("./ShareAchievementModal").then((mod) => mod.ShareAchievementModal),
   { ssr: false }
 );
 
@@ -32,7 +29,6 @@ interface StudentCardProps {
 export function StudentCard({ student, logs, attendance, alert, weeklyTopStudentId, onEdit, onDelete }: StudentCardProps) {
   const [copied, setCopied] = useState(false);
   const [imgError, setImgError] = useState(false);
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isQuickRecitationOpen, setIsQuickRecitationOpen] = useState(false);
 
   // Use pre-aggregated completed pages directly from student view
@@ -53,6 +49,21 @@ export function StudentCard({ student, logs, attendance, alert, weeklyTopStudent
     return sorted[0]?.surah_end || sorted[0]?.surah_start || null;
   }, [logs, student.id]);
 
+  // Determine attendance rate for WhatsApp report
+  const monthlyAttendanceRate = useMemo(() => {
+    if (!attendance || attendance.length === 0) return 100;
+    const studentAttendance = attendance.filter((a) => a.student_id === student.id);
+    if (studentAttendance.length === 0) return 100;
+    const presentCount = studentAttendance.filter(
+      (a) =>
+        a.status === "حاضر" ||
+        a.status === "متأخر" ||
+        (a.status as string) === "present" ||
+        (a.status as string) === "late"
+    ).length;
+    return Math.round((presentCount / studentAttendance.length) * 100);
+  }, [attendance, student.id]);
+
   const handleCopyParentLink = async () => {
     lightHaptic();
     const parentUrl = `${window.location.origin}/parent/${student.parent_token}`;
@@ -72,6 +83,13 @@ export function StudentCard({ student, logs, attendance, alert, weeklyTopStudent
       successHaptic();
       setTimeout(() => setCopied(false), 2000);
     }
+  };
+
+  const handleDirectWhatsApp = () => {
+    lightHaptic();
+    successHaptic();
+    const url = generateWhatsAppShareUrl(student, totalCompletedPages, monthlyAttendanceRate, latestSurah);
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -156,20 +174,17 @@ export function StudentCard({ student, logs, attendance, alert, weeklyTopStudent
             </Button>
           </Link>
 
-          {/* WhatsApp & Parent Link Actions Grid */}
+          {/* WhatsApp 1-Click & Parent Link Actions Grid */}
           <div className="grid grid-cols-2 gap-2 w-full">
-            {/* Share Achievement Modal */}
+            {/* Direct WhatsApp Action (1-Click) */}
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                lightHaptic();
-                setIsShareModalOpen(true);
-              }}
-              className="gap-1.5 font-bold text-xs bg-amber-50/60 dark:bg-amber-950/20 text-amber-900 dark:text-amber-300 border-amber-200 dark:border-amber-900/50 hover:bg-amber-100 transition-all truncate"
+              onClick={handleDirectWhatsApp}
+              className="gap-1.5 font-bold text-xs bg-emerald-50/60 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/50 hover:bg-emerald-100 transition-all truncate"
             >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-              <span className="truncate">تهنئة واتساب 🌟</span>
+              <MessageSquare className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span className="truncate">📱 واتساب (1-Click)</span>
             </Button>
 
             {/* Copy Parent Link Button */}
@@ -235,16 +250,6 @@ export function StudentCard({ student, logs, attendance, alert, weeklyTopStudent
         studentId={student.id}
         studentName={student.full_name}
         latestSurah={latestSurah}
-      />
-
-      {/* Share Achievement Dialog */}
-      <ShareAchievementModal
-        isOpen={isShareModalOpen}
-        onClose={() => setIsShareModalOpen(false)}
-        student={student}
-        logs={logs}
-        attendance={attendance}
-        weeklyTopStudentId={weeklyTopStudentId}
       />
     </>
   );
