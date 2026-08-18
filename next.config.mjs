@@ -116,6 +116,17 @@ const withPWA = withPWAInit({
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+  compress: true,
+  poweredByHeader: false,
+  experimental: {
+    optimizePackageImports: [
+      "lucide-react",
+      "canvas-confetti",
+      "date-fns",
+      "@hookform/resolvers",
+      "zod",
+    ],
+  },
   images: {
     remotePatterns: [
       {

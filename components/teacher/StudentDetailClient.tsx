@@ -33,7 +33,6 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Button } from "@/components/ui/button";
 import { useRealtimeSync, RealtimePayload } from "@/lib/hooks/useRealtimeSync";
 import { lightHaptic, successHaptic } from "@/lib/haptics";
-import { ShareAchievementModal } from "./ShareAchievementModal";
 import { AudioPlayer } from "@/components/common/AudioPlayer";
 import { RecitationLogCard } from "./RecitationLogCard";
 import {
@@ -43,6 +42,7 @@ import {
   JuzProgressRecord,
 } from "@/lib/quranMetadata";
 
+const ShareAchievementModal = dynamic(() => import("./ShareAchievementModal").then((mod) => mod.ShareAchievementModal), { ssr: false });
 const LogEntryDialog = dynamic(() => import("./LogEntryDialog").then((mod) => mod.LogEntryDialog), { ssr: false });
 const AttendanceDialog = dynamic(() => import("./AttendanceDialog").then((mod) => mod.AttendanceDialog), { ssr: false });
 
