@@ -6,7 +6,9 @@ import { Card, CardTitle, CardDescription, CardContent } from "@/components/ui/c
 import { ParentProgressPayload } from "@/types";
 import { ParentPortalClient } from "@/components/parent/ParentPortalClient";
 
+export const dynamic = "force-dynamic";
 export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 const getStudentProgressByTokenCached = cache(getStudentProgressByToken);
 
@@ -68,7 +70,10 @@ export default async function ParentPortalPage({ params }: ParentPortalPageProps
   const payload: ParentProgressPayload = await getStudentProgressByTokenCached(token);
 
   if (!payload || !payload.success || !payload.student) {
-    return renderErrorCard(payload?.error || "الرابط غير صالح أو تم حذف بيانات الطالب");
+    return renderErrorCard(
+      payload?.error || "الرابط غير صالح أو تم حذف بيانات الطالب",
+      payload?.errorCode
+    );
   }
 
   const { student, logs = [], attendance = [] } = payload;
@@ -81,7 +86,8 @@ export default async function ParentPortalPage({ params }: ParentPortalPageProps
   );
 }
 
-function renderErrorCard(message: string) {
+function renderErrorCard(message: string, errorCode?: string) {
+  const isDbError = errorCode === "DATABASE_QUERY_ERROR";
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4">
       <meta name="referrer" content="strict-origin-when-cross-origin" />
@@ -91,7 +97,7 @@ function renderErrorCard(message: string) {
             <AlertCircle className="w-8 h-8" />
           </div>
           <CardTitle className="text-xl font-bold text-slate-900 dark:text-slate-50">
-            الرابط غير صالح أو غير موجود
+            {isDbError ? "تعذر تحميل البيانات" : "الرابط غير صالح أو غير موجود"}
           </CardTitle>
           <CardDescription className="text-slate-500">
             {message || "يرجى التأكد من الحصول على رابط المتابعة الصحيح الخاص بابنكم من معلم الحلقة"}

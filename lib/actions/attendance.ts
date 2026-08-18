@@ -98,8 +98,7 @@ export async function deleteAttendance(
       .from("attendance_records")
       .delete()
       .eq("student_id", studentId)
-      .eq("date", date)
-      .eq("teacher_id", user.id);
+      .eq("date", date);
 
     if (error) {
       return {
@@ -145,8 +144,7 @@ export async function deleteAttendanceById(
     const { error } = await supabase
       .from("attendance_records")
       .delete()
-      .eq("id", recordId)
-      .eq("teacher_id", user.id);
+      .eq("id", recordId);
 
     if (error) {
       return {
@@ -246,7 +244,6 @@ export async function getStudentAttendance(
       .from("attendance_records")
       .select("*")
       .eq("student_id", studentId)
-      .eq("teacher_id", user.id)
       .order("date", { ascending: false })
       .limit(limit);
 
@@ -291,7 +288,6 @@ export async function getDailyAttendanceOverview(
     const { data: records, error } = await supabase
       .from("attendance_records")
       .select("*")
-      .eq("teacher_id", user.id)
       .eq("date", targetDate);
 
     if (error) {

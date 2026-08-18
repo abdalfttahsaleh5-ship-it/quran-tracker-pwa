@@ -38,6 +38,7 @@ export function ParentPortalClient({ student, logs, attendance }: ParentPortalCl
   const [showAllProgress, setShowAllProgress] = useState(false);
   const [viewMode, setViewMode] = useState<"juz" | "surah">("juz");
   const [statusFilter, setStatusFilter] = useState<"all" | "in_progress" | "completed">("all");
+  const [imgError, setImgError] = useState(false);
 
   const toggleJuzExpand = (juzNumber: number) => {
     setExpandedJuzId((prev) => (prev === juzNumber ? null : juzNumber));
@@ -127,14 +128,34 @@ export function ParentPortalClient({ student, logs, attendance }: ParentPortalCl
             {/* Centered/Balanced Hero Layout */}
             <div className="flex flex-col sm:flex-row items-center gap-5 sm:gap-6 text-center sm:text-right">
               {/* Significantly Enlarged Student Profile Photo */}
-              <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl bg-white/10 backdrop-blur-md text-amber-300 flex items-center justify-center font-black text-3xl sm:text-4xl shadow-xl shrink-0 overflow-hidden border-2 border-white/20">
-                {student?.avatar_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={student.avatar_url} alt={student.full_name} className="w-full h-full object-cover" />
-                ) : (
-                  <span>{student?.full_name ? student.full_name.charAt(0) : "📖"}</span>
-                )}
-              </div>
+              {(() => {
+                const studentAvatarUrl =
+                  student?.avatar_url ||
+                  student?.photo_url ||
+                  student?.image_url ||
+                  student?.avatar ||
+                  student?.image ||
+                  null;
+
+                return (
+                  <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl bg-white/10 backdrop-blur-md text-amber-300 flex items-center justify-center font-black text-3xl sm:text-4xl shadow-xl shrink-0 overflow-hidden border-2 border-white/20">
+                    {studentAvatarUrl && !imgError ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={studentAvatarUrl}
+                        alt={student?.full_name || "صورة الطالب"}
+                        onError={(e) => {
+                          console.warn("Failed to load student avatar image from URL:", studentAvatarUrl, e);
+                          setImgError(true);
+                        }}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span>{student?.full_name ? student.full_name.charAt(0) : "📖"}</span>
+                    )}
+                  </div>
+                );
+              })()}
 
               <div className="space-y-2">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-800/60 border border-emerald-700/60 text-amber-300 text-xs font-bold">

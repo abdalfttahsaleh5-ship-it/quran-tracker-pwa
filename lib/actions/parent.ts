@@ -80,63 +80,154 @@ export async function findStudentByPhoneOrCode(input: string): Promise<ParentSea
 }
 
 /**
- * Fetches complete student progress for parent portal via Postgres RPC get_student_progress_by_token.
- * Treats the parent token strictly as a Bearer Access Token with sanitized, generic error responses.
+ * Fetches complete student progress for parent portal.
+ * Structured into independent stages:
+ * Stage 1: Student data lookup by parent_token
+ * Stage 2: Memorization logs lookup (independent; errors do not fail the page)
+ * Stage 3: Attendance records lookup (independent; errors do not fail the page)
  */
 export async function getStudentProgressByToken(token: string): Promise<ParentProgressPayload> {
-  if (!token || typeof token !== "string" || token.trim() === "") {
-    return { success: false, error: "الرابط غير صحيح أو مفقود" };
+  if (!token || typeof token !== "string" || token.trim() === "" || token === "undefined" || token === "null") {
+    return {
+      success: false,
+      error: "الرابط غير صالح أو غير موجود",
+      errorCode: "INVALID_TOKEN",
+    };
   }
 
-  const cleanToken = token.trim();
+  const cleanToken = decodeURIComponent(token).trim();
 
-  // Validate UUID format strictly
+  // Validate UUID format strictly (case-insensitive)
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!uuidRegex.test(cleanToken)) {
-    return { success: false, error: "الرمز غير صالح أو غير موجود" };
+    return {
+      success: false,
+      error: "الرابط غير صالح أو غير موجود",
+      errorCode: "INVALID_TOKEN",
+    };
   }
 
   try {
     const supabase = createClient();
 
-    // Call Postgres RPC get_student_progress_by_token
-    const { data, error } = await supabase.rpc("get_student_progress_by_token", {
-      p_token: cleanToken,
-    });
+    // ==========================================
+    // المرحلة الأولى: استعلام بيانات الطالب الأساسية
+    // ==========================================
+    const { data: studentRecord, error: studentError } = await supabase
+      .from("students")
+      .select("*")
+      .eq("parent_token", cleanToken)
+      .maybeSingle();
 
-    if (error) {
+    if (studentError) {
+      if (process.env.NODE_ENV === "development") {
+        console.error("[getStudentProgressByToken] Student query error:", {
+          message: studentError.message,
+          code: studentError.code,
+          details: studentError.details,
+          hint: studentError.hint,
+        });
+      }
       return {
         success: false,
-        error: "فشل استرداد بيانات الطالب",
+        error: "تعذر تحميل بعض بيانات الطالب، يرجى المحاولة مرة أخرى.",
+        errorCode: "DATABASE_QUERY_ERROR",
       };
     }
 
-    if (!data) {
+    if (!studentRecord) {
       return {
         success: false,
-        error: "الرمز غير صالح أو غير موجود",
+        error: "الرابط غير صالح أو غير موجود",
+        errorCode: "NO_STUDENT_FOUND",
       };
     }
 
-    const payload = data as unknown as ParentProgressPayload;
+    // ==========================================
+    // المرحلة الثانية: استعلام سجلات التسميع (مستقل)
+    // ==========================================
+    let safeLogs: any[] = [];
+    try {
+      const { data: logs, error: logsError } = await supabase
+        .from("memorization_logs")
+        .select("*")
+        .eq("student_id", studentRecord.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
 
-    if (!payload.success || !payload.student) {
-      return {
-        success: false,
-        error: "الرمز غير صالح أو تم حذف بيانات الطالب",
-      };
+      if (logsError) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn("[getStudentProgressByToken] Logs query warning (non-fatal):", {
+            message: logsError.message,
+            code: logsError.code,
+            details: logsError.details,
+            hint: logsError.hint,
+          });
+        }
+      } else if (Array.isArray(logs)) {
+        safeLogs = logs;
+      }
+    } catch (err) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[getStudentProgressByToken] Logs exception (non-fatal):", err);
+      }
+    }
+
+    // ==========================================
+    // المرحلة الثالثة: استعلام سجلات الحضور (مستقل)
+    // ==========================================
+    let safeAttendance: any[] = [];
+    try {
+      const { data: attendance, error: attError } = await supabase
+        .from("attendance_records")
+        .select("*")
+        .eq("student_id", studentRecord.id)
+        .order("date", { ascending: false })
+        .limit(30);
+
+      if (attError) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn("[getStudentProgressByToken] Attendance records query warning, trying alternative (non-fatal):", {
+            message: attError.message,
+            code: attError.code,
+            details: attError.details,
+            hint: attError.hint,
+          });
+        }
+        // Check if attendance table exists under alternate name
+        const { data: altAttendance } = await supabase
+          .from("attendance")
+          .select("*")
+          .eq("student_id", studentRecord.id)
+          .order("date", { ascending: false })
+          .limit(30);
+
+        if (Array.isArray(altAttendance)) {
+          safeAttendance = altAttendance;
+        }
+      } else if (Array.isArray(attendance)) {
+        safeAttendance = attendance;
+      }
+    } catch (err) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[getStudentProgressByToken] Attendance exception (non-fatal):", err);
+      }
     }
 
     return {
       success: true,
-      student: payload.student,
-      logs: payload.logs || [],
-      attendance: payload.attendance || [],
+      student: studentRecord,
+      logs: safeLogs,
+      attendance: safeAttendance,
     };
-  } catch {
+  } catch (err) {
+    if (process.env.NODE_ENV === "development") {
+      console.error("[getStudentProgressByToken] Unexpected database exception:", err);
+    }
     return {
       success: false,
-      error: "حدث خطأ غير متوقع أثناء تحميل بيانات الطالب",
+      error: "تعذر تحميل بعض بيانات الطالب، يرجى المحاولة مرة أخرى.",
+      errorCode: "DATABASE_QUERY_ERROR",
     };
   }
 }

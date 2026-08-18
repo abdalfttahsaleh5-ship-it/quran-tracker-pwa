@@ -32,6 +32,14 @@ export type AttendanceRecordRow = Database["public"]["Tables"]["attendance_recor
 export type AttendanceRecordInsert = Database["public"]["Tables"]["attendance_records"]["Insert"];
 export type AttendanceRecordUpdate = Database["public"]["Tables"]["attendance_records"]["Update"];
 
+export type GroupRow = Database["public"]["Tables"]["groups"]["Row"];
+export type GroupInsert = Database["public"]["Tables"]["groups"]["Insert"];
+export type GroupUpdate = Database["public"]["Tables"]["groups"]["Update"];
+
+export type GroupMemberRow = Database["public"]["Tables"]["group_members"]["Row"];
+export type GroupMemberInsert = Database["public"]["Tables"]["group_members"]["Insert"];
+export type GroupMemberUpdate = Database["public"]["Tables"]["group_members"]["Update"];
+
 export interface StudentWithProgress extends StudentRow {
   latest_log?: MemorizationLogRow | null;
   latest_attendance?: AttendanceRecordRow | null;
@@ -40,6 +48,7 @@ export interface StudentWithProgress extends StudentRow {
 export interface ParentProgressPayload {
   success: boolean;
   error?: string;
+  errorCode?: "NO_STUDENT_FOUND" | "DATABASE_QUERY_ERROR" | "INVALID_TOKEN";
   student?: {
     id: string;
     full_name: string;
@@ -49,6 +58,10 @@ export interface ParentProgressPayload {
     address?: string | null;
     father_job?: string | null;
     avatar_url?: string | null;
+    photo_url?: string | null;
+    image_url?: string | null;
+    avatar?: string | null;
+    image?: string | null;
     created_at: string;
   };
   logs?: Array<{

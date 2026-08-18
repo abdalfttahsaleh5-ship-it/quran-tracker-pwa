@@ -6,6 +6,7 @@ import { studentSchema, StudentInput } from "@/lib/validations/student";
 import { validateAndFormatJordanianPhone } from "@/lib/phoneUtils";
 import { StudentRow, StudentInsert, StudentUpdate, ParentProgressPayload, MemorizationLogRow, AttendanceRecordRow } from "@/types";
 import { revalidatePath } from "next/cache";
+import { getActiveGroupId } from "./group";
 
 export interface ActionResult<T = void> {
   success: boolean;
@@ -28,11 +29,10 @@ export async function getStudents(): Promise<ActionResult<StudentRow[]>> {
       };
     }
 
-    // Query from students_with_summary view directly to read pre-aggregated totals
+    // Query from students_with_summary view directly (RLS filters by user's groups automatically)
     const { data: students, error } = await supabase
       .from("students_with_summary")
       .select("*")
-      .eq("teacher_id", user.id)
       .order("full_name", { ascending: true });
 
     if (error) {
@@ -113,8 +113,11 @@ export async function createStudent(data: StudentInput): Promise<ActionResult<St
       };
     }
 
+    const activeGroupId = await getActiveGroupId();
+
     const insertPayload: StudentInsert = {
       teacher_id: user.id,
+      group_id: activeGroupId || null,
       full_name: validation.data.full_name,
       parent_phone: normalizedPhone,
       academic_grade: validation.data.academic_grade || null,
@@ -206,7 +209,6 @@ export async function updateStudent(id: string, data: StudentInput): Promise<Act
       .from("students")
       .update(updatePayload)
       .eq("id", id)
-      .eq("teacher_id", user.id)
       .select()
       .single();
 
@@ -219,6 +221,10 @@ export async function updateStudent(id: string, data: StudentInput): Promise<Act
 
     revalidatePath("/students");
     revalidatePath("/dashboard");
+    revalidatePath(`/students/${id}`);
+    if (updatedStudent.parent_token) {
+      revalidatePath(`/parent/${updatedStudent.parent_token}`);
+    }
     return {
       success: true,
       data: updatedStudent,
@@ -253,8 +259,7 @@ export async function deleteStudent(id: string): Promise<ActionResult> {
     const { error } = await supabase
       .from("students")
       .delete()
-      .eq("id", id)
-      .eq("teacher_id", user.id);
+      .eq("id", id);
 
     if (error) {
       return {
@@ -299,7 +304,6 @@ export async function regenerateParentToken(studentId: string): Promise<ActionRe
       .from("students")
       .update({ parent_token: newToken })
       .eq("id", studentId)
-      .eq("teacher_id", user.id)
       .select("id, parent_token")
       .single();
 
@@ -445,14 +449,12 @@ export async function getTeacherReportData(options?: TeacherReportDataOptions): 
     const studentsPromise = supabase
       .from("students_with_summary")
       .select("*")
-      .eq("teacher_id", user.id)
       .order("full_name", { ascending: true });
 
     // 2. Fetch Time-scoped Attendance Records
     let attendanceQuery = supabase
       .from("attendance_records")
-      .select("*")
-      .eq("teacher_id", user.id);
+      .select("*");
 
     if (startStr) {
       attendanceQuery = attendanceQuery.gte("date", startStr);
@@ -465,8 +467,7 @@ export async function getTeacherReportData(options?: TeacherReportDataOptions): 
     // 3. Fetch Time-scoped and Paginated Recent Logs
     let logsQuery = supabase
       .from("memorization_logs")
-      .select("*")
-      .eq("teacher_id", user.id);
+      .select("*");
 
     if (startStr) {
       logsQuery = logsQuery.gte("date", startStr);
@@ -479,8 +480,7 @@ export async function getTeacherReportData(options?: TeacherReportDataOptions): 
     // 4. Lightweight Aggregated Logs Query for accurate totals without hydrating full row objects
     let statsLogsQuery = supabase
       .from("memorization_logs")
-      .select("student_id, page_count")
-      .eq("teacher_id", user.id);
+      .select("student_id, page_count");
 
     if (startStr) {
       statsLogsQuery = statsLogsQuery.gte("date", startStr);

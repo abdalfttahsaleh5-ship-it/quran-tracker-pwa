@@ -126,7 +126,6 @@ export async function updateMemorizationLog(
       .from("memorization_logs")
       .update(updatePayload)
       .eq("id", id)
-      .eq("teacher_id", user.id)
       .select()
       .single();
 
@@ -177,7 +176,6 @@ export async function getStudentLogs(
       .from("memorization_logs")
       .select("*")
       .eq("student_id", studentId)
-      .eq("teacher_id", user.id)
       .order("created_at", { ascending: false })
       .limit(limit);
 
@@ -222,8 +220,7 @@ export async function deleteMemorizationLog(id: string, studentId: string): Prom
     const { error } = await supabase
       .from("memorization_logs")
       .delete()
-      .eq("id", id)
-      .eq("teacher_id", user.id);
+      .eq("id", id);
 
     if (error) {
       return {

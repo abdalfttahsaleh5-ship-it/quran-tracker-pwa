@@ -13,6 +13,7 @@ export type Database = {
         Row: {
           id: string;
           teacher_id: string;
+          group_id: string | null;
           full_name: string;
           parent_phone: string | null;
           parent_token: string;
@@ -29,6 +30,7 @@ export type Database = {
         Insert: {
           id?: string;
           teacher_id: string;
+          group_id?: string | null;
           full_name: string;
           parent_phone?: string | null;
           parent_token?: string;
@@ -45,6 +47,7 @@ export type Database = {
         Update: {
           id?: string;
           teacher_id?: string;
+          group_id?: string | null;
           full_name?: string;
           parent_phone?: string | null;
           parent_token?: string;
@@ -64,6 +67,13 @@ export type Database = {
             columns: ["teacher_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "students_group_id_fkey";
+            columns: ["group_id"];
+            isOneToOne: false;
+            referencedRelation: "groups";
             referencedColumns: ["id"];
           }
         ];
@@ -271,12 +281,84 @@ export type Database = {
           }
         ];
       };
+      groups: {
+        Row: {
+          id: string;
+          name: string;
+          created_by: string | null;
+          created_at: string;
+          updated_at?: string | null;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "groups_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      group_members: {
+        Row: {
+          id: string;
+          group_id: string;
+          user_id: string;
+          role: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          group_id: string;
+          user_id: string;
+          role?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          group_id?: string;
+          user_id?: string;
+          role?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "group_members_group_id_fkey";
+            columns: ["group_id"];
+            isOneToOne: false;
+            referencedRelation: "groups";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "group_members_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: {
       students_with_summary: {
         Row: {
           id: string;
           teacher_id: string;
+          group_id: string | null;
           full_name: string;
           parent_phone: string | null;
           parent_token: string;
@@ -298,6 +380,13 @@ export type Database = {
             columns: ["teacher_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "students_group_id_fkey";
+            columns: ["group_id"];
+            isOneToOne: false;
+            referencedRelation: "groups";
             referencedColumns: ["id"];
           }
         ];
@@ -331,3 +420,5 @@ export type MemorizationLogTable = Database["public"]["Tables"]["memorization_lo
 export type AttendanceTable = Database["public"]["Tables"]["attendance"];
 export type AttendanceRecordsTable = Database["public"]["Tables"]["attendance_records"];
 export type ProfileTable = Database["public"]["Tables"]["profiles"];
+export type GroupTable = Database["public"]["Tables"]["groups"];
+export type GroupMemberTable = Database["public"]["Tables"]["group_members"];

@@ -4,7 +4,9 @@ import { getStudentLogsCached } from "@/lib/actions/log";
 import { getStudentAttendanceCached } from "@/lib/actions/attendance";
 import { StudentDetailClient } from "@/components/teacher/StudentDetailClient";
 
+export const dynamic = "force-dynamic";
 export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 interface StudentDetailPageProps {
   params: {
@@ -29,11 +31,20 @@ export default async function StudentDetailPage({ params }: StudentDetailPagePro
     .from("students")
     .select("*")
     .eq("id", id)
-    .eq("teacher_id", user.id)
     .single();
 
   if (studentError || !student) {
     notFound();
+  }
+
+  // Auto-heal missing parent_token for legacy student records
+  if (!student.parent_token) {
+    const newToken = crypto.randomUUID();
+    await supabase
+      .from("students")
+      .update({ parent_token: newToken })
+      .eq("id", id);
+    student.parent_token = newToken;
   }
 
   // Fetch Student Memorization Logs
