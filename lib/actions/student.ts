@@ -29,10 +29,11 @@ export async function getStudents(): Promise<ActionResult<StudentRow[]>> {
       };
     }
 
-    // Query from students_with_summary view directly (RLS filters by user's groups automatically)
+    // Query from students_with_summary view directly (RLS filters by user's groups automatically, active students only)
     const { data: students, error } = await supabase
       .from("students_with_summary")
       .select("*")
+      .is("deleted_at", null)
       .order("full_name", { ascending: true });
 
     if (error) {
@@ -161,6 +162,7 @@ export async function createStudent(data: StudentInput): Promise<ActionResult<St
       father_job: validation.data.father_job || null,
       avatar_url: validation.data.avatar_url || null,
       parent_token: crypto.randomUUID(),
+      deleted_at: null,
     };
 
     const { data: newStudent, error } = await supabase
@@ -291,9 +293,12 @@ export async function deleteStudent(id: string): Promise<ActionResult> {
       };
     }
 
+    // Soft delete: Mark student with deleted_at timestamp to protect historical logs and attendance records
     const { error } = await supabase
       .from("students")
-      .delete()
+      .update({
+        deleted_at: new Date().toISOString(),
+      })
       .eq("id", id);
 
     if (error) {
@@ -305,6 +310,7 @@ export async function deleteStudent(id: string): Promise<ActionResult> {
 
     revalidatePath("/students");
     revalidatePath("/dashboard");
+    revalidatePath(`/students/${id}`);
     return { success: true };
   } catch (err) {
     return {
@@ -480,10 +486,11 @@ export async function getTeacherReportData(options?: TeacherReportDataOptions): 
     const { startStr, endStr } = resolveDateRange(options);
     const logLimit = options?.limit ?? 50;
 
-    // 1. Fetch Students with pre-aggregated summary
+    // 1. Fetch Active Students with pre-aggregated summary
     const studentsPromise = supabase
       .from("students_with_summary")
       .select("*")
+      .is("deleted_at", null)
       .order("full_name", { ascending: true });
 
     // 2. Fetch Time-scoped Attendance Records
