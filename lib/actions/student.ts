@@ -29,21 +29,37 @@ export async function getStudents(): Promise<ActionResult<StudentRow[]>> {
       };
     }
 
-    // Query from students_with_summary view directly (RLS filters by user's groups automatically, active students only)
-    const { data: students, error } = await supabase
-      .from("students_with_summary")
+    // 1. Query directly from public.students table under RLS (active students only)
+    const { data: students, error: studentsError } = await supabase
+      .from("students")
       .select("*")
       .is("deleted_at", null)
       .order("full_name", { ascending: true });
 
-    if (error) {
+    if (studentsError) {
       return {
         success: false,
-        error: "فشل جلب قائمة الطلاب: " + error.message,
+        error: "فشل جلب قائمة الطلاب: " + studentsError.message,
       };
     }
 
-    // Auto-patch any student missing parent_token and map pre-aggregated totals
+    // 2. Fetch active memorization logs summary to compute total pages & recitations
+    const { data: logsSummary } = await supabase
+      .from("memorization_logs")
+      .select("student_id, page_count")
+      .is("deleted_at", null);
+
+    const logsMap = new Map<string, { totalPages: number; count: number }>();
+    (logsSummary || []).forEach((l) => {
+      if (l.student_id) {
+        const cur = logsMap.get(l.student_id) || { totalPages: 0, count: 0 };
+        cur.totalPages += Number(l.page_count) || 1;
+        cur.count += 1;
+        logsMap.set(l.student_id, cur);
+      }
+    });
+
+    // 3. Auto-patch any student missing parent_token and map pre-aggregated totals
     const safeStudents: StudentRow[] = await Promise.all(
       (students || []).map(async (student) => {
         let token = student.parent_token;
@@ -54,13 +70,13 @@ export async function getStudents(): Promise<ActionResult<StudentRow[]>> {
             .update({ parent_token: token })
             .eq("id", student.id);
         }
-        const totalPages = Number(student.total_pages_memorized || 0);
-        const recitationsCount = Number(student.total_recitations_count || 0);
+        const stats = logsMap.get(student.id) || { totalPages: 0, count: 0 };
+        const totalPages = Number(stats.totalPages.toFixed(2));
         return {
           ...student,
           parent_token: token,
           total_pages_memorized: totalPages,
-          total_recitations_count: recitationsCount,
+          total_recitations_count: stats.count,
           total_pages_count: totalPages,
         };
       })
@@ -486,9 +502,9 @@ export async function getTeacherReportData(options?: TeacherReportDataOptions): 
     const { startStr, endStr } = resolveDateRange(options);
     const logLimit = options?.limit ?? 50;
 
-    // 1. Fetch Active Students with pre-aggregated summary
+    // 1. Fetch Active Students directly from public.students table under RLS
     const studentsPromise = supabase
-      .from("students_with_summary")
+      .from("students")
       .select("*")
       .is("deleted_at", null)
       .order("full_name", { ascending: true });
@@ -519,7 +535,7 @@ export async function getTeacherReportData(options?: TeacherReportDataOptions): 
     }
     const logsPromise = logsQuery.order("created_at", { ascending: false }).limit(logLimit);
 
-    // 4. Lightweight Aggregated Logs Query for accurate totals without hydrating full row objects
+    // 4. Lightweight Aggregated Logs Query for timeframe stats
     let statsLogsQuery = supabase
       .from("memorization_logs")
       .select("student_id, page_count");
@@ -531,21 +547,39 @@ export async function getTeacherReportData(options?: TeacherReportDataOptions): 
       statsLogsQuery = statsLogsQuery.lte("date", endStr);
     }
 
-    const [studentsRes, attendanceRes, logsRes, statsLogsRes] = await Promise.all([
+    // 5. All-time logs summary to pre-aggregate student totals accurately
+    const allLogsSummaryPromise = supabase
+      .from("memorization_logs")
+      .select("student_id, page_count")
+      .is("deleted_at", null);
+
+    const [studentsRes, attendanceRes, logsRes, statsLogsRes, allLogsSummaryRes] = await Promise.all([
       studentsPromise,
       attendancePromise,
       logsPromise,
       statsLogsQuery,
+      allLogsSummaryPromise,
     ]);
 
     const rawStudents = studentsRes.data || [];
+    const allLogsSummary = allLogsSummaryRes.data || [];
+    const logsMap = new Map<string, { totalPages: number; count: number }>();
+    allLogsSummary.forEach((l) => {
+      if (l.student_id) {
+        const cur = logsMap.get(l.student_id) || { totalPages: 0, count: 0 };
+        cur.totalPages += Number(l.page_count) || 1;
+        cur.count += 1;
+        logsMap.set(l.student_id, cur);
+      }
+    });
+
     const students: StudentRow[] = rawStudents.map((s) => {
-      const totalPages = Number(s.total_pages_memorized || 0);
-      const recitationsCount = Number(s.total_recitations_count || 0);
+      const stats = logsMap.get(s.id) || { totalPages: 0, count: 0 };
+      const totalPages = Number(stats.totalPages.toFixed(2));
       return {
         ...s,
         total_pages_memorized: totalPages,
-        total_recitations_count: recitationsCount,
+        total_recitations_count: stats.count,
         total_pages_count: totalPages,
       };
     });
