@@ -20,15 +20,19 @@ import {
   ChevronUp,
   CheckCircle2,
   Pencil,
+  Copy,
+  Check,
+  RotateCcw,
 } from "lucide-react";
 import { StudentRow, MemorizationLogRow, AttendanceRecordRow } from "@/types";
 import { GRADE_LABELS, ATTENDANCE_LABELS, LOG_TYPE_LABELS, formatArabicDate, formatPageCount } from "@/lib/utils";
 import { deleteMemorizationLog } from "@/lib/actions/log";
 import { deleteAttendanceById } from "@/lib/actions/attendance";
+import { regenerateParentToken } from "@/lib/actions/student";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useRealtimeSync, RealtimePayload } from "@/lib/hooks/useRealtimeSync";
-import { lightHaptic } from "@/lib/haptics";
+import { lightHaptic, successHaptic } from "@/lib/haptics";
 import { ShareAchievementModal } from "./ShareAchievementModal";
 import { AudioPlayer } from "@/components/common/AudioPlayer";
 import { RecitationLogCard } from "./RecitationLogCard";
@@ -74,10 +78,68 @@ export function StudentDetailClient({
   };
   const [logs, setLogs] = useState<MemorizationLogRow[]>(initialLogs);
   const [attendance, setAttendance] = useState<AttendanceRecordRow[]>(initialAttendance);
+  const [parentToken, setParentToken] = useState<string | null | undefined>(student.parent_token);
+  const [isCopiedToken, setIsCopiedToken] = useState(false);
+  const [isRegeneratingToken, setIsRegeneratingToken] = useState(false);
   const [isLogDialogOpen, setIsLogDialogOpen] = useState(false);
   const [isAttendanceDialogOpen, setIsAttendanceDialogOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [imgError, setImgError] = useState(false);
+
+  const handleCopyParentLink = async () => {
+    if (!parentToken) return;
+    lightHaptic();
+    const portalUrl = `${window.location.origin}/parent/${parentToken}`;
+    try {
+      await navigator.clipboard.writeText(portalUrl);
+      setIsCopiedToken(true);
+      successHaptic();
+      showToast("تم نسخ رابط متابعة ولي الأمر للحافظة 📋✅");
+      setTimeout(() => setIsCopiedToken(false), 2500);
+    } catch {
+      const input = document.createElement("input");
+      input.value = portalUrl;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand("copy");
+      document.body.removeChild(input);
+      setIsCopiedToken(true);
+      successHaptic();
+      showToast("تم نسخ رابط متابعة ولي الأمر للحافظة 📋✅");
+      setTimeout(() => setIsCopiedToken(false), 2500);
+    }
+  };
+
+  const handleRegenerateParentToken = async () => {
+    lightHaptic();
+    const confirmed = window.confirm(
+      "هل أنت متأكد؟ سيتوقف الرابط القديم لولي الأمر فوراً عن العمل وسيتم إنشاء رمز وصول جديد."
+    );
+    if (!confirmed) return;
+
+    setIsRegeneratingToken(true);
+    try {
+      const res = await regenerateParentToken(student.id);
+      if (res.success && res.data?.parent_token) {
+        const newToken = res.data.parent_token;
+        setParentToken(newToken);
+        const newUrl = `${window.location.origin}/parent/${newToken}`;
+        try {
+          await navigator.clipboard.writeText(newUrl);
+        } catch {
+          // ignore clipboard error
+        }
+        successHaptic();
+        showToast("تم تجديد رمز ورابط المتابعة بنجاح ونسخه للحافظة 🔑✅");
+      } else {
+        alert(res.error || "فشل تجديد رابط المتابعة");
+      }
+    } catch {
+      alert("حدث خطأ أثناء تجديد رابط المتابعة");
+    } finally {
+      setIsRegeneratingToken(false);
+    }
+  };
 
   const surahProgressList = useMemo(() => {
     const map = getStudentSurahProgressMap(logs, student.id);
@@ -300,16 +362,46 @@ export function StudentDetailClient({
               <span>تهنئة ومشاركة الإنجاز 🌟</span>
             </Button>
 
-            <Link href={`/parent/${student.parent_token}`} prefetch={true} target="_blank" className="w-full sm:w-auto">
-              <Button
-                size="lg"
-                variant="outline"
-                className="w-full sm:w-auto bg-emerald-900/60 border-emerald-700/70 text-emerald-100 hover:bg-emerald-800/80 font-bold rounded-2xl gap-2"
-              >
-                <ExternalLink className="w-4 h-4 text-amber-300" />
-                <span>معاينة البوابة 🌐</span>
-              </Button>
-            </Link>
+            {parentToken && (
+              <>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={handleCopyParentLink}
+                  className={`w-full sm:w-auto font-bold rounded-2xl gap-2 transition-all ${
+                    isCopiedToken
+                      ? "bg-emerald-600 text-white border-emerald-500 hover:bg-emerald-700"
+                      : "bg-emerald-900/60 border-emerald-700/70 text-emerald-100 hover:bg-emerald-800/80"
+                  }`}
+                >
+                  {isCopiedToken ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4 text-amber-300" />}
+                  <span>{isCopiedToken ? "تم نسخ الرابط!" : "نسخ رابط ولي الأمر 📋"}</span>
+                </Button>
+
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={handleRegenerateParentToken}
+                  disabled={isRegeneratingToken}
+                  title="إلغاء الرابط القديم وتوليد رمز وصول جديد لولي الأمر"
+                  className="w-full sm:w-auto bg-slate-900/70 hover:bg-rose-950/60 border-slate-700/70 hover:border-rose-600/60 text-slate-200 hover:text-rose-200 font-bold rounded-2xl gap-2 transition-all disabled:opacity-50"
+                >
+                  <RotateCcw className={`w-4 h-4 text-amber-300 ${isRegeneratingToken ? "animate-spin" : ""}`} />
+                  <span>{isRegeneratingToken ? "جاري التجديد..." : "تجديد رابط المتابعة 🔄"}</span>
+                </Button>
+
+                <Link href={`/parent/${parentToken}`} prefetch={true} target="_blank" className="w-full sm:w-auto">
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="w-full sm:w-auto bg-emerald-900/60 border-emerald-700/70 text-emerald-100 hover:bg-emerald-800/80 font-bold rounded-2xl gap-2"
+                  >
+                    <ExternalLink className="w-4 h-4 text-amber-300" />
+                    <span>معاينة البوابة 🌐</span>
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -893,7 +985,7 @@ export function StudentDetailClient({
       <ShareAchievementModal
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
-        student={student}
+        student={parentToken ? { ...student, parent_token: parentToken } : student}
         logs={logs}
         attendance={attendance}
       />

@@ -80,7 +80,8 @@ export async function findStudentByPhoneOrCode(input: string): Promise<ParentSea
 }
 
 /**
- * Fetches complete student progress for parent portal via Postgres RPC get_student_progress_by_token
+ * Fetches complete student progress for parent portal via Postgres RPC get_student_progress_by_token.
+ * Treats the parent token strictly as a Bearer Access Token with sanitized, generic error responses.
  */
 export async function getStudentProgressByToken(token: string): Promise<ParentProgressPayload> {
   if (!token || typeof token !== "string" || token.trim() === "") {
@@ -89,7 +90,7 @@ export async function getStudentProgressByToken(token: string): Promise<ParentPr
 
   const cleanToken = token.trim();
 
-  // Validate UUID format
+  // Validate UUID format strictly
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!uuidRegex.test(cleanToken)) {
     return { success: false, error: "الرمز غير صالح أو غير موجود" };
@@ -106,7 +107,7 @@ export async function getStudentProgressByToken(token: string): Promise<ParentPr
     if (error) {
       return {
         success: false,
-        error: "فشل استرداد بيانات الطالب: " + error.message,
+        error: "فشل استرداد بيانات الطالب",
       };
     }
 
@@ -122,7 +123,7 @@ export async function getStudentProgressByToken(token: string): Promise<ParentPr
     if (!payload.success || !payload.student) {
       return {
         success: false,
-        error: payload.error || "الرمز غير صالح أو تم حذف بيانات الطالب",
+        error: "الرمز غير صالح أو تم حذف بيانات الطالب",
       };
     }
 
@@ -132,10 +133,10 @@ export async function getStudentProgressByToken(token: string): Promise<ParentPr
       logs: payload.logs || [],
       attendance: payload.attendance || [],
     };
-  } catch (err) {
+  } catch {
     return {
       success: false,
-      error: err instanceof Error ? err.message : "حدث خطأ أثناء تحميل بيانات الطالب",
+      error: "حدث خطأ غير متوقع أثناء تحميل بيانات الطالب",
     };
   }
 }

@@ -274,6 +274,59 @@ export async function deleteStudent(id: string): Promise<ActionResult> {
   }
 }
 
+export async function regenerateParentToken(studentId: string): Promise<ActionResult<{ parent_token: string }>> {
+  if (!studentId) {
+    return { success: false, error: "معرف الطالب مطلوب" };
+  }
+
+  try {
+    const supabase = createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: "غير مصرح لك بتجديد الرابط، يرجى تسجيل الدخول",
+      };
+    }
+
+    const newToken = crypto.randomUUID();
+
+    const { data: updatedStudent, error } = await supabase
+      .from("students")
+      .update({ parent_token: newToken })
+      .eq("id", studentId)
+      .eq("teacher_id", user.id)
+      .select("id, parent_token")
+      .single();
+
+    if (error || !updatedStudent) {
+      return {
+        success: false,
+        error: "فشل تجديد رابط المتابعة: " + (error?.message || "الطالب غير موجود"),
+      };
+    }
+
+    revalidatePath(`/students/${studentId}`);
+    revalidatePath("/students");
+    revalidatePath("/dashboard");
+
+    return {
+      success: true,
+      data: { parent_token: updatedStudent.parent_token },
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "حدث خطأ غير متوقع أثناء تجديد الرابط",
+    };
+  }
+}
+
+
 import {
   getStudentProgressByToken as getParentProgressByToken,
   findStudentByPhoneOrCode as findParentStudentByPhoneOrCode,

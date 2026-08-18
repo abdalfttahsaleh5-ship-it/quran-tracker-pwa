@@ -17,12 +17,16 @@ interface ParentPortalPageProps {
 }
 
 export async function generateMetadata({ params }: ParentPortalPageProps): Promise<Metadata> {
+  const fallbackMetadata: Metadata = {
+    title: "بوابة متابعة أولياء الأمور - متابع الحفظ",
+    description: "تقرير متابعة حفظ ومراجعة القرآن الكريم والحضور اليومي",
+    referrer: "strict-origin-when-cross-origin",
+  };
+
   try {
     const token = params?.token;
     if (!token) {
-      return {
-        title: "بوابة متابعة أولياء الأمور - متابع الحفظ",
-      };
+      return fallbackMetadata;
     }
 
     const payload = await getStudentProgressByTokenCached(token);
@@ -32,6 +36,7 @@ export async function generateMetadata({ params }: ParentPortalPageProps): Promi
       return {
         title: `متابعة حفظ القرآن الكريم - ${studentName}`,
         description: `سجل الحفظ والمراجعة والحضور اليومي للطالب ${studentName} في الحلقة القرآنية`,
+        referrer: "strict-origin-when-cross-origin",
         openGraph: {
           title: `متابعة حفظ القرآن الكريم - ${studentName}`,
           description: `تقرير متابعة حقيقي لمستوى وإنجاز الطالب ${studentName} في حفظ وتسميع القرآن الكريم`,
@@ -50,10 +55,7 @@ export async function generateMetadata({ params }: ParentPortalPageProps): Promi
     // Fallback metadata on error
   }
 
-  return {
-    title: "بوابة متابعة أولياء الأمور - متابع الحفظ",
-    description: "تقرير متابعة حفظ ومراجعة القرآن الكريم والحضور اليومي",
-  };
+  return fallbackMetadata;
 }
 
 export default async function ParentPortalPage({ params }: ParentPortalPageProps) {
@@ -71,12 +73,18 @@ export default async function ParentPortalPage({ params }: ParentPortalPageProps
 
   const { student, logs = [], attendance = [] } = payload;
 
-  return <ParentPortalClient student={student} logs={logs} attendance={attendance} />;
+  return (
+    <>
+      <meta name="referrer" content="strict-origin-when-cross-origin" />
+      <ParentPortalClient student={student} logs={logs} attendance={attendance} />
+    </>
+  );
 }
 
 function renderErrorCard(message: string) {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4">
+      <meta name="referrer" content="strict-origin-when-cross-origin" />
       <Card className="max-w-md w-full text-center p-8 border-rose-200 dark:border-rose-900 shadow-xl">
         <CardContent className="space-y-4 pt-4">
           <div className="w-16 h-16 rounded-full bg-rose-50 dark:bg-rose-950 text-rose-600 flex items-center justify-center mx-auto">
