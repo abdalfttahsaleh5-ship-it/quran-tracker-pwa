@@ -12,6 +12,12 @@ export interface ActionResult<T = void> {
   error?: string;
 }
 
+/**
+ * Creates a new memorization log for a student.
+ * - Preserves `teacher_id: user.id` for backward compatibility.
+ * - Authorization is enforced via Supabase RLS:
+ *   authenticated user -> student_id -> students.group_id -> group_members -> RLS
+ */
 export async function createMemorizationLog(data: MemorizationLogInput): Promise<ActionResult<MemorizationLogRow>> {
   const validation = memorizationLogSchema.safeParse(data);
   if (!validation.success) {
@@ -78,6 +84,11 @@ export async function createMemorizationLog(data: MemorizationLogInput): Promise
   }
 }
 
+/**
+ * Updates an existing memorization log by ID.
+ * - Authorization is enforced via Supabase RLS based on group membership.
+ * - Does not allow modifying `student_id` or bypassing group boundaries.
+ */
 export async function updateMemorizationLog(
   id: string,
   data: MemorizationLogInput
@@ -150,6 +161,11 @@ export async function updateMemorizationLog(
   }
 }
 
+/**
+ * Fetches recent memorization logs for a given student.
+ * - Queries by student_id and relies on Supabase RLS to verify group membership.
+ * - Allows all teachers and assistants in the student's group to read logs.
+ */
 export async function getStudentLogs(
   studentId: string,
   limit: number = 50
@@ -198,6 +214,10 @@ export async function getStudentLogs(
   }
 }
 
+/**
+ * Deletes a memorization log by ID.
+ * - Authorization is enforced via Supabase RLS based on group membership.
+ */
 export async function deleteMemorizationLog(id: string, studentId: string): Promise<ActionResult> {
   if (!id) {
     return { success: false, error: "معرف السجل مطلوب" };

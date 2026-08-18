@@ -12,6 +12,12 @@ export interface ActionResult<T = void> {
   error?: string;
 }
 
+/**
+ * Records or updates attendance for a student on a specific date.
+ * - Preserves `teacher_id: user.id` for backward compatibility.
+ * - Authorization is enforced via Supabase RLS:
+ *   authenticated user -> attendance.student_id -> students.group_id -> group_members -> RLS
+ */
 export async function recordAttendance(data: AttendanceInput): Promise<ActionResult<AttendanceRecordRow>> {
   const validation = attendanceSchema.safeParse(data);
   if (!validation.success) {
@@ -43,7 +49,7 @@ export async function recordAttendance(data: AttendanceInput): Promise<ActionRes
       notes: validation.data.notes || null,
     };
 
-    // Upsert using student_id and date unique constraint
+    // Upsert using student_id and date unique constraint, governed by RLS
     const { data: record, error } = await supabase
       .from("attendance_records")
       .upsert(payload, { onConflict: "student_id,date" })
@@ -72,6 +78,10 @@ export async function recordAttendance(data: AttendanceInput): Promise<ActionRes
   }
 }
 
+/**
+ * Deletes an attendance record for a student by date.
+ * - Authorization is governed by Supabase RLS based on group membership.
+ */
 export async function deleteAttendance(
   studentId: string,
   date: string
@@ -119,6 +129,10 @@ export async function deleteAttendance(
   }
 }
 
+/**
+ * Deletes an attendance record by ID.
+ * - Authorization is governed by Supabase RLS based on group membership.
+ */
 export async function deleteAttendanceById(
   recordId: string,
   studentId?: string
@@ -168,6 +182,11 @@ export async function deleteAttendanceById(
   }
 }
 
+/**
+ * Bulk updates/inserts attendance for multiple students on a given date.
+ * - Preserves `teacher_id: user.id` for backward compatibility.
+ * - Enforces group-level authorization via Supabase RLS.
+ */
 export async function recordBulkAttendance(records: AttendanceInput[]): Promise<ActionResult> {
   if (!records || records.length === 0) {
     return { success: false, error: "لا توجد سجلات لتحديثها" };
@@ -218,6 +237,10 @@ export async function recordBulkAttendance(records: AttendanceInput[]): Promise<
   }
 }
 
+/**
+ * Fetches attendance history for a single student.
+ * - Relies on Supabase RLS to verify group membership.
+ */
 export async function getStudentAttendance(
   studentId: string,
   limit: number = 30
@@ -266,6 +289,10 @@ export async function getStudentAttendance(
   }
 }
 
+/**
+ * Fetches daily attendance records across all students in the user's accessible groups for a target date.
+ * - Authorization is enforced via Supabase RLS (only returns records for students in user's groups).
+ */
 export async function getDailyAttendanceOverview(
   date?: string
 ): Promise<ActionResult<AttendanceRecordRow[]>> {
