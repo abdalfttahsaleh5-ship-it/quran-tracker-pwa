@@ -2,8 +2,19 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { BookOpen, Search, Phone, User, ArrowLeft, ShieldCheck, HeartHandshake } from "lucide-react";
-import { findStudentByPhoneOrCode } from "@/lib/actions/student";
+import {
+  BookOpen,
+  Search,
+  Phone,
+  User,
+  ArrowLeft,
+  ShieldCheck,
+  ShieldAlert,
+  AlertCircle,
+  Loader2,
+  Clock,
+} from "lucide-react";
+import { findStudentByPhoneOrCode } from "@/lib/actions/parent";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,34 +25,47 @@ export default function ParentSearchGatewayPage() {
   const [phoneInput, setPhoneInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isRateLimited, setIsRateLimited] = useState(false);
   const [matchingStudents, setMatchingStudents] = useState<
     Array<{ id: string; full_name: string; parent_token: string }> | null
   >(null);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading) return; // Prevent duplicate rapid clicks
+
     if (!phoneInput.trim()) {
       setError("يرجى إدخال رقم الهاتف المسجل");
+      setIsRateLimited(false);
       return;
     }
 
     setIsLoading(true);
     setError(null);
+    setIsRateLimited(false);
     setMatchingStudents(null);
 
-    const res = await findStudentByPhoneOrCode(phoneInput);
+    try {
+      const res = await findStudentByPhoneOrCode(phoneInput);
 
-    if (res.success) {
-      if (res.token) {
-        router.push(`/parent/${res.token}`);
-      } else if (res.students && res.students.length > 0) {
-        setMatchingStudents(res.students);
+      if (res.success) {
+        if (res.token) {
+          router.push(`/parent/${res.token}`);
+        } else if (res.students && res.students.length > 0) {
+          setMatchingStudents(res.students);
+        }
+      } else {
+        const errorMsg = res.error || "لم يتم العثور على نتائج";
+        setError(errorMsg);
+        if (errorMsg.includes("15 دقيقة") || errorMsg.includes("الحد المسموح")) {
+          setIsRateLimited(true);
+        }
       }
-    } else {
-      setError(res.error || "لم يتم العثور على نتائج");
+    } catch {
+      setError("حدث خطأ غير متوقع أثناء الاتصال بالخادم، يرجى المحاولة لاحقاً");
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
   return (
@@ -75,8 +99,30 @@ export default function ParentSearchGatewayPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {error && (
-              <div className="p-3 bg-rose-50 text-rose-700 text-xs font-semibold rounded-xl border border-rose-200">
-                {error}
+              <div
+                className={`p-3.5 rounded-xl text-xs font-semibold border flex items-start gap-3 transition-all ${
+                  isRateLimited
+                    ? "bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 border-amber-300 dark:border-amber-700/50 shadow-sm"
+                    : "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-200 border-rose-200 dark:border-rose-800/50"
+                }`}
+              >
+                {isRateLimited ? (
+                  <ShieldAlert className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                ) : (
+                  <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                )}
+                <div className="space-y-1">
+                  <p className="font-bold text-sm">
+                    {isRateLimited ? "تنبيه أمني - فترة انتظار" : "تعذر إتمام البحث"}
+                  </p>
+                  <p className="leading-relaxed">{error}</p>
+                  {isRateLimited && (
+                    <div className="flex items-center gap-1.5 text-[11px] text-amber-700 dark:text-amber-300 font-medium pt-1">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>تم تقييد المحاولات مؤقتاً لحماية خصوصية وسجلات الطلاب.</span>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -93,20 +139,33 @@ export default function ParentSearchGatewayPage() {
                       type="tel"
                       placeholder="0791234567"
                       value={phoneInput}
-                      onChange={(e) => setPhoneInput(e.target.value)}
+                      onChange={(e) => {
+                        setPhoneInput(e.target.value);
+                        if (error && !isRateLimited) setError(null);
+                      }}
+                      disabled={isLoading}
                       dir="ltr"
-                      className="pr-9 text-left font-mono"
+                      className="pr-9 text-left font-mono disabled:opacity-60"
                     />
                   </div>
                 </div>
 
                 <Button
                   type="submit"
-                  disabled={isLoading}
-                  className="w-full h-11 text-base font-bold gap-2 shadow-md"
+                  disabled={isLoading || isRateLimited}
+                  className="w-full h-11 text-base font-bold gap-2 shadow-md transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  <Search className="w-4 h-4" />
-                  <span>{isLoading ? "جاري البحث..." : "عرض تقرير الطالب 🔍"}</span>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>جاري التحقق والبحث...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Search className="w-4 h-4" />
+                      <span>عرض تقرير الطالب 🔍</span>
+                    </>
+                  )}
                 </Button>
               </form>
             ) : (
@@ -151,7 +210,7 @@ export default function ParentSearchGatewayPage() {
         <div className="text-center text-xs text-slate-400 space-y-1">
           <p className="flex items-center justify-center gap-1">
             <ShieldCheck className="w-3.5 h-3.5 text-teal-600" />
-            <span>بوابة آمنة ومخصصة لمتابعة حلقات التحفيظ</span>
+            <span>بوابة آمنة ومحمية لمتابعة حلقات التحفيظ</span>
           </p>
         </div>
       </div>
