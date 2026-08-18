@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import { Download, Smartphone } from "lucide-react";
 import { lightHaptic, successHaptic } from "@/lib/haptics";
-import { BeforeInstallPromptEvent } from "@/types/pwa";
 
 export interface PWAInstallButtonProps {
   className?: string;
@@ -32,10 +31,16 @@ export function PWAInstallButton({
     const prompt = window.deferredPwaPrompt;
 
     if (prompt) {
-      await prompt.prompt();
-      const choice = await prompt.userChoice;
-      if (choice.outcome === "accepted") {
-        successHaptic();
+      try {
+        await prompt.prompt();
+        const choice = await prompt.userChoice;
+        if (choice.outcome === "accepted") {
+          successHaptic();
+        } else {
+          window.dispatchEvent(new CustomEvent("open-pwa-install-modal"));
+        }
+      } catch {
+        window.dispatchEvent(new CustomEvent("open-pwa-install-modal"));
       }
       window.deferredPwaPrompt = null;
     } else {

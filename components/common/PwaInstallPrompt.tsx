@@ -1,23 +1,35 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { BookOpen, X, Download, CheckCircle2, Share2, PlusSquare, Smartphone } from "lucide-react";
+import {
+  BookOpen,
+  X,
+  Download,
+  CheckCircle2,
+  Share2,
+  PlusSquare,
+  MoreVertical,
+  ArrowDownCircle,
+  Smartphone,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { lightHaptic, successHaptic } from "@/lib/haptics";
 import { BeforeInstallPromptEvent } from "@/types/pwa";
 
 const PWA_DISMISS_SESSION_KEY = "quran_tracker_pwa_install_dismissed";
 
+type InstallView = "prompt" | "instructions" | "success";
+
 /**
  * Unified PWA Installation Modal & Prompt.
- * Supports Android/Chrome native prompt and iOS Safari "Add to Home Screen" instructions.
+ * Guarantees native 1-click install when available, and provides graceful visual instructions when not.
  */
 export function PwaInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
-  const [installedSuccess, setInstalledSuccess] = useState(false);
+  const [view, setView] = useState<InstallView>("prompt");
 
   useEffect(() => {
     // Check if running as installed standalone PWA
@@ -38,7 +50,7 @@ export function PwaInstallPrompt() {
       setDeferredPrompt(window.deferredPwaPrompt);
     }
 
-    // Listener for prompt ready from PWAProvider
+    // Listener for prompt ready from PWAProvider or head script
     const handlePromptReady = () => {
       if (window.deferredPwaPrompt) {
         setDeferredPrompt(window.deferredPwaPrompt);
@@ -48,6 +60,7 @@ export function PwaInstallPrompt() {
 
     // Global event listener to manually open this modal from Header or any button
     const handleManualOpen = () => {
+      setView("prompt");
       setIsOpen(true);
     };
     window.addEventListener("open-pwa-install-modal", handleManualOpen);
@@ -84,23 +97,31 @@ export function PwaInstallPrompt() {
 
         if (choice.outcome === "accepted") {
           successHaptic();
-          setInstalledSuccess(true);
+          setView("success");
           setTimeout(() => {
             setIsOpen(false);
-            setInstalledSuccess(false);
-          }, 2000);
+            setView("prompt");
+          }, 2500);
+        } else {
+          // User cancelled prompt
+          setView("instructions");
         }
-      } catch {
-        // Fallback gracefully
+      } catch (err) {
+        console.error("Install prompt error:", err);
+        setView("instructions");
       }
       window.deferredPwaPrompt = null;
       setDeferredPrompt(null);
+    } else {
+      // If deferredPrompt is NULL, switch to manual instructions view gracefully
+      setView("instructions");
     }
   };
 
   const handleClose = () => {
     lightHaptic();
     setIsOpen(false);
+    setView("prompt");
     sessionStorage.setItem(PWA_DISMISS_SESSION_KEY, "true");
   };
 
@@ -138,42 +159,68 @@ export function PwaInstallPrompt() {
           </div>
         </div>
 
-        {/* Success State */}
-        {installedSuccess ? (
-          <div className="p-4 bg-emerald-50 dark:bg-emerald-950/50 rounded-2xl border border-emerald-200 dark:border-emerald-800 text-center space-y-2">
-            <CheckCircle2 className="w-10 h-10 text-emerald-600 dark:text-emerald-400 mx-auto animate-bounce" />
-            <p className="font-bold text-sm text-emerald-900 dark:text-emerald-200">
-              تم تثبيت التطبيق بنجاح!
+        {/* 1. Success State */}
+        {view === "success" ? (
+          <div className="p-5 bg-emerald-50 dark:bg-emerald-950/50 rounded-2xl border border-emerald-200 dark:border-emerald-800 text-center space-y-2.5 animate-in zoom-in-90 duration-200">
+            <CheckCircle2 className="w-12 h-12 text-emerald-600 dark:text-emerald-400 mx-auto animate-bounce" />
+            <p className="font-black text-base text-emerald-900 dark:text-emerald-200">
+              تم تثبيت التطبيق بنجاح! 🚀
             </p>
-            <p className="text-xs text-emerald-700 dark:text-emerald-300">
-              يمكنك الآن فتح التطبيق مباشرة من شاشتك الرئيسية.
+            <p className="text-xs text-emerald-700 dark:text-emerald-300 font-medium">
+              يمكنك الآن فتح التطبيق مباشرة من شاشتك الرئيسية في أي وقت.
             </p>
           </div>
-        ) : isIOS ? (
-          /* iOS Step-by-Step Instructions */
-          <div className="space-y-4 pt-1">
+        ) : isIOS || view === "instructions" ? (
+          /* 2. Step-by-Step Visual Instructions (iOS or Manual Browser Fallback) */
+          <div className="space-y-4 pt-1 animate-in fade-in duration-200">
             <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 rounded-2xl border border-amber-200 dark:border-amber-900/50 text-xs text-amber-900 dark:text-amber-200 leading-relaxed font-medium">
-              لتثبيت التطبيق على جهاز iPhone أو iPad، يرجى اتباع الخطوتين التاليتين في متصفح Safari:
+              {isIOS
+                ? "لتثبيت التطبيق على جهاز iPhone أو iPad عبر متصفح Safari:"
+                : "لتثبيت التطبيق يدوياً عبر قائمة المتصفح:"}
             </div>
 
-            <div className="space-y-2.5 text-xs text-slate-700 dark:text-slate-200">
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
-                <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-black shrink-0">
-                  <Share2 className="w-4 h-4" />
-                </div>
-                <span>
-                  1. اضغط على زر <strong>المشاركة (Share)</strong> في أسفل شريط المتصفح.
-                </span>
-              </div>
+            <div className="space-y-2.5 text-xs text-slate-700 dark:text-slate-200 font-medium">
+              {isIOS ? (
+                <>
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-black shrink-0">
+                      <Share2 className="w-4 h-4" />
+                    </div>
+                    <span>
+                      1. اضغط على زر <strong>المشاركة (Share)</strong> في أسفل شريط Safari.
+                    </span>
+                  </div>
 
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
-                <div className="w-8 h-8 rounded-lg bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300 flex items-center justify-center font-black shrink-0">
-                  <PlusSquare className="w-4 h-4" />
-                </div>
-                <span>
-                  2. مرر للأسفل واختر <strong>إضافة إلى الشاشة الرئيسية (Add to Home Screen)</strong>.
-                </span>
-              </div>
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+                    <div className="w-8 h-8 rounded-lg bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300 flex items-center justify-center font-black shrink-0">
+                      <PlusSquare className="w-4 h-4" />
+                    </div>
+                    <span>
+                      2. مرر للأسفل واختر <strong>إضافة إلى الشاشة الرئيسية (Add to Home Screen)</strong>.
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-black shrink-0">
+                      <MoreVertical className="w-4 h-4" />
+                    </div>
+                    <span>
+                      1. اضغط على <strong>قائمة المتصفح (⋮)</strong> في أعلى أو أسفل الشاشة.
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+                    <div className="w-8 h-8 rounded-lg bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300 flex items-center justify-center font-black shrink-0">
+                      <ArrowDownCircle className="w-4 h-4" />
+                    </div>
+                    <span>
+                      2. اختر <strong>"تثبيت التطبيق"</strong> أو <strong>"إضافة إلى الشاشة الرئيسية"</strong>.
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
 
             <Button
@@ -184,8 +231,8 @@ export function PwaInstallPrompt() {
             </Button>
           </div>
         ) : (
-          /* Android / Chrome / Desktop 1-Click Install */
-          <div className="space-y-4 pt-1">
+          /* 3. Primary 1-Click Install View (Android / Chrome / Desktop) */
+          <div className="space-y-4 pt-1 animate-in fade-in duration-200">
             <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-2xl border border-emerald-200 dark:border-emerald-800/60 text-xs text-emerald-900 dark:text-emerald-200 space-y-1">
               <p className="font-bold">✨ مميزات التثبيت:</p>
               <ul className="list-disc list-inside text-[11px] space-y-0.5 text-emerald-800 dark:text-emerald-300">

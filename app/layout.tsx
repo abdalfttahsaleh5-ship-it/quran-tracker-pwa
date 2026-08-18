@@ -46,6 +46,21 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl" className={tajawal.variable}>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if (typeof window !== 'undefined') {
+                window.addEventListener('beforeinstallprompt', function(e) {
+                  e.preventDefault();
+                  window.deferredPwaPrompt = e;
+                  window.dispatchEvent(new CustomEvent('pwa-prompt-ready'));
+                });
+              }
+            `,
+          }}
+        />
+      </head>
       <body className="antialiased selection:bg-emerald-100 selection:text-emerald-900 pt-safe pb-safe">
         <PWAProvider />
         <OfflineBanner />

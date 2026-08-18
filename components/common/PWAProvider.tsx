@@ -6,7 +6,7 @@ import { BeforeInstallPromptEvent } from "@/types/pwa";
 /**
  * Centralized PWA Provider:
  * 1. Registers service worker (/sw.js)
- * 2. Captures beforeinstallprompt once globally and stores it on window.deferredPwaPrompt
+ * 2. Captures beforeinstallprompt globally and stores it on window.deferredPwaPrompt
  * 3. Dispatches 'pwa-prompt-ready' event for UI components
  */
 export function PWAProvider() {
@@ -26,7 +26,7 @@ export function PWAProvider() {
       }
     }
 
-    // 2. Global beforeinstallprompt Capture
+    // 2. Global beforeinstallprompt Capture (if not already captured by early head script)
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       const promptEvent = e as BeforeInstallPromptEvent;
@@ -35,6 +35,11 @@ export function PWAProvider() {
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+
+    // If prompt is already captured on window, dispatch ready event
+    if (typeof window !== "undefined" && window.deferredPwaPrompt) {
+      window.dispatchEvent(new CustomEvent("pwa-prompt-ready"));
+    }
 
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
