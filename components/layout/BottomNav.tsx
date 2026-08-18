@@ -31,7 +31,7 @@ export function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              prefetch={true}
+              prefetch={false}
               className={`flex flex-col items-center justify-center flex-1 h-full py-1 px-2 rounded-xl transition-all duration-200 ${
                 isActive
                   ? "text-emerald-700 dark:text-emerald-400 font-extrabold"

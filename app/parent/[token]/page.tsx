@@ -5,10 +5,8 @@ import { AlertCircle } from "lucide-react";
 import { Card, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { ParentProgressPayload } from "@/types";
 import { ParentPortalClient } from "@/components/parent/ParentPortalClient";
-
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-export const fetchCache = "force-no-store";
+// ISR: Cache on Vercel Edge CDN for 60 seconds to drastically reduce Origin Compute executions
+export const revalidate = 60;
 
 const getStudentProgressByTokenCached = cache(getStudentProgressByToken);
 

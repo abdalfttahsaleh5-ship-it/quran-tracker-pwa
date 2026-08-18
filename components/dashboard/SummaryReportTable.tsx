@@ -274,7 +274,7 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
                         <div className="flex items-center gap-1.5">
                           <Link
                             href={`/students/${item.student.id}`}
-                            prefetch={true}
+                            prefetch={false}
                             className="hover:text-emerald-700 dark:hover:text-emerald-400 hover:underline transition-colors"
                           >
                             {item.student.full_name}

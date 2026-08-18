@@ -16,7 +16,7 @@ export default function TrashPage() {
           </p>
         </div>
 
-        <Link href="/students" prefetch={true}>
+        <Link href="/students" prefetch={false}>
           <Button variant="outline" className="gap-2">
             <ArrowRight className="w-4 h-4" />
             <span>العودة للطلاب</span>

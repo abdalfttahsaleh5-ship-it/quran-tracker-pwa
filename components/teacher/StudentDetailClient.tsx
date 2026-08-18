@@ -263,7 +263,7 @@ export function StudentDetailClient({
       <div>
         <Link
           href="/students"
-          prefetch={true}
+          prefetch={false}
           className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-emerald-700 transition-colors"
         >
           <ArrowRight className="w-4 h-4" />
@@ -390,7 +390,7 @@ export function StudentDetailClient({
                   <span>{isRegeneratingToken ? "جاري التجديد..." : "تجديد رابط المتابعة 🔄"}</span>
                 </Button>
 
-                <Link href={`/parent/${parentToken}`} prefetch={true} target="_blank" className="w-full sm:w-auto">
+                <Link href={`/parent/${parentToken}`} prefetch={false} target="_blank" className="w-full sm:w-auto">
                   <Button
                     size="lg"
                     variant="outline"

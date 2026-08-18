@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { compressImage, blobToDataURL } from "@/lib/utils/imageCompressor";
+import { uploadStudentAvatar } from "@/lib/storage";
 
 interface StudentDialogProps {
   isOpen: boolean;
@@ -83,14 +84,22 @@ export function StudentDialog({
       setIsCompressing(true);
       setError(null);
 
-      // Compress avatar to max 400x400 HD WEBP (~30-50KB)
-      const compressedBlob = await compressImage(file, 400, 0.82);
-      const dataUrl = await blobToDataURL(compressedBlob);
+      // Compress avatar to max 320x320 HD WEBP (~10-20KB)
+      const compressedBlob = await compressImage(file, 320, 0.8);
+      const previewUrl = URL.createObjectURL(compressedBlob);
+      setAvatarPreview(previewUrl);
 
-      setAvatarPreview(dataUrl);
-      setValue("avatar_url", dataUrl);
+      // Upload directly to Supabase Storage CDN to avoid storing heavy Base64 in database
+      const cdnUrl = await uploadStudentAvatar(compressedBlob, student?.id);
+      if (cdnUrl) {
+        setValue("avatar_url", cdnUrl);
+      } else {
+        // Fallback to compressed Data URL if storage bucket is inaccessible
+        const fallbackDataUrl = await blobToDataURL(compressedBlob);
+        setValue("avatar_url", fallbackDataUrl);
+      }
     } catch {
-      setError("فشل ضغط ملف الصورة، يرجى تجربة صورة أخرى");
+      setError("فشل معالجة ملف الصورة، يرجى تجربة صورة أخرى");
     } finally {
       setIsCompressing(false);
     }
