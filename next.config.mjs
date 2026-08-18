@@ -11,12 +11,19 @@ const withPWA = withPWAInit({
   workboxOptions: {
     disableDevLogs: true,
     runtimeCaching: [
-      // 1. Supabase API and Database Calls -> NetworkOnly (NEVER CACHE)
+      // 1. Supabase REST, Auth, Realtime, GraphQL, and Database Endpoints -> NetworkOnly (NEVER CACHE)
       {
-        urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+        urlPattern: /^https?:\/\/.*\.supabase\.(?:co|in)\/(?:rest|auth|graphql|realtime|storage)\/v1\/.*/i,
         handler: "NetworkOnly",
         options: {
-          cacheName: "supabase-network-only",
+          cacheName: "supabase-endpoints-network-only",
+        },
+      },
+      {
+        urlPattern: /^https?:\/\/.*\.supabase\.(?:co|in)\/.*/i,
+        handler: "NetworkOnly",
+        options: {
+          cacheName: "supabase-all-network-only",
         },
       },
       // 2. API Routes -> NetworkOnly (NEVER CACHE)

@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 export type QueuedActionType = "attendance" | "recitation";
 
 export interface QueuedAction {
-  id: string;
+  id: string; // Deterministic UUID client_id
   userId: string;
   type: QueuedActionType;
   payload: any;
@@ -129,8 +129,7 @@ export function notifyQueueChange(userId?: string | null): void {
 }
 
 /**
- * Enqueues a pending action into the user-specific offline queue in localStorage.
- * Throws error or logs warning if userId is missing.
+ * Enqueues a pending action into the user-specific offline queue with deterministic UUID client_id.
  */
 export function enqueueAction(
   type: QueuedActionType,
@@ -143,12 +142,23 @@ export function enqueueAction(
     return null;
   }
 
+  const actionId =
+    typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
+  // Attach deterministic client_id for idempotent server processing
+  const payloadWithClientId =
+    payload && typeof payload === "object" && !Array.isArray(payload)
+      ? { ...payload, client_id: actionId }
+      : payload;
+
   const actions = getPendingActions(uid);
   const newAction: QueuedAction = {
-    id: `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+    id: actionId,
     userId: uid,
     type,
-    payload,
+    payload: payloadWithClientId,
     createdAt: Date.now(),
     retryCount: 0,
   };
@@ -204,9 +214,10 @@ export const clearPendingActions = clearUserQueue;
 let isSyncInProgress = false;
 
 /**
- * Iterates over all pending actions in the user's specific queue and syncs them to the backend.
+ * Synchronizes all pending actions in the user's specific queue to the backend.
+ * Guarantees single-flight processing to avoid double mutations.
  */
-export async function syncPendingActions(
+export async function flush(
   userId?: string | null
 ): Promise<{ syncedCount: number; failedCount: number }> {
   if (typeof window === "undefined" || !navigator.onLine || isSyncInProgress) {
@@ -280,4 +291,31 @@ export async function syncPendingActions(
   }
 
   return { syncedCount, failedCount };
+}
+
+// Backward compatibility alias
+export const syncPendingActions = flush;
+
+// Debounced flush trigger
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+export function debouncedFlush(delayMs: number = 300): void {
+  if (typeof window === "undefined" || !navigator.onLine) return;
+  if (debounceTimer) clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    flush();
+  }, delayMs);
+}
+
+// Automatically bind network and visibility listeners to trigger debounced flush
+if (typeof window !== "undefined") {
+  window.addEventListener("online", () => {
+    debouncedFlush(200);
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && navigator.onLine) {
+      debouncedFlush(300);
+    }
+  });
 }

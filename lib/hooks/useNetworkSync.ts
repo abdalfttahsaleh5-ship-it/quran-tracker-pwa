@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   getPendingActionsCount,
-  syncPendingActions,
+  flush,
   setActiveUserId,
+  getActiveUserIdSync,
 } from "@/lib/offlineQueue";
 import { createClient } from "@/lib/supabase/client";
 
@@ -15,19 +16,17 @@ export interface NetworkSyncState {
   manualSync: () => Promise<{ syncedCount: number; failedCount: number }>;
 }
 
+/**
+ * React hook exposing reactive network connectivity and pending offline queue metrics.
+ */
 export function useNetworkSync(): NetworkSyncState {
   const [isOnline, setIsOnline] = useState<boolean>(true);
   const [pendingCount, setPendingCount] = useState<number>(0);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
-  const [userId, setUserId] = useState<string | null>(null);
   const userIdRef = useRef<string | null>(null);
 
-  useEffect(() => {
-    userIdRef.current = userId;
-  }, [userId]);
-
   const updateQueueCount = useCallback((uid?: string | null) => {
-    const targetUid = uid !== undefined ? uid : userIdRef.current;
+    const targetUid = uid !== undefined ? uid : userIdRef.current || getActiveUserIdSync();
     if (targetUid) {
       setPendingCount(getPendingActionsCount(targetUid));
     } else {
@@ -36,31 +35,31 @@ export function useNetworkSync(): NetworkSyncState {
   }, []);
 
   const manualSync = useCallback(async () => {
-    const currentUid = userIdRef.current;
-    if (typeof window === "undefined" || !navigator.onLine || !currentUid) {
+    if (typeof window === "undefined" || !navigator.onLine) {
       return { syncedCount: 0, failedCount: 0 };
     }
 
     setIsSyncing(true);
     try {
-      const result = await syncPendingActions(currentUid);
-      updateQueueCount(currentUid);
+      const result = await flush(userIdRef.current);
+      updateQueueCount(userIdRef.current);
       return result;
     } finally {
       setIsSyncing(false);
     }
   }, [updateQueueCount]);
 
-  // Handle Supabase Auth lifecycle and active user ID resolution
+  // Handle Supabase Auth lifecycle & reactive state
   useEffect(() => {
     if (typeof window === "undefined") return;
 
+    setIsOnline(navigator.onLine);
     const supabase = createClient();
 
     // 1. Initial auth user retrieval
     supabase.auth.getUser().then(({ data }) => {
       const activeId = data.user?.id || null;
-      setUserId(activeId);
+      userIdRef.current = activeId;
       setActiveUserId(activeId);
       updateQueueCount(activeId);
       if (activeId && navigator.onLine && getPendingActionsCount(activeId) > 0) {
@@ -68,40 +67,22 @@ export function useNetworkSync(): NetworkSyncState {
       }
     });
 
-    // 2. Listen to auth state transitions
+    // 2. Auth state change transitions
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_OUT" || !session) {
-        setUserId(null);
-        setActiveUserId(null);
-        setPendingCount(0);
-        setIsSyncing(false);
-      } else if (session?.user?.id) {
-        const newUid = session.user.id;
-        setUserId(newUid);
-        setActiveUserId(newUid);
-        updateQueueCount(newUid);
-        if (navigator.onLine && getPendingActionsCount(newUid) > 0) {
-          manualSync();
-        }
+      const newUid = session?.user?.id || null;
+      userIdRef.current = newUid;
+      setActiveUserId(newUid);
+      updateQueueCount(newUid);
+      if (newUid && navigator.onLine && getPendingActionsCount(newUid) > 0) {
+        manualSync();
       }
     });
 
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [manualSync, updateQueueCount]);
-
-  // Handle network online/offline and visibility transitions
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    setIsOnline(navigator.onLine);
-
+    // 3. Network & queue event subscriptions
     const handleOnline = () => {
       setIsOnline(true);
-      manualSync();
     };
 
     const handleOffline = () => {
@@ -116,22 +97,15 @@ export function useNetworkSync(): NetworkSyncState {
       }
     };
 
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible" && navigator.onLine) {
-        manualSync();
-      }
-    };
-
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
     window.addEventListener("offline-queue-changed", handleQueueChange);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
+      subscription.unsubscribe();
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
       window.removeEventListener("offline-queue-changed", handleQueueChange);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [manualSync, updateQueueCount]);
 
