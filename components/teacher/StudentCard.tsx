@@ -1,18 +1,27 @@
 "use client";
 
-import { useState } from "react";
-import { User, Phone, Copy, Check, Edit3, Trash2, ExternalLink, BookOpen, MessageSquare, AlertTriangle, Award, Sparkles } from "lucide-react";
-import { StudentRow, AttendanceRecordRow } from "@/types";
+import { useState, useMemo } from "react";
+import dynamic from "next/dynamic";
+import { User, Phone, Copy, Check, Edit3, Trash2, ExternalLink, BookOpen, MessageSquare, AlertTriangle, Award, Sparkles, Zap } from "lucide-react";
+import { StudentRow, AttendanceRecordRow, MemorizationLogRow } from "@/types";
 import { AttendanceAlert } from "@/lib/attendanceAlerts";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { lightHaptic, successHaptic } from "@/lib/haptics";
-import { ShareAchievementModal } from "./ShareAchievementModal";
 import Link from "next/link";
+
+const QuickRecitationSheet = dynamic(
+  () => import("./QuickRecitationSheet").then((mod) => mod.QuickRecitationSheet),
+  { ssr: false }
+);
+const ShareAchievementModal = dynamic(
+  () => import("./ShareAchievementModal").then((mod) => mod.ShareAchievementModal),
+  { ssr: false }
+);
 
 interface StudentCardProps {
   student: StudentRow;
-  logs?: any[];
+  logs?: MemorizationLogRow[] | any[];
   attendance?: AttendanceRecordRow[];
   alert?: AttendanceAlert;
   weeklyTopStudentId?: string;
@@ -24,6 +33,7 @@ export function StudentCard({ student, logs, attendance, alert, weeklyTopStudent
   const [copied, setCopied] = useState(false);
   const [imgError, setImgError] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isQuickRecitationOpen, setIsQuickRecitationOpen] = useState(false);
 
   // Use pre-aggregated completed pages directly from student view
   const totalCompletedPages = Number(
@@ -31,6 +41,17 @@ export function StudentCard({ student, logs, attendance, alert, weeklyTopStudent
   );
 
   const formattedPages = totalCompletedPages.toFixed(1).replace(/\.0$/, "");
+
+  // Determine the most recent Surah for quick default selection
+  const latestSurah = useMemo(() => {
+    if (!logs || logs.length === 0) return null;
+    const studentLogs = logs.filter((l) => l.student_id === student.id);
+    if (studentLogs.length === 0) return null;
+    const sorted = [...studentLogs].sort(
+      (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+    );
+    return sorted[0]?.surah_end || sorted[0]?.surah_start || null;
+  }, [logs, student.id]);
 
   const handleCopyParentLink = async () => {
     lightHaptic();
@@ -55,7 +76,7 @@ export function StudentCard({ student, logs, attendance, alert, weeklyTopStudent
 
   return (
     <>
-      <Card className="hover:shadow-md transition-all border-slate-200 dark:border-slate-800">
+      <Card className="hover:shadow-md transition-all border-slate-200 dark:border-slate-800 flex flex-col justify-between">
         <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-full bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-200 flex items-center justify-center font-bold overflow-hidden border border-teal-200 shrink-0 shadow-inner">
@@ -113,51 +134,68 @@ export function StudentCard({ student, logs, attendance, alert, weeklyTopStudent
         </CardContent>
 
         <CardFooter className="p-4 pt-0 flex flex-col gap-2">
-          {/* Main Action: Open Student Detail Profile */}
+          {/* PRIMARY ACTION: 2-Click Quick Recitation Sheet */}
+          <Button
+            variant="default"
+            size="default"
+            onClick={() => {
+              lightHaptic();
+              setIsQuickRecitationOpen(true);
+            }}
+            className="w-full min-h-[44px] gap-2 font-black text-sm bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-md shadow-teal-700/20 active:scale-[0.98] transition-all rounded-xl"
+          >
+            <Zap className="w-4 h-4 fill-current text-amber-300" />
+            <span>⚡ تسميع سريع (2-Clicks)</span>
+          </Button>
+
+          {/* Secondary Action: Open Full Profile */}
           <Link href={`/students/${student.id}`} prefetch={false} className="w-full">
-            <Button variant="default" size="sm" className="w-full gap-2 font-bold shadow-sm">
-              <BookOpen className="w-4 h-4" />
+            <Button variant="outline" size="sm" className="w-full gap-2 font-bold text-xs text-slate-700 dark:text-slate-200">
+              <BookOpen className="w-3.5 h-3.5" />
               <span>عرض الملف والتسميع اليومي</span>
             </Button>
           </Link>
 
-          {/* Share & Congratulate WhatsApp Action */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              lightHaptic();
-              setIsShareModalOpen(true);
-            }}
-            className="w-full gap-2 font-bold bg-amber-50/60 dark:bg-amber-950/20 text-amber-900 dark:text-amber-300 border-amber-200 dark:border-amber-900/50 hover:bg-amber-100 dark:hover:bg-amber-950/40 transition-all"
-          >
-            <Sparkles className="w-4 h-4 text-amber-500" />
-            <span>تهنئة ومشاركة الإنجاز 🌟</span>
-          </Button>
+          {/* WhatsApp & Parent Link Actions Grid */}
+          <div className="grid grid-cols-2 gap-2 w-full">
+            {/* Share Achievement Modal */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                lightHaptic();
+                setIsShareModalOpen(true);
+              }}
+              className="gap-1.5 font-bold text-xs bg-amber-50/60 dark:bg-amber-950/20 text-amber-900 dark:text-amber-300 border-amber-200 dark:border-amber-900/50 hover:bg-amber-100 transition-all truncate"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+              <span className="truncate">تهنئة واتساب 🌟</span>
+            </Button>
 
-          {/* Copy Parent Link Button */}
-          <Button
-            variant={copied ? "default" : "outline"}
-            size="sm"
-            onClick={handleCopyParentLink}
-            className={`w-full gap-2 transition-all ${
-              copied ? "bg-emerald-600 text-white hover:bg-emerald-700" : ""
-            }`}
-          >
-            {copied ? (
-              <>
-                <Check className="w-4 h-4" />
-                <span>تم نسخ رابط ولي الأمر!</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-4 h-4 text-teal-600" />
-                <span>نسخ رابط متابعة ولي الأمر</span>
-              </>
-            )}
-          </Button>
+            {/* Copy Parent Link Button */}
+            <Button
+              variant={copied ? "default" : "outline"}
+              size="sm"
+              onClick={handleCopyParentLink}
+              className={`gap-1.5 font-bold text-xs transition-all truncate ${
+                copied ? "bg-emerald-600 text-white hover:bg-emerald-700" : "text-teal-800 dark:text-teal-300 border-teal-200 dark:border-teal-900"
+              }`}
+            >
+              {copied ? (
+                <>
+                  <Check className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">تم النسخ!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+                  <span className="truncate">نسخ الرابط 📋</span>
+                </>
+              )}
+            </Button>
+          </div>
 
-          {/* Action Row */}
+          {/* Bottom Action Row: Preview Portal, Edit, Delete */}
           <div className="flex items-center justify-between w-full pt-1">
             <Link href={`/parent/${student.parent_token}`} prefetch={false} target="_blank">
               <Button variant="ghost" size="sm" className="gap-1 text-xs text-teal-700 hover:text-teal-800">
@@ -189,6 +227,15 @@ export function StudentCard({ student, logs, attendance, alert, weeklyTopStudent
           </div>
         </CardFooter>
       </Card>
+
+      {/* Quick Recitation Bottom Sheet */}
+      <QuickRecitationSheet
+        isOpen={isQuickRecitationOpen}
+        onClose={() => setIsQuickRecitationOpen(false)}
+        studentId={student.id}
+        studentName={student.full_name}
+        latestSurah={latestSurah}
+      />
 
       {/* Share Achievement Dialog */}
       <ShareAchievementModal
