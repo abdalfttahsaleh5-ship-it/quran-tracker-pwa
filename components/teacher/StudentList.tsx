@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { Search, UserPlus, Users, CalendarCheck, Mic, Trash2 } from "lucide-react";
+import { Search, UserPlus, Users, CalendarCheck, Trash2 } from "lucide-react";
 import { StudentRow, AttendanceRecordRow, MemorizationLogRow } from "@/types";
 import { getAttendanceAlertsMap } from "@/lib/attendanceAlerts";
 import { StudentInput } from "@/lib/validations/student";
@@ -17,7 +17,6 @@ import { lightHaptic } from "@/lib/haptics";
 const StudentDialog = dynamic(() => import("./StudentDialog").then((mod) => mod.StudentDialog), { ssr: false });
 const DeleteStudentDialog = dynamic(() => import("./DeleteStudentDialog").then((mod) => mod.DeleteStudentDialog), { ssr: false });
 const QuickAttendanceSheet = dynamic(() => import("./QuickAttendanceSheet").then((mod) => mod.QuickAttendanceSheet), { ssr: false });
-const LiveRecitationModal = dynamic(() => import("./LiveRecitationModal").then((mod) => mod.LiveRecitationModal), { ssr: false });
 
 interface StudentListProps {
   initialStudents: StudentRow[];
@@ -39,7 +38,6 @@ export function StudentList({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isQuickAttendanceOpen, setIsQuickAttendanceOpen] = useState(false);
-  const [isLiveRecitationOpen, setIsLiveRecitationOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<StudentRow | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [alertMessage, setAlertMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -203,17 +201,18 @@ export function StudentList({
         </div>
       )}
 
-      {/* Top Controls: Search Bar, Sort Picker, Quick Attendance & Add Button */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
-          <div className="relative flex-1 max-w-md">
+      {/* Top Controls: Search Bar + Sort Picker (Row 1) & 3-Action Compact Grid (Row 2) */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white/70 dark:bg-slate-900/70 p-3 sm:p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
+        {/* Row 1: Search & Sort */}
+        <div className="flex items-center gap-2 flex-1">
+          <div className="relative flex-1">
             <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <Input
               type="text"
               placeholder="بحث باسم الطالب..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pr-9"
+              className="pr-9 h-9 text-xs"
             />
           </div>
 
@@ -223,56 +222,54 @@ export function StudentList({
               lightHaptic();
               setSortBy(e.target.value as "name" | "pages");
             }}
-            className="h-10 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-xs font-bold text-slate-700 dark:text-slate-200"
+            className="h-9 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 shrink-0 cursor-pointer"
           >
-            <option value="name">الترتيب الأبجدي (حسب الاسم)</option>
-            <option value="pages">الترتيب حسب الأكثر تسميعاً (عدد الصفحات) 🏆</option>
+            <option value="name">الاسم أبجدياً</option>
+            <option value="pages">الأكثر تسميعاً 🏆</option>
           </select>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            onClick={() => {
-              lightHaptic();
-              setIsLiveRecitationOpen(true);
-            }}
-            className="gap-2 shadow-md bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl"
-          >
-            <Mic className="w-4 h-4 text-amber-300 animate-pulse" />
-            <span>بدء التسميع المباشر 🎙️</span>
-          </Button>
-
+        {/* Row 2: 3-Action Compact Grid */}
+        <div className="grid grid-cols-3 sm:flex sm:items-center gap-1.5 sm:gap-2">
+          {/* Action 1: Bulk Attendance */}
           <Button
             variant="outline"
+            size="sm"
             onClick={() => {
               lightHaptic();
               setIsQuickAttendanceOpen(true);
             }}
-            className="gap-2 shadow-sm border-teal-200 text-teal-800 hover:bg-teal-50"
+            className="h-9 px-2 sm:px-3 gap-1.5 shadow-sm border-teal-200 dark:border-teal-900 text-teal-800 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-950/40 rounded-xl text-xs font-bold justify-center"
+            title="تحضير جميع طلاب الحلقة اليوم"
           >
-            <CalendarCheck className="w-4 h-4 text-teal-600" />
-            <span>تحضير الحلقة اليوم</span>
+            <CalendarCheck className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
+            <span className="truncate">تحضير الحلقة</span>
           </Button>
 
+          {/* Action 2: Add Student */}
           <Button
+            size="sm"
             onClick={() => {
               lightHaptic();
               handleOpenAdd();
             }}
-            className="gap-2 shadow-sm"
+            className="h-9 px-2 sm:px-3 gap-1.5 shadow-sm bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold justify-center"
+            title="إضافة طالب جديد إلى كشف الحلقة"
           >
-            <UserPlus className="w-4 h-4" />
-            <span>إضافة طالب جديد</span>
+            <UserPlus className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">إضافة طالب</span>
           </Button>
 
+          {/* Action 3: Trash */}
           <Link href="/trash">
             <Button
               variant="outline"
-              className="gap-2 shadow-sm border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl"
+              size="sm"
+              className="w-full h-9 px-2 sm:px-3 gap-1.5 shadow-sm border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl text-xs font-bold justify-center"
               title="سلة المهملات واستعادة الطلاب المحذوفين"
             >
-              <Trash2 className="w-4 h-4 text-rose-500" />
-              <span>سلة المهملات 🗑️</span>
+              <Trash2 className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+              <span className="truncate">السلة 🗑️</span>
             </Button>
           </Link>
         </div>
@@ -341,13 +338,6 @@ export function StudentList({
         onClose={() => setIsQuickAttendanceOpen(false)}
         students={students}
         onSuccess={() => setAlertMessage({ type: "success", text: "تم تسجيل حضور الحلقة بنجاح!" })}
-      />
-
-      <LiveRecitationModal
-        isOpen={isLiveRecitationOpen}
-        onClose={() => setIsLiveRecitationOpen(false)}
-        students={students}
-        logs={logs}
       />
     </div>
   );
