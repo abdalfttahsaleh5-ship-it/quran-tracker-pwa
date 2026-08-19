@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
+import Link from "next/link";
 import dynamic from "next/dynamic";
-import { Search, UserPlus, Users, CalendarCheck, Mic } from "lucide-react";
+import { Search, UserPlus, Users, CalendarCheck, Mic, Trash2 } from "lucide-react";
 import { StudentRow, AttendanceRecordRow, MemorizationLogRow } from "@/types";
 import { getAttendanceAlertsMap } from "@/lib/attendanceAlerts";
 import { StudentInput } from "@/lib/validations/student";
@@ -263,6 +264,17 @@ export function StudentList({
             <UserPlus className="w-4 h-4" />
             <span>إضافة طالب جديد</span>
           </Button>
+
+          <Link href="/trash" prefetch={false}>
+            <Button
+              variant="outline"
+              className="gap-2 shadow-sm border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl"
+              title="سلة المهملات واستعادة الطلاب المحذوفين"
+            >
+              <Trash2 className="w-4 h-4 text-rose-500" />
+              <span>سلة المهملات 🗑️</span>
+            </Button>
+          </Link>
         </div>
       </div>
 

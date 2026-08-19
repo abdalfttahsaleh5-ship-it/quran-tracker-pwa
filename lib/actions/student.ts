@@ -325,6 +325,7 @@ export async function deleteStudent(id: string): Promise<ActionResult> {
     }
 
     revalidatePath("/students");
+    revalidatePath("/trash");
     revalidatePath("/dashboard");
     revalidatePath(`/students/${id}`);
     return { success: true };
@@ -335,6 +336,141 @@ export async function deleteStudent(id: string): Promise<ActionResult> {
     };
   }
 }
+
+export async function restoreStudent(id: string): Promise<ActionResult<StudentRow>> {
+  if (!id) {
+    return { success: false, error: "معرف الطالب مطلوب للاستعادة" };
+  }
+
+  try {
+    const supabase = createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: "غير مصرح لك باستعادة الطالب، يرجى تسجيل الدخول",
+      };
+    }
+
+    // Restore student by clearing deleted_at under RLS
+    const { data: restoredStudent, error } = await supabase
+      .from("students")
+      .update({
+        deleted_at: null,
+      })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error || !restoredStudent) {
+      return {
+        success: false,
+        error: "فشل استعادة الطالب: " + (error?.message || "الطالب غير موجود أو غير مصرح لك باستعادته"),
+      };
+    }
+
+    revalidatePath("/students");
+    revalidatePath("/trash");
+    revalidatePath("/dashboard");
+    revalidatePath(`/students/${id}`);
+    if (restoredStudent.parent_token) {
+      revalidatePath(`/parent/${restoredStudent.parent_token}`);
+    }
+
+    return {
+      success: true,
+      data: restoredStudent,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "حدث خطأ غير متوقع أثناء استعادة الطالب",
+    };
+  }
+}
+
+export async function getDeletedStudents(): Promise<ActionResult<StudentRow[]>> {
+  try {
+    const supabase = createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: "غير مصرح لك للوصول، يرجى تسجيل الدخول أولاً",
+      };
+    }
+
+    // 1. Query deleted students from public.students table under RLS
+    const { data: students, error: studentsError } = await supabase
+      .from("students")
+      .select("*")
+      .not("deleted_at", "is", null)
+      .order("deleted_at", { ascending: false });
+
+    if (studentsError) {
+      return {
+        success: false,
+        error: "فشل جلب قائمة الطلاب المحذوفين: " + studentsError.message,
+      };
+    }
+
+    if (!students || students.length === 0) {
+      return {
+        success: true,
+        data: [],
+      };
+    }
+
+    const studentIds = students.map((s) => s.id);
+
+    // 2. Fetch memorization logs summary for deleted students
+    const { data: logsSummary } = await supabase
+      .from("memorization_logs")
+      .select("student_id, page_count")
+      .in("student_id", studentIds);
+
+    const logsMap = new Map<string, { totalPages: number; count: number }>();
+    (logsSummary || []).forEach((l) => {
+      if (l.student_id) {
+        const cur = logsMap.get(l.student_id) || { totalPages: 0, count: 0 };
+        cur.totalPages += Number(l.page_count) || 1;
+        cur.count += 1;
+        logsMap.set(l.student_id, cur);
+      }
+    });
+
+    const safeStudents: StudentRow[] = students.map((student) => {
+      const stats = logsMap.get(student.id) || { totalPages: 0, count: 0 };
+      const totalPages = Number(stats.totalPages.toFixed(2));
+      return {
+        ...student,
+        total_pages_memorized: totalPages,
+        total_recitations_count: stats.count,
+        total_pages_count: totalPages,
+      };
+    });
+
+    return {
+      success: true,
+      data: safeStudents,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "حدث خطأ غير متوقع أثناء جلب سلة المهملات",
+    };
+  }
+}
+
+export const getDeletedStudentsCached = cache(getDeletedStudents);
 
 export async function regenerateParentToken(studentId: string): Promise<ActionResult<{ parent_token: string }>> {
   if (!studentId) {
