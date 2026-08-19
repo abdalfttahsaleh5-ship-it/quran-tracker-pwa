@@ -31,7 +31,24 @@ interface SummaryReportTableProps {
 export type { PeriodType };
 
 export function SummaryReportTable({ students, logs, attendance }: SummaryReportTableProps) {
-  const [period, setPeriod] = useState<PeriodType>("daily");
+  // Default date bounds (1st day of current month to today)
+  const todayStr = useMemo(() => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }, []);
+
+  const firstDayOfMonthStr = useMemo(() => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    return `${y}-${m}-01`;
+  }, []);
+
+  const [startDate, setStartDate] = useState(firstDayOfMonthStr);
+  const [endDate, setEndDate] = useState(todayStr);
   const [searchQuery, setSearchQuery] = useState("");
   const [localAttendance, setLocalAttendance] = useState<AttendanceRecordRow[]>(attendance);
 
@@ -82,8 +99,8 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
 
   // Unified single-source-of-truth calculation for both on-screen and printable report
   const reportItems: StudentReportItem[] = useMemo(() => {
-    return calculateStudentReportItems(students, logs, localAttendance, period, dateBounds);
-  }, [students, logs, localAttendance, period, dateBounds]);
+    return calculateStudentReportItems(students, logs, localAttendance, startDate, endDate);
+  }, [students, logs, localAttendance, startDate, endDate]);
 
   // Filter report items by search query
   const filteredReportItems = useMemo(() => {
@@ -92,11 +109,12 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
     return reportItems.filter((item) => item.student.full_name.toLowerCase().includes(q));
   }, [reportItems, searchQuery]);
 
-  const periodLabelMap: Record<PeriodType, string> = {
-    daily: "التقرير اليومي (اليوم)",
-    weekly: "التقرير الأسبوعي (هذا الأسبوع)",
-    monthly: "التقرير الشهري (هذا الشهر)",
-  };
+  const periodLabel = useMemo(() => {
+    if (startDate === endDate) {
+      return `تقرير يوم: ${startDate}`;
+    }
+    return `الفترة المخصصة: من ${startDate} إلى ${endDate}`;
+  }, [startDate, endDate]);
 
   const handlePrint = () => {
     if (typeof window !== "undefined") {
@@ -161,7 +179,7 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
   return (
     <>
       {/* Print-only View Component */}
-      <PrintReportView reportItems={filteredReportItems} periodLabel={periodLabelMap[period]} />
+      <PrintReportView reportItems={filteredReportItems} periodLabel={periodLabel} />
 
       {/* Screen Interactive Dashboard Card */}
       <Card className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm print:hidden">
@@ -172,7 +190,7 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
               <span>تقرير متابعة طلاب الحلقة 📊</span>
             </CardTitle>
             <CardDescription className="text-[10px] sm:text-xs text-slate-500 mt-0.5">
-              إحصائيات الحضور والصفحات حسب الفترة الزمانية
+              إحصائيات الحضور والصفحات حسب الفترة المحددة
             </CardDescription>
           </div>
 
@@ -189,56 +207,49 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
         </CardHeader>
 
         <CardContent className="p-3 sm:p-6 space-y-3 sm:space-y-4">
-          {/* Period Selection Segmented Controls & Search Bar */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3">
-            {/* Segmented Control Pill */}
-            <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700">
-              <button
-                type="button"
-                onClick={() => setPeriod("daily")}
-                className={`flex-1 sm:flex-none px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-extrabold rounded-lg transition-all ${
-                  period === "daily"
-                    ? "bg-emerald-700 text-white shadow-sm"
-                    : "text-slate-600 dark:text-slate-300 hover:text-slate-900"
-                }`}
-              >
-                اليومي
-              </button>
+          {/* Custom Date Range Controls & Search Bar */}
+          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 sm:gap-3">
+            {/* Custom Date Range Selector */}
+            <div className="flex flex-wrap items-center gap-2 p-1.5 sm:p-2 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700">
+              <div className="flex items-center gap-1 text-[11px] sm:text-xs font-black text-slate-700 dark:text-slate-200 px-1">
+                <Calendar className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span>فترة مخصصة:</span>
+              </div>
 
-              <button
-                type="button"
-                onClick={() => setPeriod("weekly")}
-                className={`flex-1 sm:flex-none px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-extrabold rounded-lg transition-all ${
-                  period === "weekly"
-                    ? "bg-emerald-700 text-white shadow-sm"
-                    : "text-slate-600 dark:text-slate-300 hover:text-slate-900"
-                }`}
-              >
-                الأسبوعي
-              </button>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <div className="flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2 py-1 shadow-sm">
+                  <span className="text-[10px] sm:text-[11px] font-bold text-slate-400">من</span>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="bg-transparent text-[11px] sm:text-xs font-bold text-slate-800 dark:text-slate-100 outline-none cursor-pointer"
+                  />
+                </div>
 
-              <button
-                type="button"
-                onClick={() => setPeriod("monthly")}
-                className={`flex-1 sm:flex-none px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-extrabold rounded-lg transition-all ${
-                  period === "monthly"
-                    ? "bg-emerald-700 text-white shadow-sm"
-                    : "text-slate-600 dark:text-slate-300 hover:text-slate-900"
-                }`}
-              >
-                الشهري
-              </button>
+                <span className="text-slate-400 font-bold text-xs">—</span>
+
+                <div className="flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2 py-1 shadow-sm">
+                  <span className="text-[10px] sm:text-[11px] font-bold text-slate-400">إلى</span>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="bg-transparent text-[11px] sm:text-xs font-bold text-slate-800 dark:text-slate-100 outline-none cursor-pointer"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Instant Search Bar */}
-            <div className="relative w-full sm:w-64">
+            <div className="relative w-full md:w-64">
               <Search className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
               <Input
                 type="text"
                 placeholder="ابحث باسم الطالب..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pr-9 rounded-xl border-slate-200 dark:border-slate-700 text-xs font-bold"
+                className="pr-9 rounded-xl border-slate-200 dark:border-slate-700 text-xs font-bold bg-white dark:bg-slate-900"
               />
             </div>
           </div>
@@ -292,7 +303,7 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
                         {item.student.academic_grade || "غير محدد"}
                       </td>
                       <td className="p-2 sm:p-3 text-center font-bold whitespace-nowrap">
-                        {period === "daily" ? (
+                        {startDate === endDate && startDate === dateBounds.todayStr ? (
                           (() => {
                             const todayRecord = localAttendance.find(
                               (a) => a.student_id === item.student.id && a.date === dateBounds.todayStr

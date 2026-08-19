@@ -62,48 +62,36 @@ export function formatCleanPageCount(totalPages: number): number {
 
 /**
  * Single source of truth calculation for student summary reports
- * used identically across on-screen dashboard and printable reports.
+ * across any custom date range (e.g. from 2026-07-01 to 2026-08-15).
  */
 export function calculateStudentReportItems(
   students: StudentRow[],
   logs: MemorizationLogRow[],
   attendance: AttendanceRecordRow[],
-  period: PeriodType,
-  bounds = getTimeframeDateBounds()
+  startDate: string,
+  endDate: string
 ): StudentReportItem[] {
-  const { startOfDay, startOfWeek, startOfMonth, now, todayStr, startOfWeekStr, startOfMonthStr } = bounds;
+  // Ensure valid date range order
+  const actualStart = startDate <= endDate ? startDate : endDate;
+  const actualEnd = startDate <= endDate ? endDate : startDate;
 
   // Calculate unique session dates held across the halaqah for the selected period
   const sessionDates = new Set<string>();
   attendance.forEach((a) => {
     if (!a.date) return;
-    if (period === "daily" && a.date === todayStr) {
-      sessionDates.add(a.date);
-    } else if (period === "weekly" && a.date >= startOfWeekStr && a.date <= todayStr) {
-      sessionDates.add(a.date);
-    } else if (period === "monthly" && a.date >= startOfMonthStr && a.date <= todayStr) {
+    if (a.date >= actualStart && a.date <= actualEnd) {
       sessionDates.add(a.date);
     }
   });
   const totalHalaqahSessions = sessionDates.size;
 
   return students.map((student) => {
-    // 1. Filter student logs within exact timeframe boundaries
+    // 1. Filter student logs within exact date boundaries
     const studentLogs = logs.filter((l) => {
-      if (!l.created_at || l.student_id !== student.id) return false;
-      const logTime = new Date(l.created_at).getTime();
-      if (isNaN(logTime)) return false;
-
-      if (period === "daily") {
-        return logTime >= startOfDay.getTime() && logTime <= now.getTime();
-      }
-      if (period === "weekly") {
-        return logTime >= startOfWeek.getTime() && logTime <= now.getTime();
-      }
-      if (period === "monthly") {
-        return logTime >= startOfMonth.getTime() && logTime <= now.getTime();
-      }
-      return false;
+      if (l.student_id !== student.id) return false;
+      const logDate = l.date || (l.created_at ? l.created_at.substring(0, 10) : "");
+      if (!logDate) return false;
+      return logDate >= actualStart && logDate <= actualEnd;
     });
 
     const rawTotalPages = studentLogs.reduce((sum, l) => {
@@ -113,19 +101,10 @@ export function calculateStudentReportItems(
 
     const cleanPages = formatCleanPageCount(rawTotalPages);
 
-    // 2. Filter student attendance within exact timeframe boundaries
+    // 2. Filter student attendance within exact date boundaries
     const studentAttendance = attendance.filter((a) => {
       if (!a.date || a.student_id !== student.id) return false;
-      if (period === "daily") {
-        return a.date === todayStr;
-      }
-      if (period === "weekly") {
-        return a.date >= startOfWeekStr && a.date <= todayStr;
-      }
-      if (period === "monthly") {
-        return a.date >= startOfMonthStr && a.date <= todayStr;
-      }
-      return false;
+      return a.date >= actualStart && a.date <= actualEnd;
     });
 
     // Deduplicate student attendance by date
@@ -144,61 +123,59 @@ export function calculateStudentReportItems(
     ).length;
 
     let attendanceText = "لم يرصد";
-    let badgeStyle = "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700";
+    let badgeStyle =
+      "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700";
 
-    if (period === "daily") {
+    const isSingleDay = actualStart === actualEnd;
+
+    if (isSingleDay) {
       if (uniqueList.length > 0) {
         const status = uniqueList[0].status;
         if (status === "حاضر" || (status as string) === "present") {
           attendanceText = "حاضر";
-          badgeStyle = "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800";
+          badgeStyle =
+            "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800";
         } else if (status === "غائب" || (status as string) === "absent") {
           attendanceText = "غائب";
-          badgeStyle = "bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-300 dark:border-rose-800";
+          badgeStyle =
+            "bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-300 dark:border-rose-800";
         } else if (status === "مستأذن" || (status as string) === "excused") {
           attendanceText = "مستأذن";
-          badgeStyle = "bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-800";
+          badgeStyle =
+            "bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-800";
         } else if (status === "متأخر" || (status as string) === "late") {
           attendanceText = "متأخر";
-          badgeStyle = "bg-teal-100 text-teal-800 dark:bg-teal-950/80 dark:text-teal-300 border border-teal-300 dark:border-teal-800";
+          badgeStyle =
+            "bg-teal-100 text-teal-800 dark:bg-teal-950/80 dark:text-teal-300 border border-teal-300 dark:border-teal-800";
         } else {
           attendanceText = String(status);
-          badgeStyle = "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700";
+          badgeStyle =
+            "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700";
         }
       } else {
         attendanceText = "لم يرصد";
-        badgeStyle = "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700";
+        badgeStyle =
+          "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700";
       }
-    } else if (period === "weekly") {
-      const totalSessions = Math.max(totalHalaqahSessions, uniqueList.length);
-      if (totalSessions > 0) {
-        attendanceText = `${presentDays} / ${totalSessions}`;
-        if (presentDays === totalSessions) {
-          badgeStyle = "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800";
-        } else if (presentDays > 0) {
-          badgeStyle = "bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-800";
-        } else {
-          badgeStyle = "bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-300 dark:border-rose-800";
-        }
-      } else {
-        attendanceText = "0 / 0";
-        badgeStyle = "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700";
-      }
-    } else if (period === "monthly") {
+    } else {
       const totalSessions = Math.max(totalHalaqahSessions, uniqueList.length);
       if (totalSessions > 0) {
         const percentage = Math.round((presentDays / totalSessions) * 100);
         attendanceText = `${presentDays} / ${totalSessions} (${percentage}%)`;
         if (percentage >= 85) {
-          badgeStyle = "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800";
+          badgeStyle =
+            "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800";
         } else if (percentage >= 60) {
-          badgeStyle = "bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-800";
+          badgeStyle =
+            "bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-800";
         } else {
-          badgeStyle = "bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-300 dark:border-rose-800";
+          badgeStyle =
+            "bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-300 dark:border-rose-800";
         }
       } else {
         attendanceText = "0 / 0 (0%)";
-        badgeStyle = "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700";
+        badgeStyle =
+          "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700";
       }
     }
 
