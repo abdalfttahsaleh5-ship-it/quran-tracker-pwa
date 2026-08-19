@@ -263,7 +263,6 @@ export function StudentDetailClient({
       <div>
         <Link
           href="/students"
-          prefetch={false}
           className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-emerald-700 transition-colors"
         >
           <ArrowRight className="w-4 h-4" />

@@ -265,7 +265,7 @@ export function StudentList({
             <span>إضافة طالب جديد</span>
           </Button>
 
-          <Link href="/trash" prefetch={false}>
+          <Link href="/trash">
             <Button
               variant="outline"
               className="gap-2 shadow-sm border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl"

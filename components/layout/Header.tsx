@@ -22,7 +22,7 @@ export function Header() {
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
         {/* Brand Logo & Title */}
         <div className="flex items-center gap-4">
-          <Link href="/dashboard" prefetch={false} className="flex items-center gap-2.5 group">
+          <Link href="/dashboard" className="flex items-center gap-2.5 group">
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-800 to-teal-700 text-white flex items-center justify-center font-bold shadow-md group-hover:scale-105 transition-transform">
               <BookOpen className="w-5 h-5 text-amber-300" />
             </div>
@@ -46,7 +46,6 @@ export function Header() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  prefetch={false}
                   className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-bold transition-all ${
                     isActive
                       ? "bg-emerald-50 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 shadow-sm border border-emerald-200/50 dark:border-emerald-800/50"

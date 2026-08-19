@@ -25,14 +25,15 @@ export default async function StudentDetailPage({ params }: StudentDetailPagePro
     notFound();
   }
 
-  // Fetch Student details
-  const { data: student, error: studentError } = await supabase
-    .from("students")
-    .select("*")
-    .eq("id", id)
-    .single();
+  // Fetch Student details, Memorization Logs, and Attendance Records concurrently in parallel
+  const [studentRes, logsRes, attendanceRes] = await Promise.all([
+    supabase.from("students").select("*").eq("id", id).single(),
+    getStudentLogsCached(id, 100),
+    getStudentAttendanceCached(id, 100),
+  ]);
 
-  if (studentError || !student) {
+  const student = studentRes.data;
+  if (studentRes.error || !student) {
     notFound();
   }
 
@@ -46,12 +47,7 @@ export default async function StudentDetailPage({ params }: StudentDetailPagePro
     student.parent_token = newToken;
   }
 
-  // Fetch Student Memorization Logs
-  const logsRes = await getStudentLogsCached(id, 100);
   const logs = logsRes.success && logsRes.data ? logsRes.data : [];
-
-  // Fetch Student Attendance Records
-  const attendanceRes = await getStudentAttendanceCached(id, 100);
   const attendance = attendanceRes.success && attendanceRes.data ? attendanceRes.data : [];
 
   return (

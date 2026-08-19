@@ -111,7 +111,7 @@ export function StudentCard({ student, logs, attendance, alert, weeklyTopStudent
               )}
             </div>
             <div>
-              <Link href={`/students/${student.id}`} prefetch={false} className="hover:underline">
+              <Link href={`/students/${student.id}`} className="hover:underline">
                 <CardTitle className="text-base font-bold text-slate-900 dark:text-slate-50 flex items-center gap-1.5 flex-wrap">
                   <span>{student.full_name}</span>
                   {student.academic_grade && (
@@ -167,7 +167,7 @@ export function StudentCard({ student, logs, attendance, alert, weeklyTopStudent
           </Button>
 
           {/* Secondary Action: Open Full Profile */}
-          <Link href={`/students/${student.id}`} prefetch={false} className="w-full">
+          <Link href={`/students/${student.id}`} className="w-full">
             <Button variant="outline" size="sm" className="w-full gap-2 font-bold text-xs text-slate-700 dark:text-slate-200">
               <BookOpen className="w-3.5 h-3.5" />
               <span>عرض الملف والتسميع اليومي</span>

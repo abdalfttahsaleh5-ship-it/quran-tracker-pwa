@@ -121,7 +121,7 @@ export function TrashStudentList({ initialStudents }: TrashStudentListProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          <Link href="/students" prefetch={false}>
+          <Link href="/students">
             <Button
               variant="outline"
               size="sm"
@@ -243,7 +243,7 @@ export function TrashStudentList({ initialStudents }: TrashStudentListProps) {
           </div>
 
           {!searchQuery && (
-            <Link href="/students" prefetch={false}>
+            <Link href="/students">
               <Button variant="outline" size="sm" className="gap-2 rounded-xl mt-2">
                 <ArrowRight className="w-4 h-4" />
                 <span>الذهاب لكشوفات الطلاب</span>
