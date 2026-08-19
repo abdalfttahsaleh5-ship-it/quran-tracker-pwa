@@ -7,7 +7,7 @@ import { StatsCards } from "@/components/dashboard/StatsCards";
 export const revalidate = 0;
 
 export default async function TeacherDashboardPage() {
-  const reportRes = await getTeacherReportDataCached();
+  const reportRes = await getTeacherReportDataCached({ timeframe: "all" });
 
   const students = reportRes.success && reportRes.students ? reportRes.students : [];
   const logs = reportRes.success && reportRes.logs ? reportRes.logs : [];

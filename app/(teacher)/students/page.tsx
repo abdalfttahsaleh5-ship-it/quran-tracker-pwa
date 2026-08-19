@@ -4,7 +4,7 @@ import { StudentList } from "@/components/teacher/StudentList";
 export const revalidate = 0;
 
 export default async function StudentsPage() {
-  const res = await getTeacherReportDataCached();
+  const res = await getTeacherReportDataCached({ timeframe: "all" });
   const students = res.success && res.students ? res.students : [];
   const attendance = res.success && res.attendance ? res.attendance : [];
   const logs = res.success && res.logs ? res.logs : [];

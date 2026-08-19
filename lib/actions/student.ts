@@ -603,6 +603,10 @@ function resolveDateRange(options?: TeacherReportDataOptions): { startStr: strin
 
   const timeframe = options?.timeframe || "this_month";
 
+  if (timeframe === "all") {
+    return { startStr: "", endStr: "" };
+  }
+
   if (timeframe === "today") {
     return { startStr: todayStr, endStr: todayStr };
   }
@@ -622,10 +626,6 @@ function resolveDateRange(options?: TeacherReportDataOptions): { startStr: strin
     const sMonth = String(start30.getMonth() + 1).padStart(2, "0");
     const sDay = String(start30.getDate()).padStart(2, "0");
     return { startStr: `${sYear}-${sMonth}-${sDay}`, endStr: todayStr };
-  }
-
-  if (timeframe === "all") {
-    return { startStr: "", endStr: todayStr };
   }
 
   // Default: "this_month"
@@ -656,7 +656,6 @@ export async function getTeacherReportData(options?: TeacherReportDataOptions): 
     }
 
     const { startStr, endStr } = resolveDateRange(options);
-    const logLimit = options?.limit ?? 50;
 
     // 1. Fetch Active Students directly from public.students table under RLS
     const studentsPromise = supabase
@@ -665,7 +664,7 @@ export async function getTeacherReportData(options?: TeacherReportDataOptions): 
       .is("deleted_at", null)
       .order("full_name", { ascending: true });
 
-    // 2. Fetch Time-scoped Attendance Records
+    // 2. Fetch Time-scoped Attendance Records (under teacher RLS)
     let attendanceQuery = supabase
       .from("attendance_records")
       .select("*");
@@ -678,7 +677,7 @@ export async function getTeacherReportData(options?: TeacherReportDataOptions): 
     }
     const attendancePromise = attendanceQuery.order("date", { ascending: false });
 
-    // 3. Fetch Time-scoped and Paginated Recent Logs
+    // 3. Fetch Logs without artificial limit for full custom range reporting (under teacher RLS)
     let logsQuery = supabase
       .from("memorization_logs")
       .select("*");
@@ -689,7 +688,10 @@ export async function getTeacherReportData(options?: TeacherReportDataOptions): 
     if (endStr) {
       logsQuery = logsQuery.lte("date", endStr);
     }
-    const logsPromise = logsQuery.order("created_at", { ascending: false }).limit(logLimit);
+    if (options?.limit) {
+      logsQuery = logsQuery.limit(options.limit);
+    }
+    const logsPromise = logsQuery.order("created_at", { ascending: false });
 
     // 4. Lightweight Aggregated Logs Query for timeframe stats
     let statsLogsQuery = supabase
