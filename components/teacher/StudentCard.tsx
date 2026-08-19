@@ -92,7 +92,7 @@ export function StudentCard({ student, logs, attendance, alert, weeklyTopStudent
         {/* CARD HEADER: Profile Info + Visible Edit Action + 3-Dots Menu */}
         <CardHeader className="p-4 pb-2 flex flex-row items-start justify-between gap-2">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="w-10 h-10 rounded-full bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-200 flex items-center justify-center font-bold overflow-hidden border border-teal-200 shrink-0 shadow-inner">
+            <div className="w-12 h-12 rounded-full bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-200 flex items-center justify-center font-bold overflow-hidden border border-teal-200 shrink-0 shadow-inner">
               {student.avatar_url && !imgError ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -102,7 +102,7 @@ export function StudentCard({ student, logs, attendance, alert, weeklyTopStudent
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <span className="text-base select-none">{student.full_name.charAt(0)}</span>
+                <span className="text-lg select-none font-bold">{student.full_name.charAt(0)}</span>
               )}
             </div>
             <div className="min-w-0 flex-1">
