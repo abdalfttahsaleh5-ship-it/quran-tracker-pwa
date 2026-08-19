@@ -71,6 +71,7 @@ export async function createMemorizationLog(data: MemorizationLogInput): Promise
     }
 
     revalidatePath(`/students/${validation.data.student_id}`);
+    revalidatePath("/students");
     revalidatePath("/dashboard");
     return {
       success: true,
@@ -148,6 +149,7 @@ export async function updateMemorizationLog(
     }
 
     revalidatePath(`/students/${validation.data.student_id}`);
+    revalidatePath("/students");
     revalidatePath("/dashboard");
     return {
       success: true,
@@ -250,6 +252,7 @@ export async function deleteMemorizationLog(id: string, studentId: string): Prom
     }
 
     revalidatePath(`/students/${studentId}`);
+    revalidatePath("/students");
     revalidatePath("/dashboard");
     return { success: true };
   } catch (err) {

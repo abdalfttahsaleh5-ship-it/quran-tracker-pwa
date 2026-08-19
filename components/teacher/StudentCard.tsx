@@ -25,22 +25,10 @@ export function StudentCard({ student, logs, attendance, alert, weeklyTopStudent
   const [imgError, setImgError] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // Dynamic completed pages calculation from logs with fallback
-  const totalCompletedPages = useMemo(() => {
-    const studentLogs = logs?.filter(
-      (log) => String(log.student_id || log.studentId) === String(student.id)
-    ) || [];
-
-    if (studentLogs.length > 0) {
-      const sum = studentLogs.reduce((acc, log) => {
-        const pages = Number(log.page_count ?? log.pageCount ?? log.pages ?? 0);
-        return acc + (isNaN(pages) ? 0 : pages);
-      }, 0);
-      return Number(sum.toFixed(2));
-    }
-
-    return Number(student.total_pages_memorized ?? student.total_pages_count ?? 0);
-  }, [logs, student.id, student.total_pages_memorized, student.total_pages_count]);
+  // Server pre-aggregated all-time total completed pages
+  const totalCompletedPages = Number(
+    student.total_pages_memorized ?? student.total_pages_count ?? 0
+  );
 
   const formattedPages = totalCompletedPages.toFixed(1).replace(/\.0$/, "");
 

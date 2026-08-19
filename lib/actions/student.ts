@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { studentSchema, StudentInput } from "@/lib/validations/student";
 import { validateAndFormatJordanianPhone } from "@/lib/phoneUtils";
 import { StudentRow, StudentInsert, StudentUpdate, ParentProgressPayload, MemorizationLogRow, AttendanceRecordRow } from "@/types";
+import { calculateRecitationPages } from "@/lib/quranMetadata";
 import { revalidatePath } from "next/cache";
 import { getActiveGroupId } from "./group";
 
@@ -43,17 +44,32 @@ export async function getStudents(): Promise<ActionResult<StudentRow[]>> {
       };
     }
 
-    // 2. Fetch active memorization logs summary to compute total pages & recitations
-    const { data: logsSummary } = await supabase
-      .from("memorization_logs")
-      .select("student_id, page_count")
-      .is("deleted_at", null);
+    // 2. Fetch active memorization logs summary to compute all-time total pages & recitations
+    const studentIds = (students || []).map((s) => s.id);
+    let logsSummary: any[] = [];
+    if (studentIds.length > 0) {
+      const { data: logsData } = await supabase
+        .from("memorization_logs")
+        .select("student_id, page_count, surah_start, surah_end, aya_start, aya_end")
+        .in("student_id", studentIds)
+        .is("deleted_at", null);
+      logsSummary = logsData || [];
+    }
 
     const logsMap = new Map<string, { totalPages: number; count: number }>();
-    (logsSummary || []).forEach((l) => {
+    logsSummary.forEach((l) => {
       if (l.student_id) {
         const cur = logsMap.get(l.student_id) || { totalPages: 0, count: 0 };
-        cur.totalPages += Number(l.page_count) || 1;
+        let pages = Number(l.page_count);
+        if (isNaN(pages) || pages <= 0) {
+          if (l.surah_start && l.surah_end) {
+            const calculated = calculateRecitationPages(l.surah_start, l.surah_end, l.aya_start || 1, l.aya_end || 1);
+            pages = isNaN(calculated) || calculated < 0 ? 0 : calculated;
+          } else {
+            pages = 0;
+          }
+        }
+        cur.totalPages += pages;
         cur.count += 1;
         logsMap.set(l.student_id, cur);
       }
@@ -683,27 +699,41 @@ export async function getTeacherReportData(options?: TeacherReportDataOptions): 
       statsLogsQuery = statsLogsQuery.lte("date", endStr);
     }
 
-    // 5. All-time logs summary to pre-aggregate student totals accurately
-    const allLogsSummaryPromise = supabase
-      .from("memorization_logs")
-      .select("student_id, page_count")
-      .is("deleted_at", null);
-
-    const [studentsRes, attendanceRes, logsRes, statsLogsRes, allLogsSummaryRes] = await Promise.all([
+    const [studentsRes, attendanceRes, logsRes, statsLogsRes] = await Promise.all([
       studentsPromise,
       attendancePromise,
       logsPromise,
       statsLogsQuery,
-      allLogsSummaryPromise,
     ]);
 
     const rawStudents = studentsRes.data || [];
-    const allLogsSummary = allLogsSummaryRes.data || [];
+    const studentIds = rawStudents.map((s) => s.id);
+
+    // 5. All-time logs summary for the teacher's active students to pre-aggregate totals accurately
+    let allLogsSummary: any[] = [];
+    if (studentIds.length > 0) {
+      const { data: allLogsData } = await supabase
+        .from("memorization_logs")
+        .select("student_id, page_count, surah_start, surah_end, aya_start, aya_end")
+        .in("student_id", studentIds)
+        .is("deleted_at", null);
+      allLogsSummary = allLogsData || [];
+    }
+
     const logsMap = new Map<string, { totalPages: number; count: number }>();
     allLogsSummary.forEach((l) => {
       if (l.student_id) {
         const cur = logsMap.get(l.student_id) || { totalPages: 0, count: 0 };
-        cur.totalPages += Number(l.page_count) || 1;
+        let pages = Number(l.page_count);
+        if (isNaN(pages) || pages <= 0) {
+          if (l.surah_start && l.surah_end) {
+            const calculated = calculateRecitationPages(l.surah_start, l.surah_end, l.aya_start || 1, l.aya_end || 1);
+            pages = isNaN(calculated) || calculated < 0 ? 0 : calculated;
+          } else {
+            pages = 0;
+          }
+        }
+        cur.totalPages += pages;
         cur.count += 1;
         logsMap.set(l.student_id, cur);
       }
