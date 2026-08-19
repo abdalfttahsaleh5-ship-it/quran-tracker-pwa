@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import dynamic from "next/dynamic";
-import { User, Phone, Copy, Check, Edit3, Trash2, ExternalLink, BookOpen, MessageSquare, AlertTriangle, Zap } from "lucide-react";
+import { User, Phone, Copy, Check, Edit3, Trash2, ExternalLink, BookOpen, MessageSquare, AlertTriangle, Zap, MoreVertical } from "lucide-react";
 import { StudentRow, AttendanceRecordRow, MemorizationLogRow } from "@/types";
 import { AttendanceAlert } from "@/lib/attendanceAlerts";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
@@ -30,6 +30,7 @@ export function StudentCard({ student, logs, attendance, alert, weeklyTopStudent
   const [copied, setCopied] = useState(false);
   const [imgError, setImgError] = useState(false);
   const [isQuickRecitationOpen, setIsQuickRecitationOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Use pre-aggregated completed pages directly from student view
   const totalCompletedPages = Number(
@@ -94,10 +95,11 @@ export function StudentCard({ student, logs, attendance, alert, weeklyTopStudent
 
   return (
     <>
-      <Card className="hover:shadow-md transition-all border-slate-200 dark:border-slate-800 flex flex-col justify-between">
-        <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-full bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-200 flex items-center justify-center font-bold overflow-hidden border border-teal-200 shrink-0 shadow-inner">
+      <Card className="hover:shadow-md transition-all border-slate-200 dark:border-slate-800 flex flex-col justify-between overflow-visible relative">
+        {/* CARD HEADER: Profile Info + Visible Edit Action + 3-Dots Menu */}
+        <CardHeader className="p-4 pb-2 flex flex-row items-start justify-between gap-2">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="w-10 h-10 rounded-full bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-200 flex items-center justify-center font-bold overflow-hidden border border-teal-200 shrink-0 shadow-inner">
               {student.avatar_url && !imgError ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -110,12 +112,12 @@ export function StudentCard({ student, logs, attendance, alert, weeklyTopStudent
                 <span className="text-base select-none">{student.full_name.charAt(0)}</span>
               )}
             </div>
-            <div>
-              <Link href={`/students/${student.id}`} className="hover:underline">
+            <div className="min-w-0 flex-1">
+              <Link href={`/students/${student.id}`} className="hover:underline block">
                 <CardTitle className="text-base font-bold text-slate-900 dark:text-slate-50 flex items-center gap-1.5 flex-wrap">
-                  <span>{student.full_name}</span>
+                  <span className="truncate">{student.full_name}</span>
                   {student.academic_grade && (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 border border-teal-200">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 border border-teal-200 shrink-0">
                       {student.academic_grade}
                     </span>
                   )}
@@ -129,30 +131,98 @@ export function StudentCard({ student, logs, attendance, alert, weeklyTopStudent
                   )}
                 </CardTitle>
               </Link>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-[11px] text-slate-400 mt-0.5">
                 تم التسجيل: {new Date(student.created_at).toLocaleDateString("ar-JO")}
               </p>
             </div>
           </div>
+
+          {/* Action Tools in Header: ✏️ Edit (Primary management) + ⋮ More */}
+          <div className="flex items-center gap-1 shrink-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                lightHaptic();
+                onEdit(student);
+              }}
+              title="تعديل بيانات الطالب"
+              className="h-8 px-2 gap-1 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-teal-700 hover:bg-teal-50 dark:hover:bg-teal-950/50 rounded-lg"
+            >
+              <Edit3 className="w-3.5 h-3.5 text-teal-600" />
+              <span className="hidden xs:inline">تعديل</span>
+            </Button>
+
+            {/* 3-Dots Dropdown Trigger */}
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  lightHaptic();
+                  setIsMenuOpen(!isMenuOpen);
+                }}
+                title="خيارات إضافية"
+                className="h-8 w-8 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg"
+              >
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+
+              {isMenuOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-30"
+                    onClick={() => setIsMenuOpen(false)}
+                  />
+                  <div className="absolute left-0 top-full mt-1 z-40 w-44 bg-white dark:bg-slate-850 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 py-1 text-xs font-bold animate-in fade-in zoom-in-95 duration-150">
+                    <Link
+                      href={`/parent/${student.parent_token}`}
+                      target="_blank"
+                      prefetch={false}
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center gap-2 px-3 py-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 text-teal-600" />
+                      <span>معاينة بوابة ولي الأمر</span>
+                    </Link>
+                    <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        onDelete(student);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors text-right"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>حذف / أرشفة الطالب</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         </CardHeader>
 
-        <CardContent className="p-4 pt-2 text-sm space-y-2">
-          <div className="flex items-center justify-between gap-2 flex-wrap text-xs font-bold text-teal-800 dark:text-teal-300 bg-teal-50/70 dark:bg-teal-950/40 p-2 rounded-lg border border-teal-100 dark:border-teal-900">
+        {/* CARD CONTENT: Compact Stats & Contact */}
+        <CardContent className="p-4 pt-1 pb-2 text-sm space-y-1.5">
+          <div className="flex items-center justify-between gap-2 flex-wrap text-xs font-bold text-teal-800 dark:text-teal-300 bg-teal-50/70 dark:bg-teal-950/40 px-2.5 py-1.5 rounded-lg border border-teal-100 dark:border-teal-900">
             <span>📚 مجموع التسميع المنجز:</span>
             <span className="font-mono text-sm font-black">{formattedPages} صفحة</span>
           </div>
 
-          <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 pt-1">
-            <Phone className="w-4 h-4 text-teal-600 shrink-0" />
+          <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 px-1">
+            <Phone className="w-3.5 h-3.5 text-teal-600 shrink-0" />
             <span>هاتف ولي الأمر: </span>
-            <span dir="ltr" className="font-mono text-slate-800 dark:text-slate-200">
+            <span dir="ltr" className="font-mono text-slate-800 dark:text-slate-200 font-bold">
               {student.parent_phone || "غير مسجل"}
             </span>
           </div>
         </CardContent>
 
-        <CardFooter className="p-4 pt-0 flex flex-col gap-2">
-          {/* PRIMARY ACTION: 2-Click Quick Recitation Sheet */}
+        {/* CARD FOOTER: Primary Daily Actions + Compact Secondary Row */}
+        <CardFooter className="p-4 pt-0 flex flex-col gap-1.5">
+          {/* PRIMARY ACTION 1: 2-Click Quick Recitation */}
           <Button
             variant="default"
             size="default"
@@ -160,43 +230,45 @@ export function StudentCard({ student, logs, attendance, alert, weeklyTopStudent
               lightHaptic();
               setIsQuickRecitationOpen(true);
             }}
-            className="w-full min-h-[44px] gap-2 font-black text-sm bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-md shadow-teal-700/20 active:scale-[0.98] transition-all rounded-xl"
+            className="w-full min-h-[42px] gap-2 font-black text-sm bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-md shadow-teal-700/20 active:scale-[0.98] transition-all rounded-xl"
           >
             <Zap className="w-4 h-4 fill-current text-amber-300" />
             <span>⚡ تسميع سريع (2-Clicks)</span>
           </Button>
 
-          {/* Secondary Action: Open Full Profile */}
+          {/* PRIMARY ACTION 2: Open Full Profile */}
           <Link href={`/students/${student.id}`} className="w-full">
-            <Button variant="outline" size="sm" className="w-full gap-2 font-bold text-xs text-slate-700 dark:text-slate-200">
+            <Button variant="outline" size="sm" className="w-full min-h-[36px] gap-2 font-bold text-xs text-slate-700 dark:text-slate-200 rounded-xl">
               <BookOpen className="w-3.5 h-3.5" />
               <span>عرض الملف والتسميع اليومي</span>
             </Button>
           </Link>
 
-          {/* WhatsApp 1-Click & Parent Link Actions Grid */}
-          <div className="grid grid-cols-2 gap-1.5 sm:gap-2 w-full">
-            {/* Direct WhatsApp Action (1-Click) */}
+          {/* SECONDARY ROW: WhatsApp (1-Click) & Copy Link (1-Click) */}
+          <div className="grid grid-cols-2 gap-1.5 w-full pt-0.5">
+            {/* WhatsApp (1-Click) */}
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={handleDirectWhatsApp}
-              className="min-h-[38px] px-2 py-1.5 gap-1 sm:gap-1.5 font-bold text-[11px] sm:text-xs bg-emerald-50/60 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/50 hover:bg-emerald-100 transition-all justify-center"
+              className="h-8 px-2 gap-1.5 text-[11px] font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50/60 dark:bg-emerald-950/30 hover:bg-emerald-100 border border-emerald-200/60 dark:border-emerald-900/50 rounded-lg justify-center transition-all"
+              title="مراسلة ولي الأمر بتقرير الإنجاز عبر واتساب"
             >
               <MessageSquare className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-              <span className="truncate">📱 واتساب (1-Click)</span>
+              <span className="truncate">📱 واتساب</span>
             </Button>
 
-            {/* Copy Parent Link Button */}
+            {/* Copy Parent Link (1-Click) */}
             <Button
-              variant={copied ? "default" : "outline"}
+              variant="ghost"
               size="sm"
               onClick={handleCopyParentLink}
-              className={`min-h-[38px] px-2 py-1.5 gap-1 sm:gap-1.5 font-bold text-[11px] sm:text-xs transition-all justify-center ${
+              className={`h-8 px-2 gap-1.5 text-[11px] font-bold border rounded-lg justify-center transition-all ${
                 copied
-                  ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                  : "text-teal-800 dark:text-teal-300 border-teal-200 dark:border-teal-900 hover:bg-teal-50"
+                  ? "bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700"
+                  : "text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:bg-slate-100"
               }`}
+              title="نسخ رابط المتابعة المباشر لولي الأمر"
             >
               {copied ? (
                 <>
@@ -205,42 +277,11 @@ export function StudentCard({ student, logs, attendance, alert, weeklyTopStudent
                 </>
               ) : (
                 <>
-                  <Copy className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+                  <Copy className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                   <span className="truncate">نسخ الرابط 📋</span>
                 </>
               )}
             </Button>
-          </div>
-
-          {/* Bottom Action Row: Preview Portal, Edit, Delete */}
-          <div className="flex items-center justify-between w-full pt-1">
-            <Link href={`/parent/${student.parent_token}`} prefetch={false} target="_blank">
-              <Button variant="ghost" size="sm" className="gap-1 text-xs text-teal-700 hover:text-teal-800">
-                <ExternalLink className="w-3.5 h-3.5" />
-                <span>معاينة البوابة</span>
-              </Button>
-            </Link>
-
-            <div className="flex gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onEdit(student)}
-                title="تعديل البيانات"
-                className="h-8 w-8 text-slate-600 hover:text-teal-700"
-              >
-                <Edit3 className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onDelete(student)}
-                title="حذف الطالب"
-                className="h-8 w-8 text-slate-600 hover:text-rose-600"
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </div>
           </div>
         </CardFooter>
       </Card>
