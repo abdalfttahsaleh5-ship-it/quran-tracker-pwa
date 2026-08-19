@@ -46,7 +46,8 @@ export async function findStudentByPhoneOrCode(input: string): Promise<ParentSea
     const { data: students, error } = await supabase
       .from("students")
       .select("id, full_name, parent_token, parent_phone")
-      .in("parent_phone", phoneValidation.variations);
+      .in("parent_phone", phoneValidation.variations)
+      .is("deleted_at", null);
 
     if (error || !students || students.length === 0) {
       return {
@@ -117,6 +118,7 @@ export async function getStudentProgressByToken(token: string): Promise<ParentPr
       .from("students")
       .select("*")
       .eq("parent_token", cleanToken)
+      .is("deleted_at", null)
       .maybeSingle();
 
     if (studentError) {

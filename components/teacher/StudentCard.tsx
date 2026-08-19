@@ -175,13 +175,13 @@ export function StudentCard({ student, logs, attendance, alert, weeklyTopStudent
           </Link>
 
           {/* WhatsApp 1-Click & Parent Link Actions Grid */}
-          <div className="grid grid-cols-2 gap-2 w-full">
+          <div className="grid grid-cols-2 gap-1.5 sm:gap-2 w-full">
             {/* Direct WhatsApp Action (1-Click) */}
             <Button
               variant="outline"
               size="sm"
               onClick={handleDirectWhatsApp}
-              className="gap-1.5 font-bold text-xs bg-emerald-50/60 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/50 hover:bg-emerald-100 transition-all truncate"
+              className="min-h-[38px] px-2 py-1.5 gap-1 sm:gap-1.5 font-bold text-[11px] sm:text-xs bg-emerald-50/60 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/50 hover:bg-emerald-100 transition-all justify-center"
             >
               <MessageSquare className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
               <span className="truncate">📱 واتساب (1-Click)</span>
@@ -192,8 +192,10 @@ export function StudentCard({ student, logs, attendance, alert, weeklyTopStudent
               variant={copied ? "default" : "outline"}
               size="sm"
               onClick={handleCopyParentLink}
-              className={`gap-1.5 font-bold text-xs transition-all truncate ${
-                copied ? "bg-emerald-600 text-white hover:bg-emerald-700" : "text-teal-800 dark:text-teal-300 border-teal-200 dark:border-teal-900"
+              className={`min-h-[38px] px-2 py-1.5 gap-1 sm:gap-1.5 font-bold text-[11px] sm:text-xs transition-all justify-center ${
+                copied
+                  ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                  : "text-teal-800 dark:text-teal-300 border-teal-200 dark:border-teal-900 hover:bg-teal-50"
               }`}
             >
               {copied ? (
