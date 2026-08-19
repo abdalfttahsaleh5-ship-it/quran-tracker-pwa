@@ -165,13 +165,13 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
 
       {/* Screen Interactive Dashboard Card */}
       <Card className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm print:hidden">
-        <CardHeader className="p-5 sm:p-6 pb-4 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between gap-4">
+        <CardHeader className="p-3.5 sm:p-6 pb-3 sm:pb-4 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between gap-2 sm:gap-4">
           <div>
-            <CardTitle className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-emerald-600" />
+            <CardTitle className="text-sm sm:text-lg font-black text-slate-900 dark:text-slate-100 flex items-center gap-1.5 sm:gap-2">
+              <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 shrink-0" />
               <span>تقرير متابعة طلاب الحلقة 📊</span>
             </CardTitle>
-            <CardDescription className="text-xs text-slate-500 mt-0.5">
+            <CardDescription className="text-[10px] sm:text-xs text-slate-500 mt-0.5">
               إحصائيات الحضور والصفحات حسب الفترة الزمانية
             </CardDescription>
           </div>
@@ -180,23 +180,23 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
             onClick={handlePrint}
             variant="outline"
             size="sm"
-            className="gap-2 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 font-bold rounded-xl shrink-0"
+            className="gap-1.5 sm:gap-2 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 font-bold rounded-xl shrink-0 text-xs sm:text-sm py-1.5 px-2.5 sm:py-2 sm:px-3"
           >
-            <Printer className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <Printer className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <span className="hidden sm:inline">تصدير تقرير الإدارة (PDF / طباعة) 🖨️</span>
             <span className="sm:hidden">طباعة 🖨️</span>
           </Button>
         </CardHeader>
 
-        <CardContent className="p-4 sm:p-6 space-y-4">
+        <CardContent className="p-3 sm:p-6 space-y-3 sm:space-y-4">
           {/* Period Selection Segmented Controls & Search Bar */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3">
             {/* Segmented Control Pill */}
             <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700">
               <button
                 type="button"
                 onClick={() => setPeriod("daily")}
-                className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-extrabold rounded-lg transition-all ${
+                className={`flex-1 sm:flex-none px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-extrabold rounded-lg transition-all ${
                   period === "daily"
                     ? "bg-emerald-700 text-white shadow-sm"
                     : "text-slate-600 dark:text-slate-300 hover:text-slate-900"
@@ -208,7 +208,7 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
               <button
                 type="button"
                 onClick={() => setPeriod("weekly")}
-                className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-extrabold rounded-lg transition-all ${
+                className={`flex-1 sm:flex-none px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-extrabold rounded-lg transition-all ${
                   period === "weekly"
                     ? "bg-emerald-700 text-white shadow-sm"
                     : "text-slate-600 dark:text-slate-300 hover:text-slate-900"
@@ -220,7 +220,7 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
               <button
                 type="button"
                 onClick={() => setPeriod("monthly")}
-                className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-extrabold rounded-lg transition-all ${
+                className={`flex-1 sm:flex-none px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-extrabold rounded-lg transition-all ${
                   period === "monthly"
                     ? "bg-emerald-700 text-white shadow-sm"
                     : "text-slate-600 dark:text-slate-300 hover:text-slate-900"
@@ -243,17 +243,17 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
             </div>
           </div>
 
-          {/* Responsive Table Container */}
-          <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
-            <table className="w-full text-right text-xs">
-              <thead className="bg-slate-50 dark:bg-slate-850 text-slate-700 dark:text-slate-300 font-extrabold border-b border-slate-200 dark:border-slate-800">
+          {/* Responsive Table Container with internal scroll and no page shift */}
+          <div className="w-full overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 overscroll-x-contain touch-pan-x">
+            <table className="w-full min-w-[540px] sm:min-w-full text-right text-[11px] sm:text-xs">
+              <thead className="bg-slate-50 dark:bg-slate-850 text-slate-700 dark:text-slate-300 font-extrabold border-b border-slate-200 dark:border-slate-800 text-[11px] sm:text-xs">
                 <tr>
-                  <th className="p-3 text-center w-10">#</th>
-                  <th className="p-3">اسم الطالب</th>
-                  <th className="p-3">الصف الدراسي</th>
-                  <th className="p-3 text-center">حالة الحضور</th>
-                  <th className="p-3 text-center">إجمالي الصفحات</th>
-                  <th className="p-3 text-center">ولي الأمر</th>
+                  <th className="p-2 sm:p-3 text-center w-8 sm:w-10">#</th>
+                  <th className="p-2 sm:p-3 min-w-[120px] sm:min-w-[150px]">اسم الطالب</th>
+                  <th className="p-2 sm:p-3 whitespace-nowrap">الصف الدراسي</th>
+                  <th className="p-2 sm:p-3 text-center whitespace-nowrap">حالة الحضور</th>
+                  <th className="p-2 sm:p-3 text-center whitespace-nowrap">إجمالي الصفحات</th>
+                  <th className="p-2 sm:p-3 text-center whitespace-nowrap">ولي الأمر</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
@@ -269,12 +269,12 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
                       key={item.student.id}
                       className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors"
                     >
-                      <td className="p-3 text-center font-bold text-slate-400">{index + 1}</td>
-                      <td className="p-3 font-bold text-slate-900 dark:text-slate-100">
+                      <td className="p-2 sm:p-3 text-center font-bold text-slate-400">{index + 1}</td>
+                      <td className="p-2 sm:p-3 font-bold text-slate-900 dark:text-slate-100">
                         <div className="flex items-center gap-1.5">
                           <Link
                             href={`/students/${item.student.id}`}
-                            className="hover:text-emerald-700 dark:hover:text-emerald-400 hover:underline transition-colors"
+                            className="hover:text-emerald-700 dark:hover:text-emerald-400 hover:underline transition-colors break-words line-clamp-2 sm:line-clamp-none"
                           >
                             {item.student.full_name}
                           </Link>
@@ -288,10 +288,10 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
                           )}
                         </div>
                       </td>
-                      <td className="p-3 text-slate-600 dark:text-slate-400">
+                      <td className="p-2 sm:p-3 text-slate-600 dark:text-slate-400 whitespace-nowrap text-[10px] sm:text-xs">
                         {item.student.academic_grade || "غير محدد"}
                       </td>
-                      <td className="p-3 text-center font-bold">
+                      <td className="p-2 sm:p-3 text-center font-bold whitespace-nowrap">
                         {period === "daily" ? (
                           (() => {
                             const todayRecord = localAttendance.find(
@@ -306,7 +306,7 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
                                 <button
                                   type="button"
                                   onClick={() => handleToggleAttendance(item.student.id)}
-                                  className="inline-flex items-center justify-center gap-1 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-medium text-xs px-3 py-1.5 rounded-full shadow-sm transition-all cursor-pointer select-none"
+                                  className="inline-flex items-center justify-center gap-1 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-bold text-[10px] sm:text-xs px-2 sm:px-3 py-1 sm:py-1.5 rounded-full shadow-sm transition-all cursor-pointer select-none"
                                   title="حاضر - انقر للتبديل إلى غائب"
                                 >
                                   <span>🟢 حاضر</span>
@@ -319,7 +319,7 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
                                 <button
                                   type="button"
                                   onClick={() => handleToggleAttendance(item.student.id)}
-                                  className="inline-flex items-center justify-center gap-1 bg-rose-500 hover:bg-rose-600 active:scale-95 text-white font-medium text-xs px-3 py-1.5 rounded-full shadow-sm transition-all cursor-pointer select-none"
+                                  className="inline-flex items-center justify-center gap-1 bg-rose-500 hover:bg-rose-600 active:scale-95 text-white font-bold text-[10px] sm:text-xs px-2 sm:px-3 py-1 sm:py-1.5 rounded-full shadow-sm transition-all cursor-pointer select-none"
                                   title="غائب - انقر للتبديل إلى حاضر"
                                 >
                                   <span>🔴 غائب</span>
@@ -331,7 +331,7 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
                               <button
                                 type="button"
                                 onClick={() => handleToggleAttendance(item.student.id)}
-                                className="inline-flex items-center justify-center gap-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 active:scale-95 text-slate-700 dark:text-slate-300 text-xs px-3 py-1.5 rounded-full transition-all cursor-pointer select-none font-medium"
+                                className="inline-flex items-center justify-center gap-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 active:scale-95 text-slate-700 dark:text-slate-300 text-[10px] sm:text-xs px-2 sm:px-3 py-1 sm:py-1.5 rounded-full transition-all cursor-pointer select-none font-bold"
                                 title="لم يرصد - انقر للتبديل إلى حاضر"
                               >
                                 <span>⚪ لم يرصد</span>
@@ -340,7 +340,7 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
                           })()
                         ) : (
                           <span
-                            className={`inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full text-xs font-black ${
+                            className={`inline-flex items-center justify-center gap-1 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-black ${
                               item.attendanceText.includes("/") ? "dir-ltr" : "dir-rtl"
                             } ${
                               item.badgeStyle || "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
@@ -350,22 +350,22 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
                           </span>
                         )}
                       </td>
-                      <td className="p-3 text-center font-black text-emerald-700 dark:text-emerald-400">
+                      <td className="p-2 sm:p-3 text-center font-black text-emerald-700 dark:text-emerald-400 whitespace-nowrap">
                         {item.pagesCount > 0 ? (
-                          <span className="px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300">
+                          <span className="px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-[10px] sm:text-xs font-black">
                             📖 {item.pagesCount} صفحة
                           </span>
                         ) : (
-                          <span className="text-slate-400 font-bold">0 صفحة</span>
+                          <span className="text-slate-400 font-bold text-[10px] sm:text-xs">0 صفحة</span>
                         )}
                       </td>
-                      <td className="p-3 text-center">
+                      <td className="p-2 sm:p-3 text-center whitespace-nowrap">
                         {item.student.parent_phone ? (
-                          <span className="font-mono text-slate-600 dark:text-slate-400 dir-ltr inline-block">
+                          <span className="font-mono text-slate-600 dark:text-slate-400 dir-ltr inline-block text-[10px] sm:text-xs">
                             {item.student.parent_phone}
                           </span>
                         ) : (
-                          <span className="text-slate-400">—</span>
+                          <span className="text-slate-400 text-xs">—</span>
                         )}
                       </td>
                     </tr>
