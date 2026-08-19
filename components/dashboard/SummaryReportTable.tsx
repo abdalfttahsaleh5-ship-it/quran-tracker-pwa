@@ -243,8 +243,8 @@ export function SummaryReportTable({ students, logs, attendance }: SummaryReport
             </div>
           </div>
 
-          {/* Responsive Table Container with internal scroll and no page shift */}
-          <div className="w-full overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 overscroll-x-contain touch-pan-x">
+          {/* Responsive Table Container with natural vertical page scroll and horizontal table scroll */}
+          <div className="w-full max-w-full overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
             <table className="w-full min-w-[540px] sm:min-w-full text-right text-[11px] sm:text-xs">
               <thead className="bg-slate-50 dark:bg-slate-850 text-slate-700 dark:text-slate-300 font-extrabold border-b border-slate-200 dark:border-slate-800 text-[11px] sm:text-xs">
                 <tr>
