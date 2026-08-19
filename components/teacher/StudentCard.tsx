@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import dynamic from "next/dynamic";
-import { User, Phone, Copy, Check, Edit3, Trash2, ExternalLink, BookOpen, MessageSquare, AlertTriangle, Zap, MoreVertical } from "lucide-react";
+import { User, Phone, Copy, Check, Edit3, Trash2, ExternalLink, BookOpen, MessageSquare, AlertTriangle, MoreVertical } from "lucide-react";
 import { StudentRow, AttendanceRecordRow, MemorizationLogRow } from "@/types";
 import { AttendanceAlert } from "@/lib/attendanceAlerts";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
@@ -10,11 +9,6 @@ import { Button } from "@/components/ui/button";
 import { lightHaptic, successHaptic } from "@/lib/haptics";
 import { generateWhatsAppShareUrl } from "@/lib/whatsappUtils";
 import Link from "next/link";
-
-const QuickRecitationSheet = dynamic(
-  () => import("./QuickRecitationSheet").then((mod) => mod.QuickRecitationSheet),
-  { ssr: false }
-);
 
 interface StudentCardProps {
   student: StudentRow;
@@ -29,7 +23,6 @@ interface StudentCardProps {
 export function StudentCard({ student, logs, attendance, alert, weeklyTopStudentId, onEdit, onDelete }: StudentCardProps) {
   const [copied, setCopied] = useState(false);
   const [imgError, setImgError] = useState(false);
-  const [isQuickRecitationOpen, setIsQuickRecitationOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Use pre-aggregated completed pages directly from student view
@@ -220,26 +213,16 @@ export function StudentCard({ student, logs, attendance, alert, weeklyTopStudent
           </div>
         </CardContent>
 
-        {/* CARD FOOTER: Primary Daily Actions + Compact Secondary Row */}
+        {/* CARD FOOTER: Primary Profile Recitation Action + Compact Secondary Row */}
         <CardFooter className="p-4 pt-0 flex flex-col gap-1.5">
-          {/* PRIMARY ACTION 1: 2-Click Quick Recitation */}
-          <Button
-            variant="default"
-            size="default"
-            onClick={() => {
-              lightHaptic();
-              setIsQuickRecitationOpen(true);
-            }}
-            className="w-full min-h-[42px] gap-2 font-black text-sm bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-md shadow-teal-700/20 active:scale-[0.98] transition-all rounded-xl"
-          >
-            <Zap className="w-4 h-4 fill-current text-amber-300" />
-            <span>⚡ تسميع سريع (2-Clicks)</span>
-          </Button>
-
-          {/* PRIMARY ACTION 2: Open Full Profile */}
+          {/* PRIMARY ACTION: Open Full Profile & Daily Recitation */}
           <Link href={`/students/${student.id}`} className="w-full">
-            <Button variant="outline" size="sm" className="w-full min-h-[36px] gap-2 font-bold text-xs text-slate-700 dark:text-slate-200 rounded-xl">
-              <BookOpen className="w-3.5 h-3.5" />
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full min-h-[38px] gap-2 font-bold text-xs bg-slate-50 dark:bg-slate-800/80 hover:bg-teal-50 dark:hover:bg-teal-950/40 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-teal-300 rounded-xl transition-all"
+            >
+              <BookOpen className="w-4 h-4 text-teal-600 dark:text-teal-400" />
               <span>عرض الملف والتسميع اليومي</span>
             </Button>
           </Link>
@@ -285,15 +268,6 @@ export function StudentCard({ student, logs, attendance, alert, weeklyTopStudent
           </div>
         </CardFooter>
       </Card>
-
-      {/* Quick Recitation Bottom Sheet */}
-      <QuickRecitationSheet
-        isOpen={isQuickRecitationOpen}
-        onClose={() => setIsQuickRecitationOpen(false)}
-        studentId={student.id}
-        studentName={student.full_name}
-        latestSurah={latestSurah}
-      />
     </>
   );
 }
