@@ -8,6 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button";
 import { lightHaptic, successHaptic } from "@/lib/haptics";
 import { generateWhatsAppShareUrl } from "@/lib/whatsappUtils";
+import { calculateRecitationPages } from "@/lib/quranMetadata";
 import Link from "next/link";
 
 interface StudentCardProps {
@@ -25,10 +26,36 @@ export function StudentCard({ student, logs, attendance, alert, weeklyTopStudent
   const [imgError, setImgError] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // Server pre-aggregated all-time total completed pages
-  const totalCompletedPages = Number(
-    student.total_pages_memorized ?? student.total_pages_count ?? 0
-  );
+  // Pre-aggregated all-time total completed pages with resilient fallback
+  const totalCompletedPages = useMemo(() => {
+    if (student.total_pages_memorized !== undefined && student.total_pages_memorized !== null && Number(student.total_pages_memorized) > 0) {
+      return Number(student.total_pages_memorized);
+    }
+    if (student.total_pages_count !== undefined && student.total_pages_count !== null && Number(student.total_pages_count) > 0) {
+      return Number(student.total_pages_count);
+    }
+
+    // Dynamic fallback from logs if available
+    const studentLogs = logs?.filter(
+      (log) => String(log.student_id || log.studentId) === String(student.id)
+    ) || [];
+
+    if (studentLogs.length > 0) {
+      const sum = studentLogs.reduce((acc, log) => {
+        let pages = typeof log.page_count === "number" && !isNaN(log.page_count) && log.page_count > 0
+          ? Number(log.page_count)
+          : null;
+        if (pages === null && log.surah_start && log.surah_end) {
+          const calc = calculateRecitationPages(log.surah_start, log.surah_end, log.aya_start || 1, log.aya_end || 1);
+          pages = isNaN(calc) || calc < 0 ? 0 : calc;
+        }
+        return acc + (pages || 0);
+      }, 0);
+      return Number(sum.toFixed(2));
+    }
+
+    return 0;
+  }, [student.total_pages_memorized, student.total_pages_count, logs, student.id]);
 
   const formattedPages = totalCompletedPages.toFixed(1).replace(/\.0$/, "");
 

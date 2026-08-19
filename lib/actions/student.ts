@@ -50,18 +50,22 @@ export async function getStudents(): Promise<ActionResult<StudentRow[]>> {
     if (studentIds.length > 0) {
       const { data: logsData } = await supabase
         .from("memorization_logs")
-        .select("student_id, page_count, surah_start, surah_end, aya_start, aya_end")
-        .in("student_id", studentIds)
-        .is("deleted_at", null);
+        .select("*")
+        .in("student_id", studentIds);
       logsSummary = logsData || [];
     }
 
     const logsMap = new Map<string, { totalPages: number; count: number }>();
     logsSummary.forEach((l) => {
+      if (l.deleted_at) return;
+
       if (l.student_id) {
         const cur = logsMap.get(l.student_id) || { totalPages: 0, count: 0 };
-        let pages = Number(l.page_count);
-        if (isNaN(pages) || pages <= 0) {
+        let pages = typeof l.page_count === "number" && !isNaN(l.page_count) && l.page_count > 0
+          ? Number(l.page_count)
+          : null;
+
+        if (pages === null) {
           if (l.surah_start && l.surah_end) {
             const calculated = calculateRecitationPages(l.surah_start, l.surah_end, l.aya_start || 1, l.aya_end || 1);
             pages = isNaN(calculated) || calculated < 0 ? 0 : calculated;
@@ -714,18 +718,22 @@ export async function getTeacherReportData(options?: TeacherReportDataOptions): 
     if (studentIds.length > 0) {
       const { data: allLogsData } = await supabase
         .from("memorization_logs")
-        .select("student_id, page_count, surah_start, surah_end, aya_start, aya_end")
-        .in("student_id", studentIds)
-        .is("deleted_at", null);
+        .select("*")
+        .in("student_id", studentIds);
       allLogsSummary = allLogsData || [];
     }
 
     const logsMap = new Map<string, { totalPages: number; count: number }>();
     allLogsSummary.forEach((l) => {
+      if (l.deleted_at) return;
+
       if (l.student_id) {
         const cur = logsMap.get(l.student_id) || { totalPages: 0, count: 0 };
-        let pages = Number(l.page_count);
-        if (isNaN(pages) || pages <= 0) {
+        let pages = typeof l.page_count === "number" && !isNaN(l.page_count) && l.page_count > 0
+          ? Number(l.page_count)
+          : null;
+
+        if (pages === null) {
           if (l.surah_start && l.surah_end) {
             const calculated = calculateRecitationPages(l.surah_start, l.surah_end, l.aya_start || 1, l.aya_end || 1);
             pages = isNaN(calculated) || calculated < 0 ? 0 : calculated;
