@@ -1,74 +1,74 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { StudentRow, AttendanceRecordRow } from "@/types";
 import { getAttendanceAlerts, AttendanceAlert } from "@/lib/attendanceAlerts";
-import { AlertTriangle, MessageSquare, ChevronDown, ChevronUp, User, ShieldAlert, CheckCircle2 } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { AlertTriangle, MessageSquare, X, ShieldAlert, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface AttendanceAlertsCardProps {
+  isOpen: boolean;
+  onClose: () => void;
   students: StudentRow[];
   attendance: AttendanceRecordRow[];
 }
 
-export function AttendanceAlertsCard({ students, attendance }: AttendanceAlertsCardProps) {
-  // Collapsed by default upon entering dashboard
-  const [isCollapsed, setIsCollapsed] = useState(true);
+export function AttendanceAlertsCard({
+  isOpen,
+  onClose,
+  students,
+  attendance,
+}: AttendanceAlertsCardProps) {
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
 
-  // Compute active alerts
   const alerts: AttendanceAlert[] = useMemo(() => {
     return getAttendanceAlerts(students, attendance);
   }, [students, attendance]);
 
+  if (!isOpen) return null;
+
   const alertCount = alerts.length;
 
   return (
-    <Card className="rounded-3xl border border-amber-200 dark:border-amber-900/60 bg-gradient-to-br from-amber-50/70 via-white to-orange-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-amber-950/20 shadow-sm overflow-hidden transition-all print:hidden">
-      {/* Header Section (Clickable Accordion Trigger) */}
-      <CardHeader
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className="p-4 sm:p-5 flex flex-row items-center justify-between gap-3 border-b border-amber-100 dark:border-amber-900/40 cursor-pointer select-none hover:bg-amber-100/30 dark:hover:bg-slate-800/40 transition-colors"
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-amber-500/15 border border-amber-400/30 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold shrink-0">
-            <ShieldAlert className="w-5 h-5 animate-pulse" />
+    <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 print:hidden animate-in fade-in duration-200">
+      <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl overflow-hidden flex flex-col max-h-[85vh] shadow-2xl border border-slate-200 dark:border-slate-800">
+        {/* Header Section */}
+        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 z-10 shrink-0">
+          <div className="flex items-center gap-2 text-rose-700 dark:text-rose-400 font-black text-lg sm:text-xl">
+            <div className="w-9 h-9 rounded-2xl bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-300 flex items-center justify-center shrink-0">
+              <ShieldAlert className="w-5 h-5" />
+            </div>
+            <span>طلاب بحاجة إلى متابعة 🔔</span>
+            {alertCount > 0 && (
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-500 text-white shadow-sm mr-2">
+                {alertCount} {alertCount === 1 ? "طالب" : alertCount === 2 ? "طالبان" : "طلاب"}
+              </span>
+            )}
           </div>
-          <div>
-            <CardTitle className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <span>طلاب يحتاجون متابعة عاجلة 🔔</span>
-              {alertCount > 0 && (
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-500 text-white shadow-sm">
-                  {alertCount} {alertCount === 1 ? "طالب" : alertCount === 2 ? "طالبان" : "طلاب"}
-                </span>
-              )}
-            </CardTitle>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-              تنبيهات الغياب المتكرر أو انخفاض معدل الحضور للتواصل الفوري مع أولياء الأمور
-            </p>
-          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-xl"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsCollapsed(!isCollapsed);
-          }}
-          className="rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 p-2 shrink-0"
-        >
-          {isCollapsed ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
-        </Button>
-      </CardHeader>
-
-      {/* Card Content */}
-      {!isCollapsed && (
-        <CardContent className="p-4 sm:p-5 pt-3">
+        {/* Content Section */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 overscroll-contain">
           {alertCount === 0 ? (
-            <div className="p-6 text-center rounded-2xl bg-white/60 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800 space-y-2">
+            <div className="p-8 text-center rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 space-y-2">
               <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 mx-auto flex items-center justify-center">
                 <CheckCircle2 className="w-6 h-6" />
               </div>
@@ -80,7 +80,7 @@ export function AttendanceAlertsCard({ students, attendance }: AttendanceAlertsC
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="space-y-3">
               {alerts.map((alert) => (
                 <div
                   key={alert.studentId}
@@ -94,6 +94,7 @@ export function AttendanceAlertsCard({ students, attendance }: AttendanceAlertsC
                       <div>
                         <Link
                           href={`/students/${alert.studentId}`}
+                          onClick={onClose}
                           className="font-black text-sm text-slate-900 dark:text-slate-100 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
                         >
                           {alert.studentName}
@@ -103,12 +104,9 @@ export function AttendanceAlertsCard({ students, attendance }: AttendanceAlertsC
                         </p>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Alert Reason Badge */}
-                  <div className="flex items-center gap-1.5">
                     <span
-                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-black border ${
+                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-black border shrink-0 ${
                         alert.alertType === "consecutive"
                           ? "bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950/80 dark:text-rose-300 dark:border-rose-900"
                           : "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/80 dark:text-amber-300 dark:border-amber-900"
@@ -119,7 +117,6 @@ export function AttendanceAlertsCard({ students, attendance }: AttendanceAlertsC
                     </span>
                   </div>
 
-                  {/* WhatsApp Quick Action Button */}
                   {alert.formattedWhatsAppUrl ? (
                     <a
                       href={alert.formattedWhatsAppUrl}
@@ -149,8 +146,8 @@ export function AttendanceAlertsCard({ students, attendance }: AttendanceAlertsC
               ))}
             </div>
           )}
-        </CardContent>
-      )}
-    </Card>
+        </div>
+      </div>
+    </div>
   );
 }

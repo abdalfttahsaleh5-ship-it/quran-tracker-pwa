@@ -3,7 +3,6 @@ import { getTeacherReportDataCached } from "@/lib/actions/student";
 import { TeacherDashboardClient } from "@/components/teacher/TeacherDashboardClient";
 import { SummaryReportTable } from "@/components/dashboard/SummaryReportTable";
 import { StatsCards } from "@/components/dashboard/StatsCards";
-import { AttendanceAlertsCard } from "@/components/dashboard/AttendanceAlertsCard";
 
 export const revalidate = 0;
 
@@ -21,9 +20,6 @@ export default async function TeacherDashboardPage() {
 
       {/* Unified Single-Row 3-Column KPI Stats Cards */}
       <StatsCards students={students} logs={logs} attendance={attendance} stats={stats} />
-
-      {/* Prominent Attendance Alerts & Urgent Follow-up Card */}
-      <AttendanceAlertsCard students={students} attendance={attendance} />
 
       {/* Summary Report Table with Daily/Weekly/Monthly Filter and A4 Print Export */}
       <SummaryReportTable students={students} logs={logs} attendance={attendance} />
