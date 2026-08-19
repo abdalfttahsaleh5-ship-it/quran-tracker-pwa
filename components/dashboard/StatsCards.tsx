@@ -19,13 +19,17 @@ interface StatsCardsProps {
 export function StatsCards({ students, logs, attendance = [], stats }: StatsCardsProps) {
   const [isTopModalOpen, setIsTopModalOpen] = useState(false);
   const [isAlertsModalOpen, setIsAlertsModalOpen] = useState(false);
+  const [contactedStudentIds, setContactedStudentIds] = useState<Set<string>>(new Set());
 
   const totalStudents = stats?.totalStudents ?? students.length;
 
-  // Real count of students requiring urgent follow-up
+  // Real count of students requiring urgent follow-up (pending only)
   const followUpCount = useMemo(() => {
-    return getAttendanceAlerts(students, attendance).length;
-  }, [students, attendance]);
+    const alerts = getAttendanceAlerts(students, attendance);
+    return alerts.filter(
+      (alert) => !alert.isContacted && !contactedStudentIds.has(alert.studentId)
+    ).length;
+  }, [students, attendance, contactedStudentIds]);
 
   return (
     <>
@@ -41,6 +45,9 @@ export function StatsCards({ students, logs, attendance = [], stats }: StatsCard
         onClose={() => setIsAlertsModalOpen(false)}
         students={students}
         attendance={attendance}
+        onStudentContacted={(studentId) => {
+          setContactedStudentIds((prev) => new Set(prev).add(studentId));
+        }}
       />
 
       <div className="stats-grid no-print print:hidden grid grid-cols-3 gap-2 sm:gap-4">

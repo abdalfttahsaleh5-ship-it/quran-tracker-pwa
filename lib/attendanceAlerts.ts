@@ -10,6 +10,8 @@ export interface AttendanceAlert {
   daysCount: number;
   attendanceRate?: number;
   formattedWhatsAppUrl: string;
+  isContacted?: boolean;
+  lastContactedAt?: string | null;
 }
 
 /**
@@ -112,6 +114,14 @@ export function getAttendanceAlerts(
 
     const rate = totalSessions > 0 ? Math.round((attendedSessions / totalSessions) * 100) : 100;
 
+    // Check if the alert was already contacted for the current latest incident
+    const latestIncidentDate = sortedRecords[0]?.date;
+    const isContacted = Boolean(
+      student.last_contacted_at &&
+      latestIncidentDate &&
+      new Date(student.last_contacted_at).getTime() >= new Date(latestIncidentDate).getTime()
+    );
+
     // Determine alert severity/type
     if (consecutiveAbsences >= 3) {
       const reason = `غائب ${consecutiveAbsences} أيام متتالية`;
@@ -131,6 +141,8 @@ export function getAttendanceAlerts(
           "consecutive",
           rate
         ),
+        isContacted,
+        lastContactedAt: student.last_contacted_at,
       });
     } else if (totalSessions >= 3 && rate < 75) {
       const reason = `نسبة الحضور ${rate}%`;
@@ -150,6 +162,8 @@ export function getAttendanceAlerts(
           "low_rate",
           rate
         ),
+        isContacted,
+        lastContactedAt: student.last_contacted_at,
       });
     }
   });

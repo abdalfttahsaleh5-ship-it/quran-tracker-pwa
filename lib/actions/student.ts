@@ -817,3 +817,46 @@ export async function getTeacherReportData(options?: TeacherReportDataOptions): 
 }
 
 export const getTeacherReportDataCached = cache(getTeacherReportData);
+
+/**
+ * Mark student as contacted by the teacher for follow-up alerts
+ */
+export async function markStudentContacted(studentId: string): Promise<ActionResult<StudentRow>> {
+  try {
+    const supabase = createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return { success: false, error: "غير مصرح لك بتسجيل التواصل، يرجى تسجيل الدخول أولاً" };
+    }
+
+    const now = new Date().toISOString();
+    const { data, error } = await supabase
+      .from("students")
+      .update({ last_contacted_at: now, updated_at: now })
+      .eq("id", studentId)
+      .eq("teacher_id", user.id)
+      .select()
+      .single();
+
+    if (error) {
+      return { success: false, error: "فشل حفظ حالة التواصل في قاعدة البيانات" };
+    }
+
+    revalidatePath("/dashboard");
+    revalidatePath("/students");
+
+    return {
+      success: true,
+      data: data as StudentRow,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "حدث خطأ غير متوقع أثناء تسجيل التواصل",
+    };
+  }
+}

@@ -24,6 +24,7 @@ export type Database = {
           avatar_url: string | null;
           is_archived: boolean;
           deleted_at: string | null;
+          last_contacted_at?: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -41,6 +42,7 @@ export type Database = {
           avatar_url?: string | null;
           is_archived?: boolean;
           deleted_at?: string | null;
+          last_contacted_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -58,6 +60,7 @@ export type Database = {
           avatar_url?: string | null;
           is_archived?: boolean;
           deleted_at?: string | null;
+          last_contacted_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
