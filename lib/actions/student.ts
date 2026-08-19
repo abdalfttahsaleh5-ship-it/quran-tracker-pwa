@@ -804,7 +804,7 @@ export async function getTeacherReportData(options?: TeacherReportDataOptions): 
     return {
       success: true,
       students,
-      logs,
+      logs: allLogsSummary.length > 0 ? allLogsSummary : logs,
       attendance,
       stats,
     };
