@@ -25,10 +25,22 @@ export function StudentCard({ student, logs, attendance, alert, weeklyTopStudent
   const [imgError, setImgError] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // Use pre-aggregated completed pages directly from student view
-  const totalCompletedPages = Number(
-    student.total_pages_memorized ?? student.total_pages_count ?? 0
-  );
+  // Dynamic completed pages calculation from logs with fallback
+  const totalCompletedPages = useMemo(() => {
+    const studentLogs = logs?.filter(
+      (log) => String(log.student_id || log.studentId) === String(student.id)
+    ) || [];
+
+    if (studentLogs.length > 0) {
+      const sum = studentLogs.reduce((acc, log) => {
+        const pages = Number(log.page_count ?? log.pageCount ?? log.pages ?? 0);
+        return acc + (isNaN(pages) ? 0 : pages);
+      }, 0);
+      return Number(sum.toFixed(2));
+    }
+
+    return Number(student.total_pages_memorized ?? student.total_pages_count ?? 0);
+  }, [logs, student.id, student.total_pages_memorized, student.total_pages_count]);
 
   const formattedPages = totalCompletedPages.toFixed(1).replace(/\.0$/, "");
 
@@ -92,7 +104,7 @@ export function StudentCard({ student, logs, attendance, alert, weeklyTopStudent
         {/* CARD HEADER: Profile Info + Visible Edit Action + 3-Dots Menu */}
         <CardHeader className="p-4 pb-2 flex flex-row items-start justify-between gap-2">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="w-12 h-12 rounded-full bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-200 flex items-center justify-center font-bold overflow-hidden border border-teal-200 shrink-0 shadow-inner">
+            <div className="w-14 h-14 rounded-full bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-200 flex items-center justify-center font-bold overflow-hidden border-2 border-teal-200 dark:border-teal-800 shrink-0 shadow-sm">
               {student.avatar_url && !imgError ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -102,7 +114,7 @@ export function StudentCard({ student, logs, attendance, alert, weeklyTopStudent
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <span className="text-lg select-none font-bold">{student.full_name.charAt(0)}</span>
+                <span className="text-xl select-none font-black">{student.full_name.charAt(0)}</span>
               )}
             </div>
             <div className="min-w-0 flex-1">
