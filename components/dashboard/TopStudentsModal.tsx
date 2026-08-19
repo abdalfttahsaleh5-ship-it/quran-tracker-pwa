@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { X, Trophy, Printer, Calendar } from "lucide-react";
 import { StudentRow, MemorizationLogRow } from "@/types";
 import { lightHaptic } from "@/lib/haptics";
+import { calculateRecitationPages } from "@/lib/quranMetadata";
 
 export interface TopStudentItem {
   student: StudentRow;
@@ -79,20 +80,46 @@ export function TopStudentsModal({
 
     return students
       .map((student) => {
+        if (activeTab === "all") {
+          let pages = Number(student.total_pages_memorized ?? student.total_pages_count ?? 0);
+          if (pages <= 0) {
+            const studentLogs = logs.filter((l) => l.student_id === student.id);
+            pages = studentLogs.reduce((sum, l) => {
+              let p = typeof l.page_count === "number" && !isNaN(l.page_count) && l.page_count > 0
+                ? Number(l.page_count)
+                : null;
+              if (p === null && l.surah_start && l.surah_end) {
+                const calc = calculateRecitationPages(l.surah_start, l.surah_end, l.aya_start || 1, l.aya_end || 1);
+                p = isNaN(calc) || calc < 0 ? 0 : calc;
+              }
+              return sum + (p || 0);
+            }, 0);
+          }
+          return { student, totalPages: Number(pages.toFixed(1)) };
+        }
+
         const studentLogs = logs.filter((l) => {
           if (l.student_id !== student.id) return false;
           if (startDate) {
-            if (!l.created_at) return false;
-            const logDate = new Date(l.created_at);
+            const dateStr = l.date || l.created_at;
+            if (!dateStr) return false;
+            const logDate = new Date(dateStr);
             return !isNaN(logDate.getTime()) && logDate >= startDate;
           }
           return true;
         });
 
-        const totalPagesSum = studentLogs.reduce(
-          (sum, l) => sum + (l.page_count || 1),
-          0
-        );
+        const totalPagesSum = studentLogs.reduce((sum, l) => {
+          let p = typeof l.page_count === "number" && !isNaN(l.page_count) && l.page_count > 0
+            ? Number(l.page_count)
+            : null;
+          if (p === null && l.surah_start && l.surah_end) {
+            const calc = calculateRecitationPages(l.surah_start, l.surah_end, l.aya_start || 1, l.aya_end || 1);
+            p = isNaN(calc) || calc < 0 ? 0 : calc;
+          }
+          return sum + (p || 0);
+        }, 0);
+
         const totalPages = Number(totalPagesSum.toFixed(1));
         return { student, totalPages };
       })
