@@ -1,24 +1,29 @@
 "use client";
 
-import React, { useState } from "react";
-import { Users, Trophy, Award } from "lucide-react";
+import React, { useState, useMemo } from "react";
+import { Users, Trophy, AlertTriangle } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { StudentRow, MemorizationLogRow } from "@/types";
+import { StudentRow, MemorizationLogRow, AttendanceRecordRow } from "@/types";
 import { TeacherReportStats } from "@/lib/actions/student";
+import { getAttendanceAlerts } from "@/lib/attendanceAlerts";
 import { TopStudentsModal } from "./TopStudentsModal";
 
 interface StatsCardsProps {
   students: StudentRow[];
   logs: MemorizationLogRow[];
+  attendance?: AttendanceRecordRow[];
   stats?: TeacherReportStats;
 }
 
-export function StatsCards({ students, logs, stats }: StatsCardsProps) {
+export function StatsCards({ students, logs, attendance = [], stats }: StatsCardsProps) {
   const [isTopModalOpen, setIsTopModalOpen] = useState(false);
 
   const totalStudents = stats?.totalStudents ?? students.length;
-  const activeStudentsCount =
-    stats?.activeStudents ?? students.filter((s) => logs.some((l) => l.student_id === s.id)).length;
+
+  // Real count of students requiring urgent follow-up (same logic as AttendanceAlertsCard)
+  const followUpCount = useMemo(() => {
+    return getAttendanceAlerts(students, attendance).length;
+  }, [students, attendance]);
 
   return (
     <>
@@ -73,23 +78,23 @@ export function StatsCards({ students, logs, stats }: StatsCardsProps) {
           </CardContent>
         </Card>
 
-        {/* Metric 3: Active Students */}
+        {/* Metric 3: Students Needing Follow-up */}
         <Card className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
           <CardHeader className="p-3 sm:p-4 pb-1 flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-[11px] sm:text-xs font-bold text-slate-500 dark:text-slate-400">
-              الطلاب الفاعلون
+              طلاب بحاجة إلى متابعة
             </CardTitle>
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300 flex items-center justify-center font-bold shrink-0">
-              <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 flex items-center justify-center font-bold shrink-0">
+              <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </CardHeader>
           <CardContent className="p-3 sm:p-4 pt-0">
-            <div className="text-lg sm:text-2xl font-black text-slate-900 dark:text-slate-50 tracking-tight flex items-baseline gap-1">
-              <span>{activeStudentsCount}</span>
+            <div className="text-lg sm:text-2xl font-black text-rose-600 dark:text-rose-400 tracking-tight flex items-baseline gap-1">
+              <span>{followUpCount}</span>
               <span className="text-xs text-slate-400 font-bold">/{totalStudents}</span>
             </div>
             <CardDescription className="text-[10px] sm:text-[11px] text-slate-400 font-medium truncate">
-              لهم تسميعات
+              متابعة عاجلة
             </CardDescription>
           </CardContent>
         </Card>

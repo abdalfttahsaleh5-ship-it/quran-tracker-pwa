@@ -17,10 +17,10 @@ export default async function TeacherDashboardPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-300">
-      <TeacherDashboardClient students={students} logs={logs} />
+      <TeacherDashboardClient />
 
       {/* Unified Single-Row 3-Column KPI Stats Cards */}
-      <StatsCards students={students} logs={logs} stats={stats} />
+      <StatsCards students={students} logs={logs} attendance={attendance} stats={stats} />
 
       {/* Prominent Attendance Alerts & Urgent Follow-up Card */}
       <AttendanceAlertsCard students={students} attendance={attendance} />
