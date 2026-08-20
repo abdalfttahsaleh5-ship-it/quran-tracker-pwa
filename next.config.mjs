@@ -99,9 +99,17 @@ const withPWA = withPWAInit({
           expiration: { maxEntries: 64, maxAgeSeconds: 2592000 },
         },
       },
-      // 9. PWA Manifest & App Icons -> StaleWhileRevalidate
+      // 9. PWA Manifest -> NetworkFirst, App Icons -> StaleWhileRevalidate
       {
-        urlPattern: /\/(?:manifest\.json|icons\/.*)$/i,
+        urlPattern: /\/manifest\.json$/i,
+        handler: "NetworkFirst",
+        options: {
+          cacheName: "static-manifest",
+          networkTimeoutSeconds: 3,
+        },
+      },
+      {
+        urlPattern: /\/icons\/.*$/i,
         handler: "StaleWhileRevalidate",
         options: {
           cacheName: "static-manifest-icons",
@@ -153,6 +161,19 @@ const nextConfig = {
           {
             key: "X-Content-Type-Options",
             value: "nosniff",
+          },
+        ],
+      },
+      {
+        source: "/manifest.json",
+        headers: [
+          {
+            key: "Content-Type",
+            value: "application/manifest+json; charset=utf-8",
+          },
+          {
+            key: "Cache-Control",
+            value: "public, max-age=0, must-revalidate",
           },
         ],
       },
