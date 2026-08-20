@@ -6,7 +6,7 @@ import { lightHaptic, successHaptic } from "@/lib/haptics";
 
 export interface PWAInstallButtonProps {
   className?: string;
-  variant?: "badge" | "button";
+  variant?: "badge" | "button" | "header";
 }
 
 export function PWAInstallButton({
@@ -57,6 +57,20 @@ export function PWAInstallButton({
       >
         <Smartphone className="w-4 h-4 text-emerald-200" />
         <span>تثبيت التطبيق 📲</span>
+      </button>
+    );
+  }
+
+  if (variant === "header") {
+    return (
+      <button
+        type="button"
+        onClick={handleInstallClick}
+        title="تثبيت التطبيق على جهازك للوصول السريع"
+        className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 text-xs font-bold transition-all border border-emerald-200/80 dark:border-emerald-800/80 shadow-xs active:scale-95 ${className}`}
+      >
+        <Download className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400 shrink-0" />
+        <span>تثبيت</span>
       </button>
     );
   }

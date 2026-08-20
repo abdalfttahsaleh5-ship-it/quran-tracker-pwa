@@ -21,7 +21,7 @@ export function BottomNav() {
   ];
 
   return (
-    <nav aria-label="التنقل السفلي للجوال" className="bottom-nav no-print print:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-slate-200/80 dark:border-slate-800 md:hidden shadow-lg shadow-slate-900/10">
+    <nav aria-label="التنقل السفلي للجوال" className="bottom-nav no-print print:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-slate-200/80 dark:border-slate-800 md:hidden shadow-lg shadow-slate-900/10 pb-safe">
       <div className="flex items-center justify-around h-16 px-2 max-w-md mx-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
