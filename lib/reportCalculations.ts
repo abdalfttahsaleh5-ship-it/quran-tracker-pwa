@@ -85,7 +85,7 @@ export function calculateStudentReportItems(
   });
   const totalHalaqahSessions = sessionDates.size;
 
-  return students.map((student) => {
+  const items: StudentReportItem[] = students.map((student) => {
     // 1. Filter student logs within exact date boundaries
     const studentLogs = logs.filter((l) => {
       if (l.student_id !== student.id) return false;
@@ -186,5 +186,14 @@ export function calculateStudentReportItems(
       pagesCount: cleanPages,
       totalPresentCount: presentDays,
     };
+  });
+
+  // Sort descending by total recitation pages (highest first).
+  // Secondary sort by student name in Arabic to ensure deterministic stable ordering.
+  return items.sort((a, b) => {
+    if (b.pagesCount !== a.pagesCount) {
+      return b.pagesCount - a.pagesCount;
+    }
+    return (a.student.full_name || "").localeCompare(b.student.full_name || "", "ar");
   });
 }
